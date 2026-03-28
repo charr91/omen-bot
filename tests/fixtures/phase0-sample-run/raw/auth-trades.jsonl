@@ -1,0 +1,3 @@
+{"source":"auth-trade","capturedAt":"2026-03-28T00:00:30.000Z","pollId":1,"payload":{"id":"auth-trade-1","transaction_hash":"0xtx-auth-1","asset_id":"asset-yes","market":"market-1","side":"BUY","size":"100","price":"0.52","match_time":"1710000002","last_update":"1710000003","bucket_index":9,"trader_side":"TAKER","outcome":"Yes","maker_address":"0xmaker"}}
+{"source":"auth-trade","capturedAt":"2026-03-28T00:00:31.000Z","pollId":1,"payload":{"id":"auth-trade-2","transaction_hash":"0xtx-auth-2","asset_id":"asset-yes","market":"market-1","side":"BUY","size":"100","price":"0.52","match_time":"1710000002","last_update":"1710000004","bucket_index":9,"trader_side":"TAKER","outcome":"Yes","maker_address":"0xmaker"}}
+

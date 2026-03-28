@@ -1,0 +1,30 @@
+export const PHASE0_VERSION = 'phase0-v0';
+export const POLYMARKET_GAMMA_URL = 'https://gamma-api.polymarket.com';
+export const POLYMARKET_DATA_API_URL = 'https://data-api.polymarket.com';
+export const POLYMARKET_CLOB_URL = 'https://clob.polymarket.com';
+export const POLYMARKET_MARKET_WS_URL = 'wss://ws-subscriptions-clob.polymarket.com/ws/market';
+export const POLYGON_CHAIN_ID = 137;
+
+export const ACTIVE_MARKETS_PAGE_SIZE = 500;
+export const PUBLIC_TRADE_POLL_LIMIT = 500;
+export const PUBLIC_TRADE_MAX_OFFSET = 10_000;
+export const PUBLIC_TRADE_POLL_INTERVAL_MS = 15_000;
+export const AUTH_TRADE_POLL_INTERVAL_MS = 60_000;
+export const BOOK_REQUEST_BATCH_SIZE = 500;
+export const WS_SUBSCRIPTION_BATCH_SIZE = 200;
+export const MARKET_WS_HEARTBEAT_INTERVAL_MS = 10_000;
+export const MAX_BOOK_STALENESS_MS = 15_000;
+export const MAX_PUBLIC_TRADE_KEY_WINDOW = 25_000;
+export const CAPTURE_RETRY_ATTEMPTS = 3;
+export const CAPTURE_RETRY_BASE_MS = 1_000;
+
+export const RAW_DIRECTORY_NAME = 'raw';
+export const ANALYSIS_DIRECTORY_NAME = 'analysis';
+export const MANIFEST_FILE_NAME = 'manifest.json';
+export const OBSERVED_ASSETS_FILE_NAME = 'observed-assets.json';
+export const PUBLIC_TRADES_FILE_NAME = 'public-trades.jsonl';
+export const ORDER_BOOKS_FILE_NAME = 'order-books.jsonl';
+export const WS_MESSAGES_FILE_NAME = 'ws-market.jsonl';
+export const AUTH_TRADES_FILE_NAME = 'auth-trades.jsonl';
+export const SUMMARY_FILE_NAME = 'summary.json';
+export const FINDINGS_FILE_NAME = 'findings.md';

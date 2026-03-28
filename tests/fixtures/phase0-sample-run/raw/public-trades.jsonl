@@ -1,0 +1,4 @@
+{"source":"data-api-trade","capturedAt":"2026-03-28T00:00:10.000Z","pollId":1,"payload":{"proxyWallet":"0xwallet1","side":"BUY","asset":"asset-yes","conditionId":"market-1","size":100,"price":0.52,"timestamp":1710000002,"outcome":"Yes","transactionHash":"0xtx-public-1"}}
+{"source":"data-api-trade","capturedAt":"2026-03-28T00:00:10.000Z","pollId":1,"payload":{"proxyWallet":"0xwallet1","side":"BUY","asset":"asset-yes","conditionId":"market-1","size":50,"price":0.53,"timestamp":1710000003,"outcome":"Yes","transactionHash":"0xtx-public-1"}}
+{"source":"data-api-trade","capturedAt":"2026-03-28T00:00:10.000Z","pollId":1,"payload":{"proxyWallet":"0xwallet2","side":"SELL","asset":"asset-no","conditionId":"market-1","size":80,"price":0.48,"timestamp":1710000004,"outcome":"No","transactionHash":"0xtx-public-2"}}
+
