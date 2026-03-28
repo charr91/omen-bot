@@ -86,32 +86,7 @@ export async function runPhase0Capture(options: CaptureOptions): Promise<{
   const wsWriter = createJsonlWriter<JsonLineEnvelope>(resolve(rawDirectory, WS_MESSAGES_FILE_NAME));
   const authWriter = createJsonlWriter<JsonLineEnvelope>(resolve(rawDirectory, AUTH_TRADES_FILE_NAME));
 
-  let wsController: WsCaptureController = {
-    subscribe: async () => undefined,
-    stop: async () => undefined,
-  };
-  try {
-    wsController = await startMarketWsCapture({
-      onMessage: async (payload) => {
-        const compactBook = compactBookPayload(payload, 'ws-book');
-        if (!compactBook) {
-          return;
-        }
-
-        manifest.counts.wsMessages += 1;
-        await wsWriter.write({
-          source: 'market-ws',
-          capturedAt: new Date().toISOString(),
-          payload: compactBook,
-        });
-      },
-    });
-  } catch {
-    wsController = {
-      subscribe: async () => undefined,
-      stop: async () => undefined,
-    };
-  }
+  let wsController: WsCaptureController | null = null;
 
   const readAuthenticatedTrades = await createAuthenticatedTradeReader(options.useAuth);
   const seenPublicTradeKeys = new Set<string>();
@@ -163,10 +138,38 @@ export async function runPhase0Capture(options: CaptureOptions): Promise<{
       }
 
       if (assetIds.size > 0) {
+        const activeWsController = await ensureWsController(wsController, async () =>
+          runWithRetries('start market websocket', () =>
+            startMarketWsCapture({
+              onMessage: async (payload) => {
+                const compactBook = compactBookPayload(payload, 'ws-book');
+                if (!compactBook) {
+                  return;
+                }
+
+                manifest.counts.wsMessages += 1;
+                await wsWriter.write({
+                  source: 'market-ws',
+                  capturedAt: new Date().toISOString(),
+                  payload: compactBook,
+                });
+              },
+            }),
+          ).catch((error: unknown) => {
+            warnCaptureStep(error, 'websocket startup');
+            return null;
+          }),
+        );
+        wsController = activeWsController;
+
         try {
-          await wsController.subscribe([...assetIds]);
+          await activeWsController?.subscribe([...assetIds]);
         } catch (error) {
           warnCaptureStep(error, 'websocket subscribe');
+          if (wsController) {
+            await wsController.stop().catch(() => undefined);
+            wsController = null;
+          }
         }
 
         const orderBooks = await runWithRetries(
@@ -230,7 +233,7 @@ export async function runPhase0Capture(options: CaptureOptions): Promise<{
     }
   } finally {
     manifest.completedAt = new Date().toISOString();
-    await wsController.stop();
+    await wsController?.stop();
     await publicTradeWriter.close();
     await orderBookWriter.close();
     await wsWriter.close();
@@ -406,6 +409,17 @@ function addBoundedKey(
       knownKeys.delete(oldestKey);
     }
   }
+}
+
+async function ensureWsController(
+  controller: WsCaptureController | null,
+  startController: () => Promise<WsCaptureController | null>,
+): Promise<WsCaptureController | null> {
+  if (controller) {
+    return controller;
+  }
+
+  return startController();
 }
 
 async function runWithRetries<T>(

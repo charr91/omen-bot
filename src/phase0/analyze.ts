@@ -50,7 +50,7 @@ export async function runPhase0Analysis(inputDirectory: string): Promise<{
   await ensureDirectory(analysisDirectory);
   captureManifestSchema.parse(await readJsonFile(resolve(runDirectory, MANIFEST_FILE_NAME)));
 
-  const publicTradeObservations = await readJsonLineEnvelopes(resolve(rawDirectory, PUBLIC_TRADES_FILE_NAME));
+  const publicTradeObservations = await readJsonLineEnvelopes(resolve(rawDirectory, PUBLIC_TRADES_FILE_NAME), true);
   const authTradeObservations = await readJsonLineEnvelopes(resolve(rawDirectory, AUTH_TRADES_FILE_NAME), true);
   const orderBookObservations = await readJsonLineEnvelopes(resolve(rawDirectory, ORDER_BOOKS_FILE_NAME), true);
   const wsObservations = await readJsonLineEnvelopes(resolve(rawDirectory, WS_MESSAGES_FILE_NAME), true);

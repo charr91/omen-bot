@@ -34,6 +34,15 @@ interface WalletConstructor {
   };
 }
 
+interface CreateL1Headers {
+  (signer: unknown, chainId: number, nonce?: number, timestamp?: number): Promise<Record<string, string>>;
+}
+
+interface RawRequestClient {
+  get(url: string, options?: Record<string, unknown>): Promise<unknown>;
+  post(url: string, data?: unknown, options?: Record<string, unknown>): Promise<unknown>;
+}
+
 export async function createAuthenticatedTradeReader(
   enabled: boolean,
 ): Promise<(() => Promise<JsonObject[]>) | null> {
@@ -49,8 +58,9 @@ export async function createAuthenticatedTradeReader(
   }
 
   const walletModule = (await import('ethers')) as { Wallet: WalletConstructor };
-  const clobModule = (await import('@polymarket/clob-client')) as {
+  const clobModule = (await import('@polymarket/clob-client') as unknown) as {
     ClobClient: ClobClientConstructor;
+    createL1Headers: CreateL1Headers;
   };
 
   const signer = new walletModule.Wallet(privateKey);
@@ -58,7 +68,7 @@ export async function createAuthenticatedTradeReader(
   const funder = process.env.POLY_FUNDER ?? signer.address;
 
   const tempClient = new clobModule.ClobClient(POLYMARKET_CLOB_URL, POLYGON_CHAIN_ID, signer);
-  const creds = await deriveApiCreds(tempClient);
+  const creds = await deriveApiCreds(tempClient, signer, clobModule.createL1Headers);
   const client = new clobModule.ClobClient(
     POLYMARKET_CLOB_URL,
     POLYGON_CHAIN_ID,
@@ -78,7 +88,11 @@ export async function createAuthenticatedTradeReader(
   };
 }
 
-async function deriveApiCreds(client: TempTradeClient): Promise<ApiCredsShape> {
+async function deriveApiCreds(
+  client: TempTradeClient,
+  signer: unknown,
+  createL1Headers: CreateL1Headers,
+): Promise<ApiCredsShape> {
   const envKey = process.env.POLY_API_KEY;
   const envSecret = process.env.POLY_API_SECRET;
   const envPassphrase = process.env.POLY_API_PASSPHRASE;
@@ -91,21 +105,80 @@ async function deriveApiCreds(client: TempTradeClient): Promise<ApiCredsShape> {
     };
   }
 
+  const createdCreds = await requestRawApiCreds(client, signer, createL1Headers, 'create');
+  if (createdCreds) {
+    return createdCreds;
+  }
+
+  const derivedCreds = await requestRawApiCreds(client, signer, createL1Headers, 'derive');
+  if (derivedCreds) {
+    return derivedCreds;
+  }
+
   if (client.createOrDeriveApiKey) {
-    return parseApiCreds(await client.createOrDeriveApiKey());
+    const creds = tryParseApiCreds(await client.createOrDeriveApiKey());
+    if (creds) {
+      return creds;
+    }
   }
 
   if (client.createOrDeriveApiCreds) {
-    return parseApiCreds(await client.createOrDeriveApiCreds());
+    const creds = tryParseApiCreds(await client.createOrDeriveApiCreds());
+    if (creds) {
+      return creds;
+    }
   }
 
-  throw new Error('Installed @polymarket/clob-client does not expose API credential helpers');
+  throw new Error('Unable to derive authenticated Polymarket API credentials');
 }
 
-function parseApiCreds(input: unknown): ApiCredsShape {
-  const value = asJsonObject(input, 'API credentials');
+async function requestRawApiCreds(
+  client: TempTradeClient,
+  signer: unknown,
+  createL1Headers: CreateL1Headers,
+  mode: 'create' | 'derive',
+): Promise<ApiCredsShape | null> {
+  const rawClient = client as unknown as Partial<RawRequestClient>;
+  const headers = await createL1Headers(signer, POLYGON_CHAIN_ID);
+  const endpoint =
+    mode === 'create'
+      ? `${POLYMARKET_CLOB_URL}/auth/api-key`
+      : `${POLYMARKET_CLOB_URL}/auth/derive-api-key`;
 
-  const key = typeof value.key === 'string' ? value.key : typeof value.apiKey === 'string' ? value.apiKey : null;
+  let response: unknown;
+  if (mode === 'create') {
+    if (!rawClient.post) {
+      return null;
+    }
+    response = await rawClient.post(endpoint, undefined, { headers });
+  } else {
+    if (!rawClient.get) {
+      return null;
+    }
+    response = await rawClient.get(endpoint, { headers });
+  }
+
+  return tryParseApiCreds(response);
+}
+
+export function parseApiCreds(input: unknown): ApiCredsShape {
+  const creds = tryParseApiCreds(input);
+  if (!creds) {
+    throw new Error('Unable to parse authenticated Polymarket API credentials');
+  }
+
+  return creds;
+}
+
+function tryParseApiCreds(input: unknown): ApiCredsShape | null {
+  let value: JsonObject;
+  try {
+    value = asJsonObject(input, 'API credentials');
+  } catch {
+    return null;
+  }
+
+  const key = typeof value.apiKey === 'string' ? value.apiKey : typeof value.key === 'string' ? value.key : null;
   const secret =
     typeof value.secret === 'string'
       ? value.secret
@@ -120,7 +193,7 @@ function parseApiCreds(input: unknown): ApiCredsShape {
         : null;
 
   if (!key || !secret || !passphrase) {
-    throw new Error('Unable to parse authenticated Polymarket API credentials');
+    return null;
   }
 
   return {
@@ -129,4 +202,3 @@ function parseApiCreds(input: unknown): ApiCredsShape {
     passphrase,
   };
 }
-
