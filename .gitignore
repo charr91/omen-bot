@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.phase0-data/
+coverage/
+.DS_Store
+
