@@ -1,0 +1,26 @@
+{
+  "version": "phase0-v0",
+  "startedAt": "2026-03-28T00:00:00.000Z",
+  "completedAt": "2026-03-28T00:01:00.000Z",
+  "runDirectory": "/tmp/omen-phase0-sample",
+  "requestedHours": 0.01,
+  "useAuth": true,
+  "sources": {
+    "gammaMarkets": "https://gamma-api.polymarket.com/markets?active=true&closed=false",
+    "publicTrades": "https://data-api.polymarket.com/trades?limit=1000&offset=0&takerOnly=true",
+    "orderBooks": "https://clob.polymarket.com/books",
+    "marketWebSocket": "wss://ws-subscriptions-clob.polymarket.com/ws/market",
+    "authenticatedTrades": true
+  },
+  "discovery": {
+    "activeAssets": 2,
+    "activeMarkets": 1
+  },
+  "counts": {
+    "publicTradeObservations": 3,
+    "orderBookSnapshots": 2,
+    "wsMessages": 1,
+    "authTradeObservations": 2
+  }
+}
+
