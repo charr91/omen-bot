@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from 'node:util';
+import { loadEnvironment } from './env.js';
 import { runPhase0Analysis } from './phase0/analyze.js';
 import { runPhase0Capture } from './phase0/capture.js';
 
@@ -19,13 +20,21 @@ const HELP = `omen validate-fills
 Phase 0 only.
 
 Usage:
-  omen validate-fills capture --hours 24 --out .phase0-data/run-001 [--use-auth]
-  omen validate-fills analyze --input .phase0-data/run-001
+  omen [--env-file .env.server] validate-fills capture --hours 24 --out .phase0-data/run-001 [--use-auth]
+  omen [--env-file .env.server] validate-fills analyze --input .phase0-data/run-001
+
+Environment:
+  Loads .env.local then .env from the current working directory by default.
+  Existing exported environment variables override file values.
+  Repeat --env-file to load additional explicit files.
 `;
 
 async function main(): Promise<void> {
   const [, , ...argv] = process.argv;
-  const [scope, action, ...rest] = argv;
+  const parsed = parseGlobalOptions(argv);
+  loadEnvironment(parsed.envFiles.length > 0 ? { envFiles: parsed.envFiles } : undefined);
+
+  const [scope, action, ...rest] = parsed.positionals;
 
   if (scope !== 'validate-fills' || !action) {
     throw new Error(HELP);
@@ -48,6 +57,49 @@ async function main(): Promise<void> {
   }
 
   throw new Error(HELP);
+}
+
+function parseGlobalOptions(args: string[]): {
+  envFiles: string[];
+  positionals: string[];
+} {
+  const envFiles: string[] = [];
+  const positionals: string[] = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === undefined) {
+      continue;
+    }
+
+    if (arg === '--env-file') {
+      const next = args[index + 1];
+      if (!next || next.startsWith('--')) {
+        throw new Error('--env-file requires a path');
+      }
+
+      envFiles.push(next);
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--env-file=')) {
+      const value = arg.slice('--env-file='.length);
+      if (!value) {
+        throw new Error('--env-file requires a path');
+      }
+
+      envFiles.push(value);
+      continue;
+    }
+
+    positionals.push(arg);
+  }
+
+  return {
+    envFiles,
+    positionals,
+  };
 }
 
 function parseCaptureOptions(args: string[]): CaptureCliOptions {
@@ -108,4 +160,3 @@ void main().catch((error: unknown) => {
   process.stderr.write(`${message}\n`);
   process.exitCode = 1;
 });
-
