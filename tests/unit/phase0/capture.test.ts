@@ -71,4 +71,15 @@ describe('phase0 capture helpers', () => {
       'Public trade window exceeded max paginable offset 2',
     );
   });
+
+  it('fails loudly when maxOffset is not divisible by pageSize and more full pages remain', async () => {
+    const fetchPage = vi
+      .fn<(offset: number) => Promise<JsonObject[]>>()
+      .mockResolvedValueOnce([makeTrade({ transactionHash: '0xtx-1' }), makeTrade({ transactionHash: '0xtx-2' })])
+      .mockResolvedValueOnce([makeTrade({ transactionHash: '0xtx-3' }), makeTrade({ transactionHash: '0xtx-4' })]);
+
+    await expect(fetchVisiblePublicTrades(new Set<string>(), fetchPage, 2, 3)).rejects.toThrow(
+      'Public trade window exceeded max paginable offset 3',
+    );
+  });
 });

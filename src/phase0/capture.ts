@@ -273,7 +273,8 @@ export async function fetchVisiblePublicTrades(
     const newTradesInPage = selectNewPublicTrades(page, knownTradeKeys, pollSeenKeys);
     trades.push(...newTradesInPage);
 
-    if (offset === maxOffset && page.length === pageSize && newTradesInPage.length > 0) {
+    const reachedPaginationLimit = offset + pageSize > maxOffset;
+    if (reachedPaginationLimit && page.length === pageSize && newTradesInPage.length > 0) {
       throw new Error(
         `Public trade window exceeded max paginable offset ${maxOffset}; refusing to continue with possible silent trade loss.`,
       );

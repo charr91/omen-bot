@@ -1,4 +1,8 @@
-import { POLYMARKET_MARKET_WS_URL, WS_SUBSCRIPTION_BATCH_SIZE } from './constants.js';
+import {
+  MARKET_WS_HEARTBEAT_INTERVAL_MS,
+  POLYMARKET_MARKET_WS_URL,
+  WS_SUBSCRIPTION_BATCH_SIZE,
+} from './constants.js';
 import { isJsonObject } from './json.js';
 import type { JsonObject } from './types.js';
 
@@ -12,33 +16,121 @@ export interface WsCaptureController {
 }
 
 export async function startMarketWsCapture(options: WsCaptureOptions): Promise<WsCaptureController> {
-  const ws = new WebSocket(POLYMARKET_MARKET_WS_URL);
-  const subscribedAssetIds = new Set<string>();
-  const openPromise = new Promise<void>((resolve, reject) => {
-    ws.addEventListener('open', () => resolve(), { once: true });
-    ws.addEventListener(
-      'error',
-      () => reject(new Error('Failed to connect to Polymarket market WebSocket')),
-      { once: true },
-    );
-  });
+  const desiredAssetIds = new Set<string>();
+  let ws: WebSocket | null = null;
+  let subscribedAssetIds = new Set<string>();
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  let openSocketPromise: Promise<WebSocket> | null = null;
+  let stopped = false;
 
-  ws.addEventListener('message', (event) => {
-    void handleIncomingMessage(event.data, options.onMessage);
-  });
+  function clearHeartbeat(): void {
+    if (heartbeatTimer !== null) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  }
 
-  await openPromise;
-
-  return {
-    async subscribe(assetIds: string[]): Promise<void> {
-      const newAssetIds = assetIds.filter((assetId) => !subscribedAssetIds.has(assetId));
-      if (newAssetIds.length === 0 || ws.readyState !== WebSocket.OPEN) {
+  function startHeartbeat(socket: WebSocket): void {
+    clearHeartbeat();
+    heartbeatTimer = setInterval(() => {
+      if (stopped || ws !== socket || socket.readyState !== WebSocket.OPEN) {
         return;
       }
 
-      for (let index = 0; index < newAssetIds.length; index += WS_SUBSCRIPTION_BATCH_SIZE) {
-        const chunk = newAssetIds.slice(index, index + WS_SUBSCRIPTION_BATCH_SIZE);
-        ws.send(
+      socket.send('PING');
+    }, MARKET_WS_HEARTBEAT_INTERVAL_MS);
+
+    if (typeof heartbeatTimer.unref === 'function') {
+      heartbeatTimer.unref();
+    }
+  }
+
+  function attachSocket(socket: WebSocket): void {
+    socket.addEventListener('message', (event) => {
+      void handleIncomingMessage(event.data, options.onMessage);
+    });
+    socket.addEventListener('close', () => {
+      if (ws === socket) {
+        ws = null;
+        subscribedAssetIds = new Set<string>();
+      }
+      if (openSocketPromise !== null) {
+        openSocketPromise = null;
+      }
+      clearHeartbeat();
+    });
+  }
+
+  async function openSocket(): Promise<WebSocket> {
+    const socket = new WebSocket(POLYMARKET_MARKET_WS_URL);
+    attachSocket(socket);
+
+    await new Promise<void>((resolve, reject) => {
+      const handleOpen = (): void => {
+        socket.removeEventListener('error', handleError);
+        socket.removeEventListener('close', handleClose);
+        resolve();
+      };
+      const handleError = (): void => {
+        socket.removeEventListener('open', handleOpen);
+        socket.removeEventListener('close', handleClose);
+        reject(new Error('Failed to connect to Polymarket market WebSocket'));
+      };
+      const handleClose = (): void => {
+        socket.removeEventListener('open', handleOpen);
+        socket.removeEventListener('error', handleError);
+        reject(new Error('Polymarket market WebSocket closed before it finished opening'));
+      };
+
+      socket.addEventListener('open', handleOpen, { once: true });
+      socket.addEventListener('error', handleError, { once: true });
+      socket.addEventListener('close', handleClose, { once: true });
+    });
+
+    ws = socket;
+    startHeartbeat(socket);
+    return socket;
+  }
+
+  async function ensureOpenSocket(): Promise<WebSocket> {
+    if (stopped) {
+      throw new Error('Polymarket market WebSocket capture has already been stopped');
+    }
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      return ws;
+    }
+
+    if (openSocketPromise === null) {
+      openSocketPromise = openSocket().finally(() => {
+        openSocketPromise = null;
+      });
+    }
+
+    return openSocketPromise;
+  }
+
+  await ensureOpenSocket();
+
+  return {
+    async subscribe(assetIds: string[]): Promise<void> {
+      for (const assetId of assetIds) {
+        desiredAssetIds.add(assetId);
+      }
+
+      const socket = await ensureOpenSocket();
+      const pendingAssetIds = [...desiredAssetIds].filter((assetId) => !subscribedAssetIds.has(assetId));
+      if (pendingAssetIds.length === 0) {
+        return;
+      }
+
+      if (socket.readyState !== WebSocket.OPEN) {
+        throw new Error('Polymarket market WebSocket is not open for subscriptions');
+      }
+
+      for (let index = 0; index < pendingAssetIds.length; index += WS_SUBSCRIPTION_BATCH_SIZE) {
+        const chunk = pendingAssetIds.slice(index, index + WS_SUBSCRIPTION_BATCH_SIZE);
+        socket.send(
           JSON.stringify({
             type: 'MARKET',
             assets_ids: chunk,
@@ -46,14 +138,18 @@ export async function startMarketWsCapture(options: WsCaptureOptions): Promise<W
         );
       }
 
-      for (const assetId of newAssetIds) {
+      for (const assetId of pendingAssetIds) {
         subscribedAssetIds.add(assetId);
       }
     },
     async stop(): Promise<void> {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      stopped = true;
+      clearHeartbeat();
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
         ws.close(1000, 'phase0 capture complete');
       }
+      ws = null;
+      subscribedAssetIds = new Set<string>();
     },
   };
 }
