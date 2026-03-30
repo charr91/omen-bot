@@ -42,6 +42,24 @@ export interface CaptureManifest {
   };
 }
 
+export type CaptureRunStatus = 'running' | 'completed' | 'failed';
+
+export interface CaptureRunState {
+  version: string;
+  status: CaptureRunStatus;
+  runDirectory: string;
+  startedAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  requestedHours: number;
+  useAuth: boolean;
+  pid: number;
+  resumedFromExisting: boolean;
+  counts: CaptureManifest['counts'];
+  lastStep: string;
+  lastError: string | null;
+}
+
 export interface JsonLineEnvelope {
   source: string;
   capturedAt: string;

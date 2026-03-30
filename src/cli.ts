@@ -1,14 +1,20 @@
 #!/usr/bin/env node
 
+import { spawn } from 'node:child_process';
+import { closeSync, openSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { loadEnvironment } from './env.js';
 import { runPhase0Analysis } from './phase0/analyze.js';
-import { runPhase0Capture } from './phase0/capture.js';
+import { defaultDetachedCaptureLogPath, runPhase0Capture } from './phase0/capture.js';
 
 interface CaptureCliOptions {
   hours: number;
   out: string;
   useAuth: boolean;
+  detach: boolean;
 }
 
 interface AnalyzeCliOptions {
@@ -20,7 +26,7 @@ const HELP = `omen validate-fills
 Phase 0 only.
 
 Usage:
-  omen [--env-file .env.server] validate-fills capture --hours 24 --out .phase0-data/run-001 [--use-auth]
+  omen [--env-file .env.server] validate-fills capture --hours 24 --out .phase0-data/run-001 [--use-auth] [--detach]
   omen [--env-file .env.server] validate-fills analyze --input .phase0-data/run-001
 
 Environment:
@@ -42,6 +48,13 @@ async function main(): Promise<void> {
 
   if (action === 'capture') {
     const options = parseCaptureOptions(rest);
+
+    if (options.detach) {
+      const result = await spawnDetachedCapture(parsed.envFiles, options);
+      process.stdout.write(`${result.pid}\n${result.runDirectory}\n${result.logPath}\n`);
+      return;
+    }
+
     const result = await runPhase0Capture(options);
     process.stdout.write(`${result.runDirectory}\n`);
     return;
@@ -57,6 +70,52 @@ async function main(): Promise<void> {
   }
 
   throw new Error(HELP);
+}
+
+async function spawnDetachedCapture(
+  envFiles: string[],
+  options: CaptureCliOptions,
+): Promise<{
+  pid: number;
+  runDirectory: string;
+  logPath: string;
+}> {
+  const runDirectory = resolve(options.out);
+  const logPath = defaultDetachedCaptureLogPath(runDirectory);
+  await mkdir(runDirectory, { recursive: true });
+
+  const cliPath = fileURLToPath(import.meta.url);
+  const args: string[] = [cliPath];
+  for (const envFile of envFiles) {
+    args.push('--env-file', envFile);
+  }
+  args.push('validate-fills', 'capture', '--hours', String(options.hours), '--out', options.out);
+  if (options.useAuth) {
+    args.push('--use-auth');
+  }
+
+  const outputFd = openSync(logPath, 'a');
+  try {
+    const child = spawn(process.execPath, args, {
+      cwd: process.cwd(),
+      detached: true,
+      env: process.env,
+      stdio: ['ignore', outputFd, outputFd],
+    });
+    child.unref();
+
+    if (!child.pid) {
+      throw new Error('Detached capture failed to return a child pid');
+    }
+
+    return {
+      pid: child.pid,
+      runDirectory,
+      logPath,
+    };
+  } finally {
+    closeSync(outputFd);
+  }
 }
 
 function parseGlobalOptions(args: string[]): {
@@ -118,6 +177,10 @@ function parseCaptureOptions(args: string[]): CaptureCliOptions {
         type: 'boolean',
         default: false,
       },
+      detach: {
+        type: 'boolean',
+        default: false,
+      },
     },
     allowPositionals: false,
   });
@@ -132,6 +195,7 @@ function parseCaptureOptions(args: string[]): CaptureCliOptions {
     hours,
     out: parsed.values.out,
     useAuth: parsed.values['use-auth'],
+    detach: parsed.values.detach,
   };
 }
 

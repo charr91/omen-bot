@@ -5,8 +5,10 @@ import {
   ANALYSIS_DIRECTORY_NAME,
   AUTH_TRADE_POLL_INTERVAL_MS,
   AUTH_TRADES_FILE_NAME,
+  CAPTURE_LOG_FILE_NAME,
   CAPTURE_RETRY_ATTEMPTS,
   CAPTURE_RETRY_BASE_MS,
+  CAPTURE_STATE_FILE_NAME,
   FINDINGS_FILE_NAME,
   MANIFEST_FILE_NAME,
   MAX_PUBLIC_TRADE_KEY_WINDOW,
@@ -21,12 +23,26 @@ import {
   PUBLIC_TRADE_POLL_LIMIT,
   WS_MESSAGES_FILE_NAME,
 } from './constants.js';
-import { createJsonlWriter, ensureDirectory, sleep, writeJsonFile, writeTextFile } from './io.js';
+import {
+  createJsonlWriter,
+  ensureDirectory,
+  readJsonFile,
+  scanJsonLines,
+  sleep,
+  writeJsonFile,
+  writeTextFile,
+} from './io.js';
+import { asJsonObject, getJsonArray, getJsonObject, getNumber, getString } from './json.js';
 import { captureManifestSchema } from './manifest.js';
 import { fetchActiveAssets, fetchOrderBooks, fetchPublicTrades } from './public-api.js';
-import { getJsonArray, getNumber, getString } from './json.js';
 import { startMarketWsCapture, type WsCaptureController } from './ws.js';
-import type { ActiveAsset, CaptureManifest, JsonLineEnvelope, JsonObject } from './types.js';
+import type {
+  ActiveAsset,
+  CaptureManifest,
+  CaptureRunState,
+  JsonLineEnvelope,
+  JsonObject,
+} from './types.js';
 
 interface CaptureOptions {
   hours: number;
@@ -37,6 +53,15 @@ interface CaptureOptions {
 interface NewPublicTrade {
   key: string;
   trade: JsonObject;
+}
+
+interface HydratedCaptureRun {
+  manifest: CaptureManifest;
+  observedAssets: Map<string, ActiveAsset>;
+  seenPublicTradeKeys: Set<string>;
+  seenPublicTradeKeyOrder: string[];
+  seenAuthTradeIds: Set<string>;
+  resumedFromExisting: boolean;
 }
 
 export async function runPhase0Capture(options: CaptureOptions): Promise<{
@@ -51,35 +76,35 @@ export async function runPhase0Capture(options: CaptureOptions): Promise<{
 
   const discovery = await fetchActiveAssets();
   const assetsById = new Map(discovery.assets.map((asset) => [asset.assetId, asset] as const));
-  const observedAssets = new Map<string, ActiveAsset>();
 
-  const manifest: CaptureManifest = {
-    version: PHASE0_VERSION,
-    startedAt: new Date().toISOString(),
-    completedAt: null,
-    runDirectory,
-    requestedHours: options.hours,
-    useAuth: options.useAuth,
-    sources: {
-      gammaMarkets: 'https://gamma-api.polymarket.com/markets?active=true&closed=false',
-      publicTrades: 'https://data-api.polymarket.com/trades?limit=500&offset=0&takerOnly=true',
-      orderBooks: 'https://clob.polymarket.com/books',
-      marketWebSocket: 'wss://ws-subscriptions-clob.polymarket.com/ws/market',
-      authenticatedTrades: options.useAuth,
-    },
-    discovery: {
-      activeAssets: discovery.assets.length,
-      activeMarkets: discovery.marketCount,
-    },
-    counts: {
-      publicTradeObservations: 0,
-      orderBookSnapshots: 0,
-      wsMessages: 0,
-      authTradeObservations: 0,
-    },
-  };
+  const hydrated = await hydrateCaptureRun(runDirectory, options, assetsById, {
+    activeAssets: discovery.assets.length,
+    activeMarkets: discovery.marketCount,
+  });
+  const manifest = hydrated.manifest;
+  const observedAssets = hydrated.observedAssets;
+  const seenPublicTradeKeys = hydrated.seenPublicTradeKeys;
+  const seenPublicTradeKeyOrder = hydrated.seenPublicTradeKeyOrder;
+  const seenAuthTradeIds = hydrated.seenAuthTradeIds;
 
   await persistManifest(runDirectory, manifest);
+
+  const runState: CaptureRunState = {
+    version: PHASE0_VERSION,
+    status: 'running',
+    runDirectory,
+    startedAt: manifest.startedAt,
+    updatedAt: new Date().toISOString(),
+    completedAt: null,
+    requestedHours: manifest.requestedHours,
+    useAuth: manifest.useAuth,
+    pid: process.pid,
+    resumedFromExisting: hydrated.resumedFromExisting,
+    counts: { ...manifest.counts },
+    lastStep: hydrated.resumedFromExisting ? 'resume' : 'initialize',
+    lastError: null,
+  };
+  await persistCaptureState(runDirectory, runState);
 
   const publicTradeWriter = createJsonlWriter<JsonLineEnvelope>(resolve(rawDirectory, PUBLIC_TRADES_FILE_NAME));
   const orderBookWriter = createJsonlWriter<JsonLineEnvelope>(resolve(rawDirectory, ORDER_BOOKS_FILE_NAME));
@@ -87,24 +112,27 @@ export async function runPhase0Capture(options: CaptureOptions): Promise<{
   const authWriter = createJsonlWriter<JsonLineEnvelope>(resolve(rawDirectory, AUTH_TRADES_FILE_NAME));
 
   let wsController: WsCaptureController | null = null;
+  let completedSuccessfully = false;
+  let lastFailure: unknown = null;
 
   const readAuthenticatedTrades = await createAuthenticatedTradeReader(options.useAuth);
-  const seenPublicTradeKeys = new Set<string>();
-  const seenPublicTradeKeyOrder: string[] = [];
-  const seenAuthTradeIds = new Set<string>();
-  const endTimeMs = Date.now() + options.hours * 60 * 60 * 1000;
+  const endTimeMs = Date.parse(manifest.startedAt) + manifest.requestedHours * 60 * 60 * 1000;
   let lastAuthPollAt = 0;
   let pollId = 0;
 
   try {
     while (Date.now() < endTimeMs) {
       pollId += 1;
+      runState.lastStep = `poll:${pollId}`;
+      runState.updatedAt = new Date().toISOString();
+      await persistCaptureState(runDirectory, runState);
+
       const capturedAt = new Date().toISOString();
       const publicTrades = await runWithRetries(
         'fetch public trades',
         () => fetchVisiblePublicTrades(seenPublicTradeKeys),
       ).catch(async (error: unknown) => {
-        warnCaptureStep(error, 'public trades');
+        await warnAndRecordCaptureStep(runDirectory, runState, manifest, 'public trades', error);
         await persistManifest(runDirectory, manifest);
         return null;
       });
@@ -154,9 +182,12 @@ export async function runPhase0Capture(options: CaptureOptions): Promise<{
                   payload: compactBook,
                 });
               },
+              onError: async (error, label) => {
+                await warnAndRecordCaptureStep(runDirectory, runState, manifest, label, error);
+              },
             }),
-          ).catch((error: unknown) => {
-            warnCaptureStep(error, 'websocket startup');
+          ).catch(async (error: unknown) => {
+            await warnAndRecordCaptureStep(runDirectory, runState, manifest, 'websocket startup', error);
             return null;
           }),
         );
@@ -165,7 +196,7 @@ export async function runPhase0Capture(options: CaptureOptions): Promise<{
         try {
           await activeWsController?.subscribe([...assetIds]);
         } catch (error) {
-          warnCaptureStep(error, 'websocket subscribe');
+          await warnAndRecordCaptureStep(runDirectory, runState, manifest, 'websocket subscribe', error);
           if (wsController) {
             await wsController.stop().catch(() => undefined);
             wsController = null;
@@ -175,8 +206,8 @@ export async function runPhase0Capture(options: CaptureOptions): Promise<{
         const orderBooks = await runWithRetries(
           'fetch order books',
           () => fetchOrderBooks([...assetIds]),
-        ).catch((error: unknown) => {
-          warnCaptureStep(error, 'order books');
+        ).catch(async (error: unknown) => {
+          await warnAndRecordCaptureStep(runDirectory, runState, manifest, 'order books', error);
           return null;
         });
         if (orderBooks) {
@@ -200,8 +231,8 @@ export async function runPhase0Capture(options: CaptureOptions): Promise<{
       if (readAuthenticatedTrades && Date.now() - lastAuthPollAt >= AUTH_TRADE_POLL_INTERVAL_MS) {
         const authTrades = await runWithRetries('fetch authenticated trades', () =>
           readAuthenticatedTrades(),
-        ).catch((error: unknown) => {
-          warnCaptureStep(error, 'authenticated trades');
+        ).catch(async (error: unknown) => {
+          await warnAndRecordCaptureStep(runDirectory, runState, manifest, 'authenticated trades', error);
           return null;
         });
         if (authTrades) {
@@ -226,31 +257,196 @@ export async function runPhase0Capture(options: CaptureOptions): Promise<{
       }
 
       await persistManifest(runDirectory, manifest);
+      runState.counts = { ...manifest.counts };
+      runState.updatedAt = new Date().toISOString();
+      runState.lastStep = `sleep:${pollId}`;
+      runState.lastError = null;
+      await persistCaptureState(runDirectory, runState);
+
       const remainingMs = endTimeMs - Date.now();
       if (remainingMs > 0) {
         await sleep(Math.min(PUBLIC_TRADE_POLL_INTERVAL_MS, remainingMs));
       }
     }
+
+    completedSuccessfully = true;
+  } catch (error) {
+    lastFailure = error;
+    throw error;
   } finally {
-    manifest.completedAt = new Date().toISOString();
-    await wsController?.stop();
-    await publicTradeWriter.close();
-    await orderBookWriter.close();
-    await wsWriter.close();
-    await authWriter.close();
-    await persistManifest(runDirectory, manifest);
-    await writeJsonFile(resolve(runDirectory, OBSERVED_ASSETS_FILE_NAME), {
-      assets: [...observedAssets.values()],
+    await wsController?.stop().catch((error) => {
+      process.stderr.write(`[phase0] websocket shutdown failed: ${String(error)}\n`);
     });
-    await writeJsonFile(resolve(analysisDirectory, SUMMARY_FILE_NAME), { status: 'pending-analysis' });
-    await writeTextFile(
-      resolve(analysisDirectory, FINDINGS_FILE_NAME),
-      'Run `omen validate-fills analyze --input <runDir>` after capture completes.',
-    );
+    await publicTradeWriter.close().catch((error) => {
+      process.stderr.write(`[phase0] public writer close failed: ${String(error)}\n`);
+    });
+    await orderBookWriter.close().catch((error) => {
+      process.stderr.write(`[phase0] order book writer close failed: ${String(error)}\n`);
+    });
+    await wsWriter.close().catch((error) => {
+      process.stderr.write(`[phase0] websocket writer close failed: ${String(error)}\n`);
+    });
+    await authWriter.close().catch((error) => {
+      process.stderr.write(`[phase0] auth writer close failed: ${String(error)}\n`);
+    });
+
+    runState.counts = { ...manifest.counts };
+    runState.updatedAt = new Date().toISOString();
+
+    if (completedSuccessfully) {
+      manifest.completedAt = new Date().toISOString();
+      await persistManifest(runDirectory, manifest);
+      await writeJsonFile(resolve(runDirectory, OBSERVED_ASSETS_FILE_NAME), {
+        assets: [...observedAssets.values()],
+      });
+      await writeJsonFile(resolve(analysisDirectory, SUMMARY_FILE_NAME), { status: 'pending-analysis' });
+      await writeTextFile(
+        resolve(analysisDirectory, FINDINGS_FILE_NAME),
+        'Run `omen validate-fills analyze --input <runDir>` after capture completes.',
+      );
+
+      runState.status = 'completed';
+      runState.completedAt = manifest.completedAt;
+      runState.lastStep = 'completed';
+      runState.lastError = null;
+      await persistCaptureState(runDirectory, runState);
+    } else {
+      runState.status = 'failed';
+      runState.completedAt = null;
+      runState.lastStep = 'failed';
+      runState.lastError = formatError(lastFailure);
+      await persistCaptureState(runDirectory, runState);
+    }
   }
 
   return {
     runDirectory,
+  };
+}
+
+export async function hydrateCaptureRun(
+  runDirectory: string,
+  options: CaptureOptions,
+  assetsById: ReadonlyMap<string, ActiveAsset>,
+  discovery: CaptureManifest['discovery'],
+): Promise<HydratedCaptureRun> {
+  const manifestPath = resolve(runDirectory, MANIFEST_FILE_NAME);
+
+  const observedAssets = new Map<string, ActiveAsset>();
+  const seenPublicTradeKeys = new Set<string>();
+  const seenPublicTradeKeyOrder: string[] = [];
+  const seenAuthTradeIds = new Set<string>();
+
+  if (!await fileExists(manifestPath)) {
+    return {
+      manifest: {
+        version: PHASE0_VERSION,
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        runDirectory,
+        requestedHours: options.hours,
+        useAuth: options.useAuth,
+        sources: {
+          gammaMarkets: 'https://gamma-api.polymarket.com/markets?active=true&closed=false',
+          publicTrades: 'https://data-api.polymarket.com/trades?limit=500&offset=0&takerOnly=true',
+          orderBooks: 'https://clob.polymarket.com/books',
+          marketWebSocket: 'wss://ws-subscriptions-clob.polymarket.com/ws/market',
+          authenticatedTrades: options.useAuth,
+        },
+        discovery,
+        counts: {
+          publicTradeObservations: 0,
+          orderBookSnapshots: 0,
+          wsMessages: 0,
+          authTradeObservations: 0,
+        },
+      },
+      observedAssets,
+      seenPublicTradeKeys,
+      seenPublicTradeKeyOrder,
+      seenAuthTradeIds,
+      resumedFromExisting: false,
+    };
+  }
+
+  const existingManifest = captureManifestSchema.parse(await readJsonFile(manifestPath));
+  if (existingManifest.completedAt !== null) {
+    throw new Error(
+      `Capture output ${runDirectory} already completed at ${existingManifest.completedAt}. Use analyze or choose a new --out path.`,
+    );
+  }
+  if (existingManifest.requestedHours !== options.hours) {
+    throw new Error(
+      `Capture output ${runDirectory} was started with --hours ${existingManifest.requestedHours}; rerun with the same value to resume it.`,
+    );
+  }
+  if (existingManifest.useAuth !== options.useAuth) {
+    throw new Error(
+      `Capture output ${runDirectory} was started with --use-auth=${existingManifest.useAuth}; rerun with the same auth mode to resume it.`,
+    );
+  }
+
+  const counts = {
+    publicTradeObservations: 0,
+    orderBookSnapshots: 0,
+    wsMessages: 0,
+    authTradeObservations: 0,
+  };
+
+  await scanJsonLines(resolve(runDirectory, RAW_DIRECTORY_NAME, PUBLIC_TRADES_FILE_NAME), async (value) => {
+    counts.publicTradeObservations += 1;
+    const envelope = asJsonObject(value, 'public trade envelope');
+    const payload = getJsonObject(envelope, ['payload']);
+    if (!payload) {
+      return;
+    }
+
+    const assetId = getString(payload, ['asset']);
+    if (assetId) {
+      const metadata = assetsById.get(assetId);
+      if (metadata) {
+        observedAssets.set(assetId, metadata);
+      }
+    }
+
+    addBoundedKey(
+      seenPublicTradeKeys,
+      seenPublicTradeKeyOrder,
+      stableTradeObservationKey(payload),
+      MAX_PUBLIC_TRADE_KEY_WINDOW,
+    );
+  });
+
+  await scanJsonLines(resolve(runDirectory, RAW_DIRECTORY_NAME, ORDER_BOOKS_FILE_NAME), async () => {
+    counts.orderBookSnapshots += 1;
+  });
+
+  await scanJsonLines(resolve(runDirectory, RAW_DIRECTORY_NAME, WS_MESSAGES_FILE_NAME), async () => {
+    counts.wsMessages += 1;
+  });
+
+  await scanJsonLines(resolve(runDirectory, RAW_DIRECTORY_NAME, AUTH_TRADES_FILE_NAME), async (value) => {
+    counts.authTradeObservations += 1;
+    const envelope = asJsonObject(value, 'auth trade envelope');
+    const payload = getJsonObject(envelope, ['payload']);
+    const tradeId = payload ? getString(payload, ['id']) : null;
+    if (tradeId) {
+      seenAuthTradeIds.add(tradeId);
+    }
+  });
+
+  return {
+    manifest: {
+      ...existingManifest,
+      runDirectory,
+      discovery,
+      counts,
+    },
+    observedAssets,
+    seenPublicTradeKeys,
+    seenPublicTradeKeyOrder,
+    seenAuthTradeIds,
+    resumedFromExisting: true,
   };
 }
 
@@ -296,6 +492,49 @@ async function persistManifest(runDirectory: string, manifest: CaptureManifest):
     resolve(runDirectory, MANIFEST_FILE_NAME),
     captureManifestSchema.parse(manifest) as unknown as Record<string, unknown>,
   );
+}
+
+async function persistCaptureState(runDirectory: string, state: CaptureRunState): Promise<void> {
+  await writeJsonFile(resolve(runDirectory, CAPTURE_STATE_FILE_NAME), state);
+}
+
+async function warnAndRecordCaptureStep(
+  runDirectory: string,
+  state: CaptureRunState,
+  manifest: CaptureManifest,
+  label: string,
+  error: unknown,
+): Promise<void> {
+  warnCaptureStep(error, label);
+  state.status = 'running';
+  state.updatedAt = new Date().toISOString();
+  state.counts = { ...manifest.counts };
+  state.lastStep = `warn:${label}`;
+  state.lastError = `${label}: ${formatError(error)}`;
+  await persistCaptureState(runDirectory, state);
+}
+
+async function fileExists(pathname: string): Promise<boolean> {
+  try {
+    await readJsonFile(pathname);
+    return true;
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return false;
+    }
+    if (error instanceof Error && error.message.includes('ENOENT')) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.stack ?? error.message;
+  }
+
+  return String(error);
 }
 
 export function stableTradeObservationKey(trade: JsonObject): string {
@@ -448,4 +687,8 @@ async function runWithRetries<T>(
 function warnCaptureStep(error: unknown, label: string): void {
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`[phase0] ${label} failed: ${message}\n`);
+}
+
+export function defaultDetachedCaptureLogPath(out: string): string {
+  return resolve(out, CAPTURE_LOG_FILE_NAME);
 }

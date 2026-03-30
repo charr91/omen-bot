@@ -17,10 +17,13 @@ export const MAX_BOOK_STALENESS_MS = 15_000;
 export const MAX_PUBLIC_TRADE_KEY_WINDOW = 25_000;
 export const CAPTURE_RETRY_ATTEMPTS = 3;
 export const CAPTURE_RETRY_BASE_MS = 1_000;
+export const MIN_AUTH_TRADE_ID_SAMPLE = 10;
 
 export const RAW_DIRECTORY_NAME = 'raw';
 export const ANALYSIS_DIRECTORY_NAME = 'analysis';
 export const MANIFEST_FILE_NAME = 'manifest.json';
+export const CAPTURE_STATE_FILE_NAME = 'capture-state.json';
+export const CAPTURE_LOG_FILE_NAME = 'capture.log';
 export const OBSERVED_ASSETS_FILE_NAME = 'observed-assets.json';
 export const PUBLIC_TRADES_FILE_NAME = 'public-trades.jsonl';
 export const ORDER_BOOKS_FILE_NAME = 'order-books.jsonl';

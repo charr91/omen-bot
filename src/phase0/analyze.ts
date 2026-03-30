@@ -5,6 +5,7 @@ import {
   FINDINGS_FILE_NAME,
   MANIFEST_FILE_NAME,
   MAX_BOOK_STALENESS_MS,
+  MIN_AUTH_TRADE_ID_SAMPLE,
   ORDER_BOOKS_FILE_NAME,
   PHASE0_VERSION,
   PUBLIC_TRADES_FILE_NAME,
@@ -499,7 +500,18 @@ function buildRecommendation(input: {
   authTradeId: CandidateKeyStats | null;
   logicalTradesSplitAcrossTransactions: number;
 }): AnalysisSummary['recommendation'] {
-  if (input.authTradeId && input.authTradeId.collisionGroups === 0) {
+  const sparseAuthRationale =
+    input.authTradeId &&
+    input.authTradeId.totalRecords > 0 &&
+    input.authTradeId.totalRecords < MIN_AUTH_TRADE_ID_SAMPLE
+      ? `Authenticated trade IDs were unique, but only ${input.authTradeId.totalRecords} auth trades were captured; require at least ${MIN_AUTH_TRADE_ID_SAMPLE} before preferring auth IDs over public keys.`
+      : null;
+
+  if (
+    input.authTradeId &&
+    input.authTradeId.collisionGroups === 0 &&
+    input.authTradeId.totalRecords >= MIN_AUTH_TRADE_ID_SAMPLE
+  ) {
     const rationale = ['Authenticated trade IDs are unique in the captured sample.'];
     if (input.logicalTradesSplitAcrossTransactions > 0) {
       rationale.push(
@@ -514,24 +526,39 @@ function buildRecommendation(input: {
   }
 
   if (input.txAsset.collisionGroups === 0) {
+    const rationale = ['No txHash+asset collisions were observed in the captured public sample.'];
+    if (sparseAuthRationale) {
+      rationale.push(sparseAuthRationale);
+    }
+
     return {
       naturalKey: 'TX_HASH_ASSET',
-      rationale: ['No txHash+asset collisions were observed in the captured public sample.'],
+      rationale,
     };
   }
 
   if (input.txAssetPrice.collisionGroups === 0) {
+    const rationale = [
+      'txHash+asset collisions were observed, but txHash+asset+price eliminated them in the captured public sample.',
+    ];
+    if (sparseAuthRationale) {
+      rationale.push(sparseAuthRationale);
+    }
+
     return {
       naturalKey: 'TX_HASH_ASSET_PRICE',
-      rationale: [
-        'txHash+asset collisions were observed, but txHash+asset+price eliminated them in the captured public sample.',
-      ],
+      rationale,
     };
+  }
+
+  const rationale = ['Public-only candidate keys still collide in the captured sample.'];
+  if (sparseAuthRationale) {
+    rationale.push(sparseAuthRationale);
   }
 
   return {
     naturalKey: 'UNRESOLVED',
-    rationale: ['Public-only candidate keys still collide in the captured sample.'],
+    rationale,
   };
 }
 

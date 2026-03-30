@@ -66,6 +66,10 @@ class MockWebSocket {
     this.close();
   }
 
+  simulateMessage(data: unknown): void {
+    this.emit('message', { data });
+  }
+
   private emit(type: string, event: { data?: unknown } = {}): void {
     const listeners = [...(this.listeners.get(type) ?? [])];
     for (const entry of listeners) {
@@ -127,6 +131,26 @@ describe('phase0 websocket capture', () => {
     expect(MockWebSocket.instances).toHaveLength(2);
     const secondSocket = MockWebSocket.instances[1];
     expect(secondSocket?.sent[0]).toContain('"assets_ids":["asset-1","asset-2"]');
+
+    await controller.stop();
+  });
+
+  it('routes async message handler failures to onError instead of leaving them unhandled', async () => {
+    const onError = vi.fn(async () => undefined);
+    const controller = await startMarketWsCapture({
+      onMessage: async () => {
+        throw new Error('boom');
+      },
+      onError,
+    });
+    const socket = MockWebSocket.instances[0];
+
+    socket?.simulateMessage(JSON.stringify({ asset_id: 'asset-1', timestamp: '1' }));
+    await vi.waitFor(() => {
+      expect(onError).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onError.mock.calls[0]?.[1]).toBe('websocket message');
 
     await controller.stop();
   });

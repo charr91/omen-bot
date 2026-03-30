@@ -1,5 +1,7 @@
+import { createReadStream, existsSync } from 'node:fs';
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { createInterface } from 'node:readline';
 
 export interface JsonlWriter<T> {
   write(record: T): Promise<void>;
@@ -46,6 +48,35 @@ export async function readJsonLines(pathname: string): Promise<unknown[]> {
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .map((line) => JSON.parse(line) as unknown);
+}
+
+export async function scanJsonLines(
+  pathname: string,
+  visitor: (value: unknown) => void | Promise<void>,
+): Promise<void> {
+  if (!existsSync(pathname)) {
+    return;
+  }
+
+  const stream = createReadStream(pathname, { encoding: 'utf8' });
+  const reader = createInterface({
+    input: stream,
+    crlfDelay: Infinity,
+  });
+
+  try {
+    for await (const line of reader) {
+      const trimmed = line.trim();
+      if (trimmed.length === 0) {
+        continue;
+      }
+
+      await visitor(JSON.parse(trimmed) as unknown);
+    }
+  } finally {
+    reader.close();
+    stream.close();
+  }
 }
 
 export async function sleep(milliseconds: number): Promise<void> {

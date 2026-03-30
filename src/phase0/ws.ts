@@ -8,6 +8,7 @@ import type { JsonObject } from './types.js';
 
 interface WsCaptureOptions {
   onMessage: (message: JsonObject) => Promise<void>;
+  onError?: (error: unknown, label: string) => Promise<void> | void;
 }
 
 export interface WsCaptureController {
@@ -47,7 +48,23 @@ export async function startMarketWsCapture(options: WsCaptureOptions): Promise<W
 
   function attachSocket(socket: WebSocket): void {
     socket.addEventListener('message', (event) => {
-      void handleIncomingMessage(event.data, options.onMessage);
+      void handleIncomingMessage(event.data, options.onMessage).catch((error) => {
+        if (options.onError) {
+          try {
+            const result = options.onError(error, 'websocket message');
+            if (result && typeof result === 'object' && 'catch' in result) {
+              void (result as Promise<void>).catch((nestedError) => {
+                reportUnhandledWsError(nestedError, 'websocket error handler');
+              });
+            }
+          } catch (nestedError) {
+            reportUnhandledWsError(nestedError, 'websocket error handler');
+          }
+          return;
+        }
+
+        reportUnhandledWsError(error, 'websocket message');
+      });
     });
     socket.addEventListener('close', () => {
       if (ws === socket) {
@@ -152,6 +169,11 @@ export async function startMarketWsCapture(options: WsCaptureOptions): Promise<W
       subscribedAssetIds = new Set<string>();
     },
   };
+}
+
+function reportUnhandledWsError(error: unknown, label: string): void {
+  const message = error instanceof Error ? error.stack ?? error.message : String(error);
+  process.stderr.write(`[phase0] ${label} failed: ${message}\n`);
 }
 
 async function handleIncomingMessage(
