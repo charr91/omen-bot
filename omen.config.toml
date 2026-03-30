@@ -1,0 +1,9 @@
+# omen.config.toml — versioned tuning values.
+# Deployment-specific secrets live in .env / exported environment variables.
+
+[ingestion]
+poll_interval_ms = 15_000
+max_pages_per_poll = 20
+
+[backpressure]
+hot_worker_queue_depth = 100
