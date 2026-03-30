@@ -6,6 +6,7 @@ import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { runHealthCommand, runReplayCommand, runStartCommand } from './engine/index.js';
 import { loadEnvironment } from './env.js';
 import { runPhase0Analysis } from './phase0/analyze.js';
 import { defaultDetachedCaptureLogPath, runPhase0Capture } from './phase0/capture.js';
@@ -23,9 +24,12 @@ interface AnalyzeCliOptions {
 
 const HELP = `omen validate-fills
 
-Phase 0 only.
+Phase 1 thin slice + Phase 0 validation.
 
 Usage:
+  omen [--env-file .env] start
+  omen [--env-file .env] replay
+  omen [--env-file .env] health
   omen [--env-file .env.server] validate-fills capture --hours 24 --out .phase0-data/run-001 [--use-auth] [--detach]
   omen [--env-file .env.server] validate-fills analyze --input .phase0-data/run-001
 
@@ -41,6 +45,21 @@ async function main(): Promise<void> {
   loadEnvironment(parsed.envFiles.length > 0 ? { envFiles: parsed.envFiles } : undefined);
 
   const [scope, action, ...rest] = parsed.positionals;
+
+  if (scope === 'start' && !action) {
+    await runStartCommand();
+    return;
+  }
+
+  if (scope === 'replay' && !action) {
+    await runReplayCommand();
+    return;
+  }
+
+  if (scope === 'health' && !action) {
+    await runHealthCommand();
+    return;
+  }
 
   if (scope !== 'validate-fills' || !action) {
     throw new Error(HELP);
