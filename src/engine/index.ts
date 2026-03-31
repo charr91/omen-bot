@@ -80,6 +80,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   const fillStore = createFillStore(pool);
   const fillSource = createPolymarketFillSource(config.ingestion.maxPagesPerPoll);
   const runtimeStatsCollector = new RuntimeStatsCollector();
+  const signalPreviewTasks = new Set<Promise<void>>();
   let stopping = false;
 
   const stop = (): void => {
@@ -99,11 +100,14 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
       : null;
   const hotWorker = new HotWorkerClient(config, {
     onSignalPreview: (message) => {
-      void handleSignalPreview({
-        preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
-        alertDispatcher,
-        dashboard,
-      });
+      trackSignalPreviewTask(
+        signalPreviewTasks,
+        handleSignalPreview({
+          preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
+          alertDispatcher,
+          dashboard,
+        }),
+      );
     },
     onWorkerError: (message) => {
       reportOperatorError({
@@ -189,6 +193,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
     process.off('SIGINT', stop);
     process.off('SIGTERM', stop);
     await hotWorker.waitForIdle(30_000).catch(() => undefined);
+    await waitForSignalPreviewTasks(signalPreviewTasks);
     await hotWorker.stop();
     dashboard?.stop();
     redis.disconnect(false);
@@ -202,13 +207,17 @@ export async function runReplayCommand(): Promise<number> {
   const redis = createRedisClient(config);
   const fillStore = createFillStore(pool);
   const alertDispatcher = new AlertDispatcher(config, redis);
+  const signalPreviewTasks = new Set<Promise<void>>();
   const hotWorker = new HotWorkerClient(config, {
     onSignalPreview: (message) => {
-      void handleSignalPreview({
-        preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
-        alertDispatcher,
-        dashboard: null,
-      });
+      trackSignalPreviewTask(
+        signalPreviewTasks,
+        handleSignalPreview({
+          preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
+          alertDispatcher,
+          dashboard: null,
+        }),
+      );
     },
     onWorkerError: (message) => {
       process.stderr.write(`[hot-worker] ${message}\n`);
@@ -220,6 +229,7 @@ export async function runReplayCommand(): Promise<number> {
     await pingRedis(redis);
     await ensurePersistenceSchema(pool);
     replayed = await replayPendingFills(fillStore, hotWorker, DEFAULT_REPLAY_LIMIT);
+    await waitForSignalPreviewTasks(signalPreviewTasks);
 
     process.stdout.write(`${JSON.stringify({ type: 'replay', replayed })}\n`);
     return replayed;
@@ -370,4 +380,19 @@ function reportOperatorError(options: {
 
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function trackSignalPreviewTask(pending: Set<Promise<void>>, task: Promise<void>): void {
+  pending.add(task);
+  task.finally(() => {
+    pending.delete(task);
+  });
+}
+
+async function waitForSignalPreviewTasks(pending: Set<Promise<void>>): Promise<void> {
+  if (pending.size === 0) {
+    return;
+  }
+
+  await Promise.allSettled([...pending]);
 }

@@ -52,12 +52,16 @@ export class AlertDispatcher {
     }
 
     const dedupKey = buildAlertDedupKey(alert);
-    if (this.inFlightKeys.has(dedupKey) || (await this.deduper.hasRecentDispatch(alert))) {
+    if (this.inFlightKeys.has(dedupKey)) {
       return 'suppressed-duplicate';
     }
 
     this.inFlightKeys.add(dedupKey);
     try {
+      if (await this.deduper.hasRecentDispatch(alert)) {
+        return 'suppressed-duplicate';
+      }
+
       await this.telegram.dispatch(alert);
       await this.deduper.markDispatched(alert);
       return 'sent';

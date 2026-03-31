@@ -141,6 +141,52 @@ describe('Telegram alert delivery', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
+  it('suppresses concurrent same-key dispatch attempts while the dedup lookup is in flight', async () => {
+    let resolveGet: ((value: string | null) => void) | null = null;
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+    const dispatch = new AlertDispatcher(
+      {
+        alerts: {
+          criticalMinScore: 80,
+          highMinScore: 60,
+          mediumMinScore: 40,
+          lowMinScore: 20,
+          dedupCooldownMs: 60_000,
+        },
+        operational: {
+          dryRun: false,
+        },
+        telegram: {
+          botToken: 'bot-token',
+          criticalChatId: 'critical-chat',
+          mediumChatId: 'medium-chat',
+        },
+      },
+      {
+        get: vi.fn().mockImplementation(
+          () =>
+            new Promise<string | null>((resolve) => {
+              resolveGet = resolve;
+            }),
+        ),
+        set: vi.fn().mockResolvedValue('OK'),
+      },
+      { fetchImpl },
+    );
+
+    const firstDispatch = dispatch.dispatch(makeAlert());
+    await Promise.resolve();
+
+    await expect(dispatch.dispatch(makeAlert())).resolves.toBe('suppressed-duplicate');
+
+    resolveGet?.(null);
+    await expect(firstDispatch).resolves.toBe('sent');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
   it('falls back to the medium chat when a high-severity chat is missing', async () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
