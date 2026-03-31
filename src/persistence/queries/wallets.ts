@@ -83,6 +83,7 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
           insert into wallets (
             address,
             age_seconds,
+            activity_age_known,
             total_transactions,
             is_contract,
             controller_address,
@@ -96,10 +97,11 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
             is_whitelisted,
             updated_at
           )
-          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now())
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, now())
           on conflict (address) do update
           set
             age_seconds = excluded.age_seconds,
+            activity_age_known = excluded.activity_age_known,
             total_transactions = excluded.total_transactions,
             is_contract = excluded.is_contract,
             controller_address = excluded.controller_address,
@@ -119,6 +121,7 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
         [
           profile.address,
           profile.ageSeconds,
+          profile.activityAgeKnown,
           profile.totalTransactions,
           profile.isContract,
           profile.controllerAddress,

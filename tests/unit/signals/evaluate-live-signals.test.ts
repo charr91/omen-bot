@@ -26,6 +26,7 @@ function makeWallet(overrides: Partial<WalletProfile> = {}): WalletProfile {
   return {
     address: '0xwallet',
     ageSeconds: 3600,
+    activityAgeKnown: true,
     totalTransactions: 2,
     isContract: false,
     controllerAddress: null,

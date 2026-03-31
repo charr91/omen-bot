@@ -68,11 +68,24 @@ export class AlchemyWalletProfiler {
       this.rpcRequest<string>('eth_getCode', [address, 'latest']),
       this.findEarliestActivity(address),
     ]);
+    const totalTransactions = parseHexInteger(transactionCountHex ?? '0x0');
+
+    if (earliestActivityAt === null && totalTransactions > 0) {
+      return {
+        ageSeconds: 0,
+        activityAgeKnown: false,
+        totalTransactions,
+        isContract: (code ?? '0x') !== '0x',
+        controllerAddress: null,
+        firstActivityAt: null,
+      };
+    }
 
     const firstActivityAt = earliestActivityAt ?? new Date(this.now());
     return {
       ageSeconds: Math.max(0, Math.floor((this.now() - firstActivityAt.getTime()) / 1000)),
-      totalTransactions: parseHexInteger(transactionCountHex ?? '0x0'),
+      activityAgeKnown: true,
+      totalTransactions,
       isContract: (code ?? '0x') !== '0x',
       controllerAddress: null,
       firstActivityAt,

@@ -35,6 +35,7 @@ const CREATE_WALLETS_TABLE_SQL = `
   create table if not exists wallets (
     address text primary key,
     age_seconds integer not null default 0,
+    activity_age_known boolean not null default true,
     total_transactions integer not null default 0,
     is_contract boolean not null default false,
     controller_address text,
@@ -120,6 +121,7 @@ export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promis
   }
 
   await pool.query(CREATE_WALLETS_TABLE_SQL);
+  await pool.query("alter table wallets add column if not exists activity_age_known boolean not null default true;");
   for (const statement of CREATE_WALLETS_SUPPORTING_INDEXES_SQL) {
     await pool.query(statement);
   }

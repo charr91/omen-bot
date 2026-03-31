@@ -26,6 +26,7 @@ function makeWallet(overrides: Partial<WalletProfile> = {}): WalletProfile {
   return {
     address: '0xwallet',
     ageSeconds: 3600,
+    activityAgeKnown: true,
     totalTransactions: 2,
     isContract: false,
     controllerAddress: null,
@@ -114,6 +115,17 @@ describe('evaluateFreshWalletLargePosition', () => {
       fill: makeFill(),
       wallet: makeWallet(),
       market: makeMarket({ dailyVolumeUsd: '150000.000000' }),
+      config: makeConfig(),
+    });
+
+    expect(signal).toBeNull();
+  });
+
+  it('does not trigger when wallet age is unknown', () => {
+    const signal = evaluateFreshWalletLargePosition({
+      fill: makeFill(),
+      wallet: makeWallet({ activityAgeKnown: false }),
+      market: makeMarket(),
       config: makeConfig(),
     });
 

@@ -16,6 +16,10 @@ const CRITICAL_SIGNAL_SCORE = 30;
 const ELEVATED_SIGNAL_SCORE = 18;
 
 export function evaluateFreshWalletLargePosition(context: FreshWalletSignalContext): TriggeredSignal | null {
+  if (!context.wallet.activityAgeKnown) {
+    return null;
+  }
+
   const ageHours = context.wallet.ageSeconds / 3600;
   if (ageHours >= context.config.detection.freshWallet.elevatedAgeHours) {
     return null;

@@ -3,6 +3,7 @@ import type { AlertTier } from './signal.js';
 export interface WalletProfile {
   address: string;
   ageSeconds: number;
+  activityAgeKnown: boolean;
   totalTransactions: number;
   isContract: boolean;
   controllerAddress: string | null;
@@ -18,8 +19,9 @@ export interface WalletProfile {
 
 export interface WalletChainProfile {
   ageSeconds: number;
+  activityAgeKnown: boolean;
   totalTransactions: number;
   isContract: boolean;
   controllerAddress: string | null;
-  firstActivityAt: Date;
+  firstActivityAt: Date | null;
 }

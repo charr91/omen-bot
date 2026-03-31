@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runIngestionCycle, type FillAnalysisQueue } from '../../../src/engine/index.js';
+import {
+  replayPendingFills,
+  runIngestionCycle,
+  type FillAnalysisQueue,
+  type ReplayAnalysisQueue,
+} from '../../../src/engine/index.js';
 import type { FillCursor } from '../../../src/persistence/queries/fills.js';
 import type { FillStore } from '../../../src/persistence/queries/fills.js';
 import type { FillRecord, NewFill } from '../../../src/types/fill.js';
@@ -121,5 +126,79 @@ describe('runIngestionCycle', () => {
     expect(result.replayed).toBe(2);
     expect(analysisQueue.enqueue).toHaveBeenCalledTimes(3);
     expect(analysisQueue.enqueue).not.toHaveBeenCalledWith(pending[3]);
+  });
+});
+
+describe('replayPendingFills', () => {
+  it('replays pending fills until the backlog is cleared', async () => {
+    const fillStore: FillStore = {
+      getLatestFillCursor: async () => null,
+      insertFill: vi.fn<FillStore['insertFill']>().mockResolvedValue(false),
+      listUnanalyzedFills: vi
+        .fn<FillStore['listUnanalyzedFills']>()
+        .mockResolvedValueOnce([
+          makeFillRecord({ id: 'fill-1', txHash: '0xtx-1' }),
+          makeFillRecord({ id: 'fill-2', txHash: '0xtx-2' }),
+        ])
+        .mockResolvedValueOnce([makeFillRecord({ id: 'fill-2', txHash: '0xtx-2' })]),
+      markFillAnalyzed: vi.fn<FillStore['markFillAnalyzed']>().mockResolvedValue(undefined),
+      getRuntimeSummary: vi
+        .fn<FillStore['getRuntimeSummary']>()
+        .mockResolvedValueOnce({
+          unanalyzedFillCount: 2,
+          newestFillTimestamp: null,
+        })
+        .mockResolvedValueOnce({
+          unanalyzedFillCount: 1,
+          newestFillTimestamp: null,
+        })
+        .mockResolvedValueOnce({
+          unanalyzedFillCount: 1,
+          newestFillTimestamp: null,
+        })
+        .mockResolvedValueOnce({
+          unanalyzedFillCount: 0,
+          newestFillTimestamp: null,
+        }),
+    };
+    const analysisQueue: ReplayAnalysisQueue = {
+      enqueue: vi.fn<ReplayAnalysisQueue['enqueue']>().mockResolvedValue('accepted'),
+      waitForIdle: vi.fn<ReplayAnalysisQueue['waitForIdle']>().mockResolvedValue(undefined),
+    };
+
+    await expect(replayPendingFills(fillStore, analysisQueue, 2)).resolves.toBe(3);
+    expect(analysisQueue.waitForIdle).toHaveBeenCalledTimes(2);
+  });
+
+  it('fails fast when processing makes no forward progress', async () => {
+    const fillStore: FillStore = {
+      getLatestFillCursor: async () => null,
+      insertFill: vi.fn<FillStore['insertFill']>().mockResolvedValue(false),
+      listUnanalyzedFills: vi
+        .fn<FillStore['listUnanalyzedFills']>()
+        .mockResolvedValue([
+          makeFillRecord({ id: 'fill-1', txHash: '0xtx-1' }),
+          makeFillRecord({ id: 'fill-2', txHash: '0xtx-2' }),
+        ]),
+      markFillAnalyzed: vi.fn<FillStore['markFillAnalyzed']>().mockResolvedValue(undefined),
+      getRuntimeSummary: vi
+        .fn<FillStore['getRuntimeSummary']>()
+        .mockResolvedValueOnce({
+          unanalyzedFillCount: 2,
+          newestFillTimestamp: null,
+        })
+        .mockResolvedValueOnce({
+          unanalyzedFillCount: 2,
+          newestFillTimestamp: null,
+        }),
+    };
+    const analysisQueue: ReplayAnalysisQueue = {
+      enqueue: vi.fn<ReplayAnalysisQueue['enqueue']>().mockResolvedValue('accepted'),
+      waitForIdle: vi.fn<ReplayAnalysisQueue['waitForIdle']>().mockResolvedValue(undefined),
+    };
+
+    await expect(replayPendingFills(fillStore, analysisQueue, 2)).rejects.toThrow(
+      'Replay made no forward progress',
+    );
   });
 });

@@ -174,10 +174,11 @@ async function processFill(fill: FillRecord): Promise<void> {
   const baseWallet: WalletProfile = {
     address: fill.walletAddress,
     ageSeconds: chainProfile.ageSeconds,
+    activityAgeKnown: chainProfile.activityAgeKnown,
     totalTransactions: chainProfile.totalTransactions,
     isContract: chainProfile.isContract,
     controllerAddress: chainProfile.controllerAddress,
-    firstSeenAt: chainProfile.firstActivityAt,
+    firstSeenAt: chainProfile.firstActivityAt ?? fill.timestamp,
     lastActiveAt: fill.timestamp,
     totalMarkets: aggregateStats.totalMarkets,
     totalFills: aggregateStats.totalFills,

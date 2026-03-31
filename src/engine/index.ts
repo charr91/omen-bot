@@ -15,6 +15,10 @@ export interface FillAnalysisQueue {
   enqueue(fill: FillRecord): Promise<EnqueueFillResult>;
 }
 
+export interface ReplayAnalysisQueue extends FillAnalysisQueue {
+  waitForIdle(timeoutMs?: number): Promise<void>;
+}
+
 export interface IngestionCycleResult {
   checkpoint: string | null;
   fetched: number;
@@ -152,21 +156,7 @@ export async function runReplayCommand(): Promise<number> {
   try {
     await pingRedis(redis);
     await ensurePersistenceSchema(pool);
-
-    while (true) {
-      const queued = await schedulePendingFills(fillStore, hotWorker, DEFAULT_REPLAY_LIMIT);
-      replayed += queued;
-      await hotWorker.waitForIdle(30_000);
-
-      const remaining = await fillStore.listUnanalyzedFills(1);
-      if (remaining.length === 0) {
-        break;
-      }
-
-      if (queued === 0) {
-        throw new Error('Replay stalled with unanalyzed fills still remaining');
-      }
-    }
+    replayed = await replayPendingFills(fillStore, hotWorker, DEFAULT_REPLAY_LIMIT);
 
     process.stdout.write(`${JSON.stringify({ type: 'replay', replayed })}\n`);
     return replayed;
@@ -183,6 +173,40 @@ export async function runHealthCommand(): Promise<void> {
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   if (report.status !== 'ok') {
     process.exitCode = 1;
+  }
+}
+
+export async function replayPendingFills(
+  fillStore: FillStore,
+  analysisQueue: ReplayAnalysisQueue,
+  limit = DEFAULT_REPLAY_LIMIT,
+): Promise<number> {
+  let replayed = 0;
+
+  while (true) {
+    const before = await fillStore.getRuntimeSummary();
+    if (before.unanalyzedFillCount === 0) {
+      return replayed;
+    }
+
+    const queued = await schedulePendingFills(fillStore, analysisQueue, limit);
+    if (queued === 0) {
+      throw new Error('Replay stalled with unanalyzed fills still remaining');
+    }
+
+    replayed += queued;
+    await analysisQueue.waitForIdle(30_000);
+
+    const after = await fillStore.getRuntimeSummary();
+    if (after.unanalyzedFillCount === 0) {
+      return replayed;
+    }
+
+    if (after.unanalyzedFillCount >= before.unanalyzedFillCount) {
+      throw new Error(
+        `Replay made no forward progress: ${before.unanalyzedFillCount} unanalyzed fills before processing and ${after.unanalyzedFillCount} after`,
+      );
+    }
   }
 }
 
