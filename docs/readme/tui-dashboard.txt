@@ -1,0 +1,16 @@
+OMEN Phase 1 Dashboard                                                                                          
+Signal feed promoted to alerts only at LOW+ | Filter: ALL | DryRun: OFF                                         
+----------------------------------------------------------------------------------------------------------------
+[MEDIUM] 02:01:00 OUTSIZED_POSITION                                                                             
+0x1234...5678 | score 42 | fill $2296.37                                                                        
+Will the highest temperature in Toronto be 7C on March 31?                                                      
+[HIGH] 02:03:12 OUTSIZED_POSITION                                                                               
+0x91c9...c040 | score 67 | fill $2296.37                                                                        
+Will the price of Ethereum be between $1,700 and $1,800 on March 31?                                            
+[CRITICAL] 02:04:49 OUTSIZED_POSITION                                                                           
+0x682d...31ab | score 84 | fill $2296.37                                                                        
+Will Ricardo Belmont win the 2026 Peruvian presidential election?                                               
+----------------------------------------------------------------------------------------------------------------
+REST:UP | Hot:IDLE | Mkts:12 | Wallets:34 | Alerts:3 | Queue:0 | Pending:0 | Checkpoint:2026-03-31T02:05:17.000Z
+Discord + Telegram dispatch enabled                                                                             
+[q]Quit [?]Help [t]TierFilter [d]DryRun [Esc]Reset                                                              

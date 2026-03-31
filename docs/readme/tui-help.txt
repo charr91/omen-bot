@@ -1,0 +1,11 @@
+OMEN Phase 1 Dashboard Help                                                                                     
+Current filter: MEDIUM | DryRun: ON                                                                             
+----------------------------------------------------------------------------------------------------------------
+q     Quit the dashboard and stop omen start                                                                    
+?     Toggle this help overlay                                                                                  
+t     Cycle alert tier filter (ALL -> CRITICAL -> HIGH -> MEDIUM -> LOW)                                        
+d     Toggle external-alert dry-run mode for promoted alerts                                                    
+Esc   Reset the filter and close help                                                                           
+                                                                                                                
+Signal previews are persisted LIVE signal events.                                                               
+Alert feed shows promoted LOW/HIGH/CRITICAL operator alerts only.                                               

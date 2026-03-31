@@ -2,14 +2,15 @@
 
 Thin-slice Phase 1 Polymarket ingest and live-signal bot.
 
-Current state:
-- Persists live Polymarket fills into Postgres
+## Current State
+
+- Polls recent Polymarket fills over REST and persists them into Postgres
 - Dedupes fills on `(tx_hash, token_id)`
-- Replays pending `analyzed = false` fills through a hot worker
+- Replays persisted `analyzed = false` fills through a hot worker
 - Profiles wallets on the hot path with Alchemy-backed Polygon RPC calls
 - Persists LIVE `signal_events`
-- Emits `signal-preview` JSON lines during `start` and `replay`
-- Promotes LOW+ signal combinations into operator alerts
+- Emits `signal-preview` diagnostics during `start` and `replay`
+- Promotes LOW+ composite scores into operator alerts
 - Supports Telegram and Discord dispatch with per-channel market-scoped dedup
 - Supports a Phase 1 terminal dashboard via `start --tui`
 - Exposes `start`, `replay`, `health`, and Phase 0 validation commands
@@ -20,51 +21,43 @@ Current LIVE signals:
 
 Not built yet:
 - Controller/proxy attribution for contract wallets
-- Cold-path cluster / post-resolution scoring work
+- Cold-path cluster and post-resolution scoring
 
 Specs:
 - [specs/OMEN-SPEC-v1.8.md](specs/OMEN-SPEC-v1.8.md)
 - [specs/OMEN-SPEC-v1.3-Legacy.md](specs/OMEN-SPEC-v1.3-Legacy.md)
 
+## TUI
+
+Rendered from the current dashboard renderer:
+
+![Phase 1 dashboard](docs/readme/tui-dashboard.png)
+
+![Phase 1 dashboard help](docs/readme/tui-help.png)
+
 ## Quick Start
 
-Requirements:
-- Node.js 22+
-- `pnpm`
-- Docker / Docker Compose
-- `ALCHEMY_API_KEY` for the hot worker
-- Optional Telegram bot token/chat ids and Discord webhooks for operator alerts
-
-Install and boot local dependencies:
+The short version lives in [QUICKSTART.md](QUICKSTART.md). If you just want the minimum path:
 
 ```bash
 pnpm install
 cp .env.example .env
+# edit .env and set ALCHEMY_API_KEY
 docker compose up -d
 pnpm exec tsx src/cli.ts health
-```
-
-The example env uses non-default local ports to avoid host collisions:
-- Postgres: `localhost:15432`
-- Redis: `localhost:16379`
-
-Important health behavior:
-- Before `start` or `replay` is running, `health` may report `hotWorker` as degraded because there is no active heartbeat yet.
-- While `start` or `replay` is running, `health` should return overall `"status": "ok"` and include a populated `runtime` section.
-
-Start the ingest loop:
-
-```bash
-pnpm exec tsx src/cli.ts start
-```
-
-Start the terminal dashboard:
-
-```bash
 pnpm exec tsx src/cli.ts start --tui
 ```
 
-## What The Commands Mean
+Important defaults:
+- `.env.example` uses non-default local ports to avoid host collisions
+- blank optional Telegram and Discord env vars are treated as unset
+- `start --tui` requires an interactive TTY
+
+Default local ports:
+- Postgres: `localhost:15432`
+- Redis: `localhost:16379`
+
+## Commands
 
 `start`
 - Polls Polymarket REST for recent fills
@@ -77,6 +70,11 @@ pnpm exec tsx src/cli.ts start --tui
 - Optionally dispatches Telegram and Discord alerts when configured and not in dry-run
 - Marks fills `analyzed = true` only after hot-path work completes
 
+`start --tui`
+- Runs the same ingest and hot-worker path
+- Replaces the headless JSON stream with the terminal dashboard
+- Shows promoted LOW+ alerts only, not every `signal-preview`
+
 `replay`
 - Reprocesses already-persisted fills where `analyzed = false`
 - Useful after crashes, worker failures, or code fixes
@@ -85,16 +83,16 @@ pnpm exec tsx src/cli.ts start --tui
 
 `health`
 - Checks Postgres, Redis, Polymarket REST, and the hot-worker heartbeat
-- Also reports runtime state such as queue depth, pending fill count, newest fill timestamp, and recent live signal count
+- Reports runtime state such as queue depth, pending fill count, newest fill timestamp, and recent signal count
 
-## What To Expect From `start`
+## What To Expect
 
-You will see JSON lines like:
+Headless `start` emits JSON lines like:
 
 ```json
 {"type":"ingest-cycle","checkpoint":"2026-03-31T01:53:07.000Z","fetched":566,"inserted":566,"replayed":101}
 {"type":"signal-preview","fillId":"...","walletAddress":"0x...","marketId":"0x...","marketQuestion":"...","walletLiveScore":12,"walletLiveTier":"CLEAN","signal":{"signalId":"OUTSIZED_POSITION","availability":"LIVE","score":12,"confidence":0.8,"evidence":[...],"triggeredAt":"2026-03-31T01:59:11.495Z"},"dryRun":false}
-{"type":"alert-dispatch","fillId":"...","walletAddress":"0x...","marketId":"0x...","signalId":"OUTSIZED_POSITION","walletLiveTier":"LOW","deliveryTier":"LOW","result":"sent","channels":["telegram","discord"],"dryRun":false}
+{"type":"alert-dispatch","fillId":"...","walletAddress":"0x...","marketId":"0x...","signalId":"OUTSIZED_POSITION","walletLiveTier":"LOW","deliveryTier":"LOW","result":"sent","channels":["telegram","discord"],"failedChannels":[],"dryRun":false}
 {"type":"runtime-stats","collectedAt":"2026-03-31T02:00:00.000Z","windowSeconds":60,"ingest":{"cycles":4,"fetched":12,"inserted":12,"replayAccepted":12},"hotWorker":{"enqueueAccepted":12,"enqueueDuplicate":0,"enqueueFull":0,"processed":12,"failed":0,"queueDepth":0,"pendingFillCount":0,"processing":false,"lastHeartbeatAt":"2026-03-31T01:59:59.991Z","lastProcessedAt":"2026-03-31T01:59:57.012Z","lastProcessedAgeMs":2988},"signals":{"previewCountsBySignalId":{"OUTSIZED_POSITION":3}}}
 ```
 
@@ -112,10 +110,27 @@ Important distinction:
 - `OUTSIZED_POSITION` by itself often stays diagnostic-only under the default score thresholds, which is expected
 
 Practical expectations:
-- The first run may backfill hundreds of fills.
-- `OUTSIZED_POSITION` should fire on real traffic now.
-- `FRESH_WALLET_LARGE_POSITION` may remain sparse because many live `proxyWallet` addresses are contracts and controller attribution is not implemented yet.
-- `start --tui` suppresses the headless JSON stream and renders a live dashboard instead.
+- The first run may backfill hundreds of fills
+- `OUTSIZED_POSITION` should fire on real traffic now
+- `FRESH_WALLET_LARGE_POSITION` may remain sparse because many live `proxyWallet` addresses are contracts and controller attribution is not implemented yet
+
+## External Alerts
+
+Optional env vars:
+
+```bash
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID_CRITICAL=
+TELEGRAM_CHAT_ID_MEDIUM=
+DISCORD_WEBHOOK_CRITICAL=
+DISCORD_WEBHOOK_MEDIUM=
+```
+
+Behavior:
+- Leaving those blank disables the channel cleanly
+- `dry_run = true` suppresses external delivery but still keeps local signal and alert visibility
+- In the TUI, `d` toggles external-alert dry-run live
+- Dedup is per channel and market scoped, so Telegram and Discord keep independent delivery state
 
 ## Useful Checks
 
