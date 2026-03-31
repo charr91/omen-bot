@@ -745,14 +745,76 @@ export const TIER_THRESHOLDS: Record<AlertTier, number> = {
 
 ### 6.3 Key Signal Implementations
 
-> Full pseudocode for all 14 signals unchanged from v1.3. Key refinements only below.
+**FRESH_WALLET_LARGE_POSITION** — Two-tier wallet age threshold reflecting documented
+insider behavior:
 
-**FRESH_WALLET_LARGE_POSITION** — Two-tier age (<24h max, 24-72h elevated).
-Added: proxy wallet detection. If `wallet.isContract`, use controller age instead.
+- `walletAgeScore < 24 hours => 1.0` (maximum suspicion)
+- `walletAgeScore 24-72 hours => 0.6` (elevated)
+- `walletAgeScore > 72 hours => signal does not fire`
+
+Trigger shape:
+
+```text
+IF walletAgeScore > 0
+   AND wallet.totalTransactions < 10
+   AND trade.sizeUsd > max(market.dailyVolumeUsd * 0.02, $1000)
+   AND market.dailyVolumeUsd < $100,000
+THEN score = walletAgeScore * f(positionSize, marketLiquidity) * weight
+```
+
+Proxy refinement: if `wallet.isContract`, trace the deployer/controller wallet and use
+its age instead. A newly-deployed proxy controlled by a 2-year-old EOA is not a fresh
+wallet. Default conservative behavior: if controller attribution is unavailable, do not
+fire this signal.
+
+**OUTSIZED_POSITION** — Market-relative single-fill anomaly. This is “large for this
+market,” not merely “large in absolute dollars.”
+
+```text
+IF trade.sizeUsd > max(market.dailyVolumeUsd * 0.02, $1000)
+THEN score = f(exceedanceOverThreshold, marketLiquidity) * weight
+```
+
+No freshness precondition and no niche-market cap. This signal is meant to light up
+abnormally large entries even when the wallet is old, proxied, or otherwise unremarkable.
 
 **STATISTICAL_IMPROBABILITY** — One-sample t-test on edge distribution (all resolved
-positions, winners + losers). `MIN_RESOLVED_FOR_STATS = 8`. Normality caveat at small n
-documented; Wilcoxon signed-rank for v2.
+positions, winners + losers).
+
+For each resolved position `i`:
+
+```text
+entryPrice_i  = price paid
+resolution_i  = 1.0 if position's side won, 0.0 if lost
+edge_i        = resolution_i - entryPrice_i
+```
+
+Examples:
+
+- Bought YES at `$0.30`, resolved YES → `edge = +0.70`
+- Bought YES at `$0.85`, resolved YES → `edge = +0.15`
+- Bought YES at `$0.60`, resolved NO  → `edge = -0.60`
+
+Under the null hypothesis (`E[edge] = 0` for non-informational entries), use a
+**one-sample** t-test against `μ = 0`, one-tailed for positive edge:
+
+```text
+t = mean(edges) / (stdev(edges) / sqrt(n))
+pValue = 1 - cdf_t(t, df = n - 1)
+```
+
+Trigger shape:
+
+```text
+IF pValue < 0.001
+   AND resolvedPositions >= 8
+   AND avgEdgeAtEntry > 0.15
+THEN score = min(100, -log10(pValue) * 12 + avgEdgeAtEntry * 30)
+```
+
+Including losers is critical: a wallet with a few spectacular wins but many mediocre
+losses has a very different profile from one with the same wins and no losses. Normality
+caveat remains documented; Wilcoxon signed-rank is the v2 fallback.
 
 > **Market difficulty normalization (experimental)**: Raw edge doesn't account for market
 > difficulty. Winning 8/8 on 90/10 markets ≠ winning 8/8 on 50/50 markets. Normalization:
@@ -763,15 +825,85 @@ documented; Wilcoxon signed-rank for v2.
 > predicts better before switching. Tag with `scoringVersion` so the two models can be
 > compared cleanly. Don't let this become a stats sidequest.
 
-**PRE_RESOLUTION_TIMING** — Availability: `POST_RESOLUTION` only. For `UNSCHEDULED`
-markets, timing is computed retroactively using `resolvedAt`. Never fires in real-time
-(would require knowing the future).
+**PRE_RESOLUTION_TIMING** — Availability: `POST_RESOLUTION` only. Timing is
+resolution-type aware:
 
-**CONVICTION_SIZE_MISMATCH** — Precondition: `wallet.fundingClusterId === null`.
-Precondition: `wallet.isWhitelisted === false`.
+- `SCHEDULED`: suspicious `< 10m`, elevated `< 30m`
+- `UNSCHEDULED`: suspicious `< 60m`, elevated `< 360m`
+- `UNKNOWN`: use unscheduled thresholds conservatively
 
-**TIMING_CLUSTER_BURST** — Social correlation check (opt-in) halves score if public
-mentions found. Signal weighted lower until FP suppression is more robust.
+```text
+entryMinutesBefore = (market.resolvedAt - trade.timestamp) in minutes
+
+IF entryMinutesBefore < suspiciousWindow
+THEN score = 1.0 * weight
+ELSE IF entryMinutesBefore < elevatedWindow
+THEN score = 0.5 * weight
+ELSE signal does not fire
+```
+
+Never fires in real-time; it would require knowing the future.
+
+**SYBIL_CLUSTER** — Cache-first, fan-out limited.
+
+1. Check Postgres `funding_graph` cache for the target wallet.
+2. If fresh (`< 24h old`), use cached data; if stale/missing, enqueue a rebuild and use
+   whatever cache exists.
+3. Apply graph limits: top `5` funding sources per hop, max depth `4`, hard ceiling
+   `200 RPC calls` per build.
+4. Apply temporal correlation: did cluster members enter the same market within `1h`?
+5. Apply behavioral similarity: same categories and sides?
+
+```text
+IF cluster.size >= 3
+   AND fundingOverlap.commonAncestors.length >= 1
+   AND temporalCorrelation.sameMarketEntries >= 2
+THEN score = f(clusterSize, fundingDepth, temporalTightness) * weight
+```
+
+**CONVICTION_SIZE_MISMATCH** — Small, inexperienced wallets betting the farm on a
+longshot.
+
+Preconditions:
+
+- `wallet.fundingClusterId === null`
+- `wallet.isWhitelisted === false`
+
+```text
+IF wallet.totalVolumeUsd < $5,000
+   AND trade.sizeUsd > wallet.totalVolumeUsd * 0.50
+   AND trade.price < 0.30
+THEN score = f(sizeRatio, priceLevel, accountAge) * weight
+```
+
+**TIMING_CLUSTER_BURST** — Tight same-side bursts from unrelated wallets on niche
+markets.
+
+```text
+IF distinctWallets >= 5
+   AND market.dailyVolumeUsd < $100,000
+   AND allSameSide == true
+   AND noSharedFundingSources == true
+THEN score = f(walletCount, timeWindow, marketLiquidity) * weight
+```
+
+False-positive mitigation: run a bounded social-correlation suppression check only when
+the signal fires. Major mentions in Google News or the curated Twitter/X account set
+within the lookback window halve the score.
+
+**CROSS_MARKET_COMMON_SOURCE** — The KPMG detector.
+
+1. Classify `informationSource` for all markets (manual for high-value categories,
+   LLM-assisted for new markets).
+2. Group a wallet’s wins by `informationSource`.
+3. Compute `concentration = max(winsPerSource) / totalWins`.
+
+```text
+IF concentration > 0.6
+   AND totalWins >= 3
+   AND informationSource.type != 'UNKNOWN'
+THEN score = f(concentration, totalWins, entityType) * weight
+```
 
 > **Future signal candidate: POSITION_FLIP** — Insider buys YES at $0.20, market
 > moves to $0.85, insider flips to NO before resolution, profits on both legs. The
@@ -1309,8 +1441,10 @@ export const ingestQuarantine = pgTable('ingest_quarantine', {
 # .env.example — secrets and deployment-specific values ONLY.
 # All tuning parameters live in omen.config.toml.
 
-DATABASE_URL=postgresql://omen:omen@localhost:5432/omen
-REDIS_URL=redis://localhost:6379
+OMEN_POSTGRES_PORT=15432
+OMEN_REDIS_PORT=16379
+DATABASE_URL=postgresql://omen:omen@localhost:15432/omen
+REDIS_URL=redis://localhost:16379
 ALCHEMY_API_KEY=your-alchemy-key
 
 TELEGRAM_BOT_TOKEN=
