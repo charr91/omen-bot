@@ -168,6 +168,7 @@ describe('replayPendingFills', () => {
 
     await expect(replayPendingFills(fillStore, analysisQueue, 2)).resolves.toBe(3);
     expect(analysisQueue.waitForIdle).toHaveBeenCalledTimes(2);
+    expect(analysisQueue.waitForIdle).toHaveBeenCalledWith();
   });
 
   it('fails fast when processing makes no forward progress', async () => {

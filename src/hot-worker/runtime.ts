@@ -210,7 +210,7 @@ async function processFill(fill: FillRecord): Promise<void> {
 
       if (inserted) {
         postMessage({
-          type: 'ALERT_PREVIEW',
+          type: 'SIGNAL_PREVIEW',
           fillId: fill.id,
           walletAddress: fill.walletAddress,
           marketId: fill.marketId,

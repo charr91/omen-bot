@@ -24,6 +24,9 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
     DATABASE_URL: process.env.DATABASE_URL,
     REDIS_URL: process.env.REDIS_URL,
     ALCHEMY_API_KEY: process.env.ALCHEMY_API_KEY,
+    TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
+    TELEGRAM_CHAT_ID_CRITICAL: process.env.TELEGRAM_CHAT_ID_CRITICAL,
+    TELEGRAM_CHAT_ID_MEDIUM: process.env.TELEGRAM_CHAT_ID_MEDIUM,
     LOG_LEVEL: process.env.LOG_LEVEL ?? 'info',
     LOG_PRETTY: process.env.LOG_PRETTY ?? 'true',
     OMEN_INGESTION_POLL_INTERVAL_MS: process.env.OMEN_INGESTION_POLL_INTERVAL_MS,
@@ -37,6 +40,11 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
     databaseUrl: envConfig.DATABASE_URL,
     redisUrl: envConfig.REDIS_URL,
     alchemyApiKey: envConfig.ALCHEMY_API_KEY ?? null,
+    telegram: {
+      botToken: envConfig.TELEGRAM_BOT_TOKEN ?? null,
+      criticalChatId: envConfig.TELEGRAM_CHAT_ID_CRITICAL ?? null,
+      mediumChatId: envConfig.TELEGRAM_CHAT_ID_MEDIUM ?? null,
+    },
     logLevel: envConfig.LOG_LEVEL,
     logPretty: envConfig.LOG_PRETTY,
     ingestion: {
@@ -60,6 +68,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       highMinScore: fileConfig.alerts.high_min_score,
       mediumMinScore: fileConfig.alerts.medium_min_score,
       lowMinScore: fileConfig.alerts.low_min_score,
+      dedupCooldownMs: fileConfig.alerts.dedup_cooldown_ms,
     },
     operational: {
       dryRun: envConfig.OMEN_OPERATIONAL_DRY_RUN ?? fileConfig.operational.dry_run,

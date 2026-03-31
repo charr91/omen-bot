@@ -5,14 +5,14 @@ import type { SignalId } from '../types/signal.js';
 import type { EnqueueFillResult, HotWorkerToMainMessage } from '../types/thread-messages.js';
 
 interface HotWorkerClientOptions {
-  onAlertPreview?: (message: Extract<HotWorkerToMainMessage, { type: 'ALERT_PREVIEW' }>) => void;
+  onSignalPreview?: (message: Extract<HotWorkerToMainMessage, { type: 'SIGNAL_PREVIEW' }>) => void;
   onWorkerError?: (message: string) => void;
 }
 
 interface IdleWaiter {
   resolve: () => void;
   reject: (error: Error) => void;
-  timer: ReturnType<typeof setTimeout>;
+  timer: ReturnType<typeof setTimeout> | null;
 }
 
 interface EnqueueWaiter {
@@ -29,7 +29,7 @@ export interface HotWorkerMetricsSnapshot {
   enqueueFull: number;
   processed: number;
   failed: number;
-  alertPreviewCountsBySignalId: Partial<Record<SignalId, number>>;
+  signalPreviewCountsBySignalId: Partial<Record<SignalId, number>>;
 }
 
 export interface HotWorkerRuntimeSnapshot {
@@ -45,7 +45,7 @@ export class HotWorkerClient {
   private readonly pendingFillIds = new Set<string>();
   private readonly idleWaiters = new Set<IdleWaiter>();
   private readonly enqueueWaiters = new Map<string, EnqueueWaiter>();
-  private readonly onAlertPreview?: HotWorkerClientOptions['onAlertPreview'];
+  private readonly onSignalPreview?: HotWorkerClientOptions['onSignalPreview'];
   private readonly onWorkerError?: HotWorkerClientOptions['onWorkerError'];
   private queueDepth = 0;
   private processing = false;
@@ -60,7 +60,7 @@ export class HotWorkerClient {
     enqueueFull: 0,
     processed: 0,
     failed: 0,
-    alertPreviewCountsBySignalId: {},
+    signalPreviewCountsBySignalId: {},
   };
 
   constructor(config: AppConfig, options: HotWorkerClientOptions = {}) {
@@ -68,7 +68,7 @@ export class HotWorkerClient {
       throw new Error('ALCHEMY_API_KEY is required to start the hot worker');
     }
 
-    this.onAlertPreview = options.onAlertPreview;
+    this.onSignalPreview = options.onSignalPreview;
     this.onWorkerError = options.onWorkerError;
     this.worker = new Worker(buildWorkerBootstrapSource(), {
       eval: true,
@@ -124,24 +124,31 @@ export class HotWorkerClient {
     return resultPromise;
   }
 
-  async waitForIdle(timeoutMs = 30_000): Promise<void> {
+  async waitForIdle(timeoutMs?: number): Promise<void> {
     this.assertHealthy();
     if (this.isIdle()) {
       return;
     }
 
     await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.idleWaiters.delete(waiter);
-        reject(new Error('Timed out waiting for the hot worker to become idle'));
-      }, timeoutMs);
+      const timer =
+        timeoutMs === undefined
+          ? null
+          : setTimeout(() => {
+              this.idleWaiters.delete(waiter);
+              reject(new Error('Timed out waiting for the hot worker to become idle'));
+            }, timeoutMs);
       const waiter: IdleWaiter = {
         resolve: () => {
-          clearTimeout(timer);
+          if (timer) {
+            clearTimeout(timer);
+          }
           resolve();
         },
         reject: (error) => {
-          clearTimeout(timer);
+          if (timer) {
+            clearTimeout(timer);
+          }
           reject(error);
         },
         timer,
@@ -194,7 +201,7 @@ export class HotWorkerClient {
       enqueueFull: this.metrics.enqueueFull,
       processed: this.metrics.processed,
       failed: this.metrics.failed,
-      alertPreviewCountsBySignalId: { ...this.metrics.alertPreviewCountsBySignalId },
+      signalPreviewCountsBySignalId: { ...this.metrics.signalPreviewCountsBySignalId },
     };
 
     this.metrics = {
@@ -203,7 +210,7 @@ export class HotWorkerClient {
       enqueueFull: 0,
       processed: 0,
       failed: 0,
-      alertPreviewCountsBySignalId: {},
+      signalPreviewCountsBySignalId: {},
     };
 
     return snapshot;
@@ -256,10 +263,10 @@ export class HotWorkerClient {
       return;
     }
 
-    if (message.type === 'ALERT_PREVIEW') {
-      this.metrics.alertPreviewCountsBySignalId[message.signal.signalId] =
-        (this.metrics.alertPreviewCountsBySignalId[message.signal.signalId] ?? 0) + 1;
-      this.onAlertPreview?.(message);
+    if (message.type === 'SIGNAL_PREVIEW') {
+      this.metrics.signalPreviewCountsBySignalId[message.signal.signalId] =
+        (this.metrics.signalPreviewCountsBySignalId[message.signal.signalId] ?? 0) + 1;
+      this.onSignalPreview?.(message);
       return;
     }
 
@@ -278,7 +285,9 @@ export class HotWorkerClient {
     }
 
     for (const waiter of this.idleWaiters) {
-      clearTimeout(waiter.timer);
+      if (waiter.timer) {
+        clearTimeout(waiter.timer);
+      }
       waiter.resolve();
     }
     this.idleWaiters.clear();
@@ -293,7 +302,9 @@ export class HotWorkerClient {
     }
     this.enqueueWaiters.clear();
     for (const waiter of this.idleWaiters) {
-      clearTimeout(waiter.timer);
+      if (waiter.timer) {
+        clearTimeout(waiter.timer);
+      }
       waiter.reject(error);
     }
     this.idleWaiters.clear();

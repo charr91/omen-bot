@@ -42,6 +42,7 @@ export const fileConfigSchema = z
         high_min_score: z.number().min(0).max(100).optional(),
         medium_min_score: z.number().min(0).max(100).optional(),
         low_min_score: z.number().min(0).max(100).optional(),
+        dedup_cooldown_ms: z.number().int().positive().optional(),
       })
       .optional(),
     operational: z
@@ -77,6 +78,7 @@ export const fileConfigSchema = z
       high_min_score: value.alerts?.high_min_score ?? 60,
       medium_min_score: value.alerts?.medium_min_score ?? 40,
       low_min_score: value.alerts?.low_min_score ?? 20,
+      dedup_cooldown_ms: value.alerts?.dedup_cooldown_ms ?? 86_400_000,
     },
     operational: {
       dry_run: value.operational?.dry_run ?? false,
@@ -90,6 +92,9 @@ export const envConfigSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
   ALCHEMY_API_KEY: z.string().min(1).optional(),
+  TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+  TELEGRAM_CHAT_ID_CRITICAL: z.string().min(1).optional(),
+  TELEGRAM_CHAT_ID_MEDIUM: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']),
   LOG_PRETTY: booleanStringSchema,
   OMEN_INGESTION_POLL_INTERVAL_MS: positiveIntegerStringSchema.optional(),
@@ -106,6 +111,11 @@ export interface AppConfig {
   databaseUrl: string;
   redisUrl: string;
   alchemyApiKey: string | null;
+  telegram: {
+    botToken: string | null;
+    criticalChatId: string | null;
+    mediumChatId: string | null;
+  };
   logLevel: EnvConfig['LOG_LEVEL'];
   logPretty: boolean;
   ingestion: {
@@ -129,6 +139,7 @@ export interface AppConfig {
     highMinScore: number;
     mediumMinScore: number;
     lowMinScore: number;
+    dedupCooldownMs: number;
   };
   operational: {
     dryRun: boolean;
