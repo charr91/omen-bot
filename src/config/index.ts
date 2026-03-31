@@ -23,18 +23,18 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
   const envConfig = envConfigSchema.parse({
     DATABASE_URL: process.env.DATABASE_URL,
     REDIS_URL: process.env.REDIS_URL,
-    ALCHEMY_API_KEY: process.env.ALCHEMY_API_KEY,
-    TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
-    TELEGRAM_CHAT_ID_CRITICAL: process.env.TELEGRAM_CHAT_ID_CRITICAL,
-    TELEGRAM_CHAT_ID_MEDIUM: process.env.TELEGRAM_CHAT_ID_MEDIUM,
-    DISCORD_WEBHOOK_CRITICAL: process.env.DISCORD_WEBHOOK_CRITICAL,
-    DISCORD_WEBHOOK_MEDIUM: process.env.DISCORD_WEBHOOK_MEDIUM,
+    ALCHEMY_API_KEY: readOptionalEnv(process.env.ALCHEMY_API_KEY),
+    TELEGRAM_BOT_TOKEN: readOptionalEnv(process.env.TELEGRAM_BOT_TOKEN),
+    TELEGRAM_CHAT_ID_CRITICAL: readOptionalEnv(process.env.TELEGRAM_CHAT_ID_CRITICAL),
+    TELEGRAM_CHAT_ID_MEDIUM: readOptionalEnv(process.env.TELEGRAM_CHAT_ID_MEDIUM),
+    DISCORD_WEBHOOK_CRITICAL: readOptionalEnv(process.env.DISCORD_WEBHOOK_CRITICAL),
+    DISCORD_WEBHOOK_MEDIUM: readOptionalEnv(process.env.DISCORD_WEBHOOK_MEDIUM),
     LOG_LEVEL: process.env.LOG_LEVEL ?? 'info',
     LOG_PRETTY: process.env.LOG_PRETTY ?? 'true',
-    OMEN_INGESTION_POLL_INTERVAL_MS: process.env.OMEN_INGESTION_POLL_INTERVAL_MS,
-    OMEN_INGESTION_MAX_PAGES_PER_POLL: process.env.OMEN_INGESTION_MAX_PAGES_PER_POLL,
-    OMEN_OPERATIONAL_DRY_RUN: process.env.OMEN_OPERATIONAL_DRY_RUN,
-    OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH: process.env.OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH,
+    OMEN_INGESTION_POLL_INTERVAL_MS: readOptionalEnv(process.env.OMEN_INGESTION_POLL_INTERVAL_MS),
+    OMEN_INGESTION_MAX_PAGES_PER_POLL: readOptionalEnv(process.env.OMEN_INGESTION_MAX_PAGES_PER_POLL),
+    OMEN_OPERATIONAL_DRY_RUN: readOptionalEnv(process.env.OMEN_OPERATIONAL_DRY_RUN),
+    OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH: readOptionalEnv(process.env.OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH),
   });
 
   return {
@@ -98,4 +98,13 @@ async function readTomlConfig(configPath: string): Promise<unknown> {
   }
 
   return toml.parse(rawConfig);
+}
+
+function readOptionalEnv(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }
