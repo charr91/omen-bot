@@ -8,7 +8,7 @@ export interface HotWorkerMetrics {
   enqueueFull: number;
   processed: number;
   failed: number;
-  alertPreviewCountsBySignalId: Partial<Record<SignalId, number>>;
+  signalPreviewCountsBySignalId: Partial<Record<SignalId, number>>;
 }
 
 export interface HotWorkerRuntimeSnapshot {
@@ -42,7 +42,7 @@ export interface RuntimeStatsLog {
     lastProcessedAt: string | null;
     lastProcessedAgeMs: number | null;
   };
-  alerts: {
+  signals: {
     previewCountsBySignalId: Partial<Record<SignalId, number>>;
   };
 }
@@ -93,8 +93,8 @@ export class RuntimeStatsCollector {
         lastProcessedAgeMs:
           Number.isFinite(lastProcessedAtMs) ? collectedAt.getTime() - lastProcessedAtMs : null,
       },
-      alerts: {
-        previewCountsBySignalId: { ...hotWorkerMetrics.alertPreviewCountsBySignalId },
+      signals: {
+        previewCountsBySignalId: { ...hotWorkerMetrics.signalPreviewCountsBySignalId },
       },
     };
 

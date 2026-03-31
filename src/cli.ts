@@ -22,12 +22,16 @@ interface AnalyzeCliOptions {
   input: string;
 }
 
+interface StartCliOptions {
+  tui: boolean;
+}
+
 const HELP = `omen validate-fills
 
 Phase 1 thin slice + Phase 0 validation.
 
 Usage:
-  omen [--env-file .env] start
+  omen [--env-file .env] start [--tui]
   omen [--env-file .env] replay
   omen [--env-file .env] health
   omen [--env-file .env.server] validate-fills capture --hours 24 --out .phase0-data/run-001 [--use-auth] [--detach]
@@ -44,29 +48,32 @@ async function main(): Promise<void> {
   const parsed = parseGlobalOptions(argv);
   loadEnvironment(parsed.envFiles.length > 0 ? { envFiles: parsed.envFiles } : undefined);
 
-  const [scope, action, ...rest] = parsed.positionals;
+  const [scope, ...rest] = parsed.positionals;
 
-  if (scope === 'start' && !action) {
-    await runStartCommand();
+  if (scope === 'start') {
+    const options = parseStartOptions(rest);
+    await runStartCommand(options);
     return;
   }
 
-  if (scope === 'replay' && !action) {
+  if (scope === 'replay' && rest.length === 0) {
     await runReplayCommand();
     return;
   }
 
-  if (scope === 'health' && !action) {
+  if (scope === 'health' && rest.length === 0) {
     await runHealthCommand();
     return;
   }
+
+  const [action, ...actionArgs] = rest;
 
   if (scope !== 'validate-fills' || !action) {
     throw new Error(HELP);
   }
 
   if (action === 'capture') {
-    const options = parseCaptureOptions(rest);
+    const options = parseCaptureOptions(actionArgs);
 
     if (options.detach) {
       const result = await spawnDetachedCapture(parsed.envFiles, options);
@@ -80,7 +87,7 @@ async function main(): Promise<void> {
   }
 
   if (action === 'analyze') {
-    const options = parseAnalyzeOptions(rest);
+    const options = parseAnalyzeOptions(actionArgs);
     const result = await runPhase0Analysis(options.input);
     process.stdout.write(
       `${result.summaryPath}\n${result.findingsPath}\n${result.summary.recommendation.naturalKey}\n`,
@@ -89,6 +96,23 @@ async function main(): Promise<void> {
   }
 
   throw new Error(HELP);
+}
+
+function parseStartOptions(args: string[]): StartCliOptions {
+  const parsed = parseArgs({
+    args,
+    options: {
+      tui: {
+        type: 'boolean',
+        default: false,
+      },
+    },
+    allowPositionals: false,
+  });
+
+  return {
+    tui: parsed.values.tui,
+  };
 }
 
 async function spawnDetachedCapture(

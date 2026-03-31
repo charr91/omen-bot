@@ -1,3 +1,6 @@
+import type { Pool } from 'pg';
+import { AlertDispatcher } from '../alerts/dispatcher.js';
+import { promoteSignalPreview } from '../alerts/promote.js';
 import { loadAppConfig } from '../config/index.js';
 import { RuntimeStatsCollector } from './runtime-stats.js';
 import { HotWorkerClient } from '../hot-worker/client.js';
@@ -8,6 +11,8 @@ import { createFillStore, type FillStore } from '../persistence/queries/fills.js
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { ensurePersistenceSchema } from '../persistence/schema.js';
 import { collectHealthReport } from '../resilience/health.js';
+import { TerminalDashboard } from '../tui/dashboard.js';
+import type { SignalPreview } from '../types/alert.js';
 import type { FillRecord } from '../types/fill.js';
 import type { EnqueueFillResult } from '../types/thread-messages.js';
 
@@ -31,6 +36,10 @@ interface IngestionCycleOptions {
   fillStore: FillStore;
   analysisQueue: FillAnalysisQueue;
   replayLimit?: number;
+}
+
+interface StartCommandOptions {
+  tui?: boolean;
 }
 
 const DEFAULT_REPLAY_LIMIT = 1_000;
@@ -64,27 +73,45 @@ export async function runIngestionCycle(options: IngestionCycleOptions): Promise
   };
 }
 
-export async function runStartCommand(): Promise<void> {
+export async function runStartCommand(options: StartCommandOptions = {}): Promise<void> {
   const config = await loadAppConfig();
   const pool = createDbPool(config);
   const redis = createRedisClient(config);
   const fillStore = createFillStore(pool);
   const fillSource = createPolymarketFillSource(config.ingestion.maxPagesPerPoll);
   const runtimeStatsCollector = new RuntimeStatsCollector();
-  const hotWorker = new HotWorkerClient(config, {
-    onAlertPreview: (message) => {
-      const { type: _type, ...payload } = message;
-      process.stdout.write(`${JSON.stringify({ type: 'alert-preview', ...payload })}\n`);
-    },
-    onWorkerError: (message) => {
-      process.stderr.write(`[hot-worker] ${message}\n`);
-    },
-  });
   let stopping = false;
 
   const stop = (): void => {
     stopping = true;
   };
+
+  const alertDispatcher = new AlertDispatcher(config, redis);
+  const dashboard =
+    options.tui === true
+      ? new TerminalDashboard({
+          dryRun: alertDispatcher.isDryRun(),
+          onDryRunToggle: (dryRun) => {
+            alertDispatcher.setDryRun(dryRun);
+          },
+          onQuit: stop,
+        })
+      : null;
+  const hotWorker = new HotWorkerClient(config, {
+    onSignalPreview: (message) => {
+      void handleSignalPreview({
+        preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
+        alertDispatcher,
+        dashboard,
+      });
+    },
+    onWorkerError: (message) => {
+      reportOperatorError({
+        message: `[hot-worker] ${message}`,
+        dashboard,
+      });
+    },
+  });
 
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
@@ -92,6 +119,14 @@ export async function runStartCommand(): Promise<void> {
   try {
     await pingRedis(redis);
     await ensurePersistenceSchema(pool);
+    dashboard?.start();
+    await refreshDashboardCounts(pool, dashboard).catch((error) => {
+      reportOperatorError({
+        message: `[tui] ${formatError(error)}`,
+        dashboard,
+      });
+    });
+
     const runtimeStatsTimer = setInterval(() => {
       if (stopping) {
         return;
@@ -101,6 +136,17 @@ export async function runStartCommand(): Promise<void> {
         hotWorker.getRuntimeSnapshot(),
         hotWorker.drainMetrics(),
       );
+      if (dashboard) {
+        dashboard.updateRuntimeStats(runtimeStats);
+        void refreshDashboardCounts(pool, dashboard).catch((error) => {
+          reportOperatorError({
+            message: `[tui] ${formatError(error)}`,
+            dashboard,
+          });
+        });
+        return;
+      }
+
       process.stdout.write(`${JSON.stringify(runtimeStats)}\n`);
     }, RUNTIME_STATS_INTERVAL_MS);
 
@@ -116,7 +162,19 @@ export async function runStartCommand(): Promise<void> {
           analysisQueue: hotWorker,
         });
         runtimeStatsCollector.recordIngestionCycle(result);
-        process.stdout.write(`${JSON.stringify({ type: 'ingest-cycle', ...result })}\n`);
+        if (dashboard) {
+          dashboard.recordIngestionCycle(result);
+          if (result.inserted > 0 || result.replayed > 0) {
+            void refreshDashboardCounts(pool, dashboard).catch((error) => {
+              reportOperatorError({
+                message: `[tui] ${formatError(error)}`,
+                dashboard,
+              });
+            });
+          }
+        } else {
+          process.stdout.write(`${JSON.stringify({ type: 'ingest-cycle', ...result })}\n`);
+        }
 
         if (stopping) {
           break;
@@ -132,6 +190,7 @@ export async function runStartCommand(): Promise<void> {
     process.off('SIGTERM', stop);
     await hotWorker.waitForIdle(30_000).catch(() => undefined);
     await hotWorker.stop();
+    dashboard?.stop();
     redis.disconnect(false);
     await pool.end();
   }
@@ -142,10 +201,14 @@ export async function runReplayCommand(): Promise<number> {
   const pool = createDbPool(config);
   const redis = createRedisClient(config);
   const fillStore = createFillStore(pool);
+  const alertDispatcher = new AlertDispatcher(config, redis);
   const hotWorker = new HotWorkerClient(config, {
-    onAlertPreview: (message) => {
-      const { type: _type, ...payload } = message;
-      process.stdout.write(`${JSON.stringify({ type: 'alert-preview', ...payload })}\n`);
+    onSignalPreview: (message) => {
+      void handleSignalPreview({
+        preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
+        alertDispatcher,
+        dashboard: null,
+      });
     },
     onWorkerError: (message) => {
       process.stderr.write(`[hot-worker] ${message}\n`);
@@ -195,7 +258,7 @@ export async function replayPendingFills(
     }
 
     replayed += queued;
-    await analysisQueue.waitForIdle(30_000);
+    await analysisQueue.waitForIdle();
 
     const after = await fillStore.getRuntimeSummary();
     if (after.unanalyzedFillCount === 0) {
@@ -231,4 +294,80 @@ async function schedulePendingFills(
   }
 
   return queued;
+}
+
+async function handleSignalPreview(options: {
+  preview: SignalPreview;
+  alertDispatcher: AlertDispatcher;
+  dashboard: TerminalDashboard | null;
+}): Promise<void> {
+  const { preview, alertDispatcher, dashboard } = options;
+  if (dashboard === null) {
+    process.stdout.write(`${JSON.stringify({ type: 'signal-preview', ...preview })}\n`);
+  }
+
+  const promotedAlert = promoteSignalPreview(preview);
+  if (!promotedAlert) {
+    return;
+  }
+
+  dashboard?.addAlert(promotedAlert);
+
+  try {
+    const result = await alertDispatcher.dispatch(promotedAlert);
+    if (dashboard && result === 'suppressed-dry-run') {
+      dashboard.notify('Promoted alert kept local because dry-run is enabled');
+    }
+  } catch (error) {
+    reportOperatorError({
+      message: `[alerts] ${formatError(error)}`,
+      dashboard,
+    });
+  }
+}
+
+function withEffectiveDryRun(
+  message: Extract<import('../types/thread-messages.js').HotWorkerToMainMessage, { type: 'SIGNAL_PREVIEW' }>,
+  dryRun: boolean,
+): SignalPreview {
+  const { type: _type, dryRun: _workerDryRun, ...payload } = message;
+  return {
+    ...payload,
+    dryRun,
+  };
+}
+
+async function refreshDashboardCounts(
+  pool: Pick<Pool, 'query'>,
+  dashboard: TerminalDashboard | null,
+): Promise<void> {
+  if (dashboard === null) {
+    return;
+  }
+
+  const [marketCountResult, walletCountResult] = await Promise.all([
+    pool.query<{ count: string }>('select count(distinct market_id)::text as count from fills'),
+    pool.query<{ count: string }>('select count(*)::text as count from wallets'),
+  ]);
+
+  dashboard.updateCounts({
+    marketCount: Number(marketCountResult.rows[0]?.count ?? '0'),
+    walletCount: Number(walletCountResult.rows[0]?.count ?? '0'),
+  });
+}
+
+function reportOperatorError(options: {
+  message: string;
+  dashboard: TerminalDashboard | null;
+}): void {
+  if (options.dashboard) {
+    options.dashboard.notify(options.message);
+    return;
+  }
+
+  process.stderr.write(`${options.message}\n`);
+}
+
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

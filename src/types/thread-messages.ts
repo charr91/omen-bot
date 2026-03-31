@@ -1,5 +1,5 @@
 import type { FillRecord } from './fill.js';
-import type { AlertTier, TriggeredSignal } from './signal.js';
+import type { SignalPreview } from './alert.js';
 
 export type EnqueueFillResult = 'accepted' | 'duplicate' | 'full';
 
@@ -31,17 +31,7 @@ export type HotWorkerToMainMessage =
       status: 'processed' | 'failed';
       error: string | null;
     }
-  | {
-      type: 'ALERT_PREVIEW';
-      fillId: string;
-      walletAddress: string;
-      marketId: string;
-      marketQuestion: string;
-      walletLiveScore: number;
-      walletLiveTier: AlertTier;
-      signal: TriggeredSignal;
-      dryRun: boolean;
-    }
+  | ({ type: 'SIGNAL_PREVIEW' } & SignalPreview)
   | {
       type: 'ERROR';
       error: string;

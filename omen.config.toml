@@ -20,6 +20,7 @@ critical_min_score = 80
 high_min_score = 60
 medium_min_score = 40
 low_min_score = 20
+dedup_cooldown_ms = 86_400_000
 
 [operational]
 dry_run = false

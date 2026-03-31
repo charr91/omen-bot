@@ -8,6 +8,9 @@ const ENV_KEYS = [
   'DATABASE_URL',
   'REDIS_URL',
   'ALCHEMY_API_KEY',
+  'TELEGRAM_BOT_TOKEN',
+  'TELEGRAM_CHAT_ID_CRITICAL',
+  'TELEGRAM_CHAT_ID_MEDIUM',
   'LOG_LEVEL',
   'LOG_PRETTY',
   'OMEN_INGESTION_POLL_INTERVAL_MS',
@@ -46,6 +49,7 @@ critical_min_score = 90
 high_min_score = 70
 medium_min_score = 50
 low_min_score = 30
+dedup_cooldown_ms = 60000
 
 [operational]
 dry_run = true
@@ -59,6 +63,9 @@ hot_worker_queue_depth = 55
     process.env.DATABASE_URL = 'postgresql://omen:omen@localhost:5432/omen';
     process.env.REDIS_URL = 'redis://localhost:6379';
     process.env.ALCHEMY_API_KEY = 'alchemy-key';
+    process.env.TELEGRAM_BOT_TOKEN = 'telegram-token';
+    process.env.TELEGRAM_CHAT_ID_CRITICAL = 'critical-chat';
+    process.env.TELEGRAM_CHAT_ID_MEDIUM = 'medium-chat';
 
     const config = await loadAppConfig({ cwd });
 
@@ -71,9 +78,13 @@ hot_worker_queue_depth = 55
     expect(config.detection.market.largePositionMinUsd).toBe(2500);
     expect(config.detection.market.largePositionVolumePct).toBe(0.05);
     expect(config.alerts.highMinScore).toBe(70);
+    expect(config.alerts.dedupCooldownMs).toBe(60_000);
     expect(config.operational.dryRun).toBe(true);
     expect(config.backpressure.hotWorkerQueueDepth).toBe(55);
     expect(config.alchemyApiKey).toBe('alchemy-key');
+    expect(config.telegram.botToken).toBe('telegram-token');
+    expect(config.telegram.criticalChatId).toBe('critical-chat');
+    expect(config.telegram.mediumChatId).toBe('medium-chat');
     expect(config.logLevel).toBe('info');
     expect(config.logPretty).toBe(true);
   });
