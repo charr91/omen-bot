@@ -5,5 +5,24 @@
 poll_interval_ms = 15_000
 max_pages_per_poll = 20
 
+[detection.fresh_wallet]
+critical_age_hours = 24
+elevated_age_hours = 72
+max_txns = 10
+
+[detection.market]
+niche_max_volume = 100_000
+large_position_min_usd = 1_000
+large_position_volume_pct = 0.02
+
+[alerts]
+critical_min_score = 80
+high_min_score = 60
+medium_min_score = 40
+low_min_score = 20
+
+[operational]
+dry_run = false
+
 [backpressure]
 hot_worker_queue_depth = 100

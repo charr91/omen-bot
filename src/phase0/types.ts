@@ -16,6 +16,15 @@ export interface ActiveAsset {
   outcome: string | null;
 }
 
+export interface ActiveMarket {
+  conditionId: string;
+  marketSlug: string | null;
+  question: string;
+  dailyVolumeUsd: string;
+  volumeUsd: string;
+  liquidityUsd: string;
+}
+
 export interface CaptureManifest {
   version: string;
   startedAt: string;
