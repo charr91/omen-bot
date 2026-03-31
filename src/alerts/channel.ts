@@ -1,11 +1,18 @@
 import type { PromotedAlert, PromotedAlertTier } from '../types/alert.js';
 
 export type AlertDeliveryChannelName = 'telegram' | 'discord';
-export type AlertDispatchStatus = 'sent' | 'suppressed-dry-run' | 'suppressed-duplicate' | 'disabled';
+export type AlertDispatchStatus =
+  | 'sent'
+  | 'sent-partial'
+  | 'suppressed-dry-run'
+  | 'suppressed-duplicate'
+  | 'disabled'
+  | 'failed';
 
 export interface AlertDispatchResult {
   status: AlertDispatchStatus;
   channels: AlertDeliveryChannelName[];
+  failedChannels: AlertDeliveryChannelName[];
 }
 
 export interface AlertDeliveryChannel {

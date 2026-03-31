@@ -45,6 +45,7 @@ export class AlertDispatcher {
       return {
         status: 'suppressed-dry-run',
         channels: enabledChannels.map((channel) => channel.name),
+        failedChannels: [],
       };
     }
 
@@ -52,10 +53,12 @@ export class AlertDispatcher {
       return {
         status: 'disabled',
         channels: [],
+        failedChannels: [],
       };
     }
 
     const sentChannels: AlertDeliveryChannelName[] = [];
+    const failedChannels: AlertDeliveryChannelName[] = [];
     let duplicateChannels = 0;
 
     for (const channel of enabledChannels) {
@@ -72,9 +75,13 @@ export class AlertDispatcher {
           continue;
         }
 
-        await channel.dispatch(alert);
-        await this.deduper.markDispatched(channel.name, alert);
-        sentChannels.push(channel.name);
+        try {
+          await channel.dispatch(alert);
+          await this.deduper.markDispatched(channel.name, alert);
+          sentChannels.push(channel.name);
+        } catch {
+          failedChannels.push(channel.name);
+        }
       } finally {
         this.inFlightKeys.delete(dedupKey);
       }
@@ -82,8 +89,9 @@ export class AlertDispatcher {
 
     if (sentChannels.length > 0) {
       return {
-        status: 'sent',
+        status: failedChannels.length > 0 ? 'sent-partial' : 'sent',
         channels: sentChannels,
+        failedChannels,
       };
     }
 
@@ -91,12 +99,14 @@ export class AlertDispatcher {
       return {
         status: 'suppressed-duplicate',
         channels: enabledChannels.map((channel) => channel.name),
+        failedChannels: [],
       };
     }
 
     return {
-      status: 'disabled',
+      status: failedChannels.length > 0 ? 'failed' : 'disabled',
       channels: [],
+      failedChannels,
     };
   }
 }

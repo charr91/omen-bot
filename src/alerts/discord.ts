@@ -84,5 +84,9 @@ function escapeDiscordCode(value: string): string {
 }
 
 function suppressDiscordMentions(value: string): string {
-  return value.replaceAll('@everyone', '@\u200beveryone').replaceAll('@here', '@\u200bhere');
+  return value
+    .replaceAll('@everyone', '@\u200beveryone')
+    .replaceAll('@here', '@\u200bhere')
+    .replaceAll('<@', '<\u200b@')
+    .replaceAll('<#', '<\u200b#');
 }

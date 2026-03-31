@@ -194,9 +194,8 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   } finally {
     process.off('SIGINT', stop);
     process.off('SIGTERM', stop);
-    await hotWorker.waitForIdle(30_000).catch(() => undefined);
-    await waitForSignalPreviewTasks(signalPreviewTasks);
     await hotWorker.stop();
+    await waitForSignalPreviewTasks(signalPreviewTasks);
     dashboard?.stop();
     redis.disconnect(false);
     await pool.end();
@@ -231,12 +230,12 @@ export async function runReplayCommand(): Promise<number> {
     await pingRedis(redis);
     await ensurePersistenceSchema(pool);
     replayed = await replayPendingFills(fillStore, hotWorker, DEFAULT_REPLAY_LIMIT);
-    await waitForSignalPreviewTasks(signalPreviewTasks);
 
     process.stdout.write(`${JSON.stringify({ type: 'replay', replayed })}\n`);
     return replayed;
   } finally {
     await hotWorker.stop();
+    await waitForSignalPreviewTasks(signalPreviewTasks);
     redis.disconnect(false);
     await pool.end();
   }
@@ -330,6 +329,12 @@ async function handleSignalPreview(options: {
     if (dashboard === null) {
       process.stdout.write(`${JSON.stringify(buildAlertDispatchLog(promotedAlert, result, preview.dryRun))}\n`);
     }
+    if (result.failedChannels.length > 0) {
+      reportOperatorError({
+        message: `[alerts] failed to dispatch on channel(s): ${result.failedChannels.join(', ')}`,
+        dashboard,
+      });
+    }
     if (dashboard && result.status === 'suppressed-dry-run') {
       dashboard.notify('Promoted alert kept local because dry-run is enabled');
     }
@@ -401,6 +406,7 @@ function buildAlertDispatchLog(
   deliveryTier: PromotedAlert['deliveryTier'];
   result: AlertDispatchResult['status'];
   channels: AlertDispatchResult['channels'];
+  failedChannels: AlertDispatchResult['failedChannels'];
   dryRun: boolean;
 } {
   return {
@@ -413,6 +419,7 @@ function buildAlertDispatchLog(
     deliveryTier: alert.deliveryTier,
     result: result.status,
     channels: result.channels,
+    failedChannels: result.failedChannels,
     dryRun,
   };
 }

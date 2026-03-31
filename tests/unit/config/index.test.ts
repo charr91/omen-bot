@@ -129,4 +129,15 @@ hot_worker_queue_depth = 100
     expect(config.logLevel).toBe('debug');
     expect(config.logPretty).toBe(false);
   });
+
+  it('rejects invalid Discord webhook URLs early', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'omen-config-'));
+    await writeFile(join(cwd, 'omen.config.toml'), '', 'utf8');
+
+    process.env.DATABASE_URL = 'postgresql://omen:omen@localhost:5432/omen';
+    process.env.REDIS_URL = 'redis://localhost:6379';
+    process.env.DISCORD_WEBHOOK_CRITICAL = 'htps://discord.example/not-a-real-url';
+
+    await expect(loadAppConfig({ cwd })).rejects.toThrow(/HTTPS URL/i);
+  });
 });

@@ -9,7 +9,7 @@ function makeAlert(): PromotedAlert {
     fillId: 'fill-1',
     walletAddress: '0xabc',
     marketId: 'market-1',
-    marketQuestion: 'Will @everyone *really* `move`?',
+    marketQuestion: 'Will @everyone and <@&123> *really* `move`?',
     walletLiveScore: 62,
     walletLiveTier: 'HIGH',
     deliveryTier: 'HIGH',
@@ -36,7 +36,7 @@ function makeAlert(): PromotedAlert {
 describe('Discord alert delivery', () => {
   it('formats Discord-safe content and suppresses mentions', () => {
     const message = formatDiscordAlertMessage(makeAlert());
-    expect(message).toContain('Will @\u200beveryone \\*really\\* \\`move\\`?');
+    expect(message).toContain('Will @\u200beveryone and <\u200b@&123\\> \\*really\\* \\`move\\`?');
     expect(message).toContain('**HIGH OMEN alert**');
   });
 
@@ -113,6 +113,55 @@ describe('Discord alert delivery', () => {
     await expect(dispatch.dispatch(makeAlert())).resolves.toEqual({
       status: 'sent',
       channels: ['telegram', 'discord'],
+      failedChannels: [],
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('continues dispatching remaining channels when one channel fails', async () => {
+    const fetchImpl = vi.fn().mockImplementation(async (url: string) => {
+      if (url.startsWith('https://api.telegram.org/')) {
+        return {
+          ok: true,
+          json: async () => ({ ok: true }),
+        };
+      }
+
+      throw new Error('discord webhook unavailable');
+    });
+    const dispatch = new AlertDispatcher(
+      {
+        alerts: {
+          criticalMinScore: 80,
+          highMinScore: 60,
+          mediumMinScore: 40,
+          lowMinScore: 20,
+          dedupCooldownMs: 60_000,
+        },
+        operational: {
+          dryRun: false,
+        },
+        telegram: {
+          botToken: 'bot-token',
+          criticalChatId: 'critical-chat',
+          mediumChatId: 'medium-chat',
+        },
+        discord: {
+          criticalWebhookUrl: 'https://discord.example/critical',
+          mediumWebhookUrl: 'https://discord.example/medium',
+        },
+      },
+      {
+        get: vi.fn().mockResolvedValue(null),
+        set: vi.fn().mockResolvedValue('OK'),
+      },
+      { fetchImpl },
+    );
+
+    await expect(dispatch.dispatch(makeAlert())).resolves.toEqual({
+      status: 'sent-partial',
+      channels: ['telegram'],
+      failedChannels: ['discord'],
     });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });

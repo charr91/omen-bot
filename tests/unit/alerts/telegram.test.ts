@@ -74,6 +74,7 @@ describe('Telegram alert delivery', () => {
     await expect(dispatch.dispatch(makeAlert())).resolves.toEqual({
       status: 'suppressed-dry-run',
       channels: ['telegram'],
+      failedChannels: [],
     });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -116,6 +117,7 @@ describe('Telegram alert delivery', () => {
     await expect(dispatch.dispatch(makeAlert())).resolves.toEqual({
       status: 'sent',
       channels: ['telegram'],
+      failedChannels: [],
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
@@ -158,6 +160,7 @@ describe('Telegram alert delivery', () => {
     await expect(dispatch.dispatch(makeAlert())).resolves.toEqual({
       status: 'suppressed-duplicate',
       channels: ['telegram'],
+      failedChannels: [],
     });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -208,12 +211,14 @@ describe('Telegram alert delivery', () => {
     await expect(dispatch.dispatch(makeAlert())).resolves.toEqual({
       status: 'suppressed-duplicate',
       channels: ['telegram'],
+      failedChannels: [],
     });
 
     resolveGet?.(null);
     await expect(firstDispatch).resolves.toEqual({
       status: 'sent',
       channels: ['telegram'],
+      failedChannels: [],
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
