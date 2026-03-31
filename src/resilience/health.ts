@@ -2,11 +2,13 @@ import type { AppConfig } from '../config/schema.js';
 import { HOT_WORKER_HEARTBEAT_KEY, HOT_WORKER_HEARTBEAT_TTL_MS } from '../hot-worker/constants.js';
 import { fetchPublicTrades } from '../phase0/public-api.js';
 import { createDbPool, pingDatabase } from '../persistence/db.js';
+import { createAlertStore } from '../persistence/queries/alerts.js';
 import { createFillStore } from '../persistence/queries/fills.js';
 import { createSignalEventStore } from '../persistence/queries/signal-events.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 
 const RECENT_SIGNAL_EVENTS_WINDOW_MINUTES = 60;
+const RECENT_ALERTS_WINDOW_MINUTES = 60;
 
 export interface HealthCheckResult {
   status: 'ok' | 'error';
@@ -24,6 +26,8 @@ export interface RuntimeHealthSummary {
   newestFillTimestamp: string | null;
   recentSignalEventCount: number | null;
   recentSignalEventsWindowMinutes: number;
+  recentAlertCount: number | null;
+  recentAlertsWindowMinutes: number;
 }
 
 export interface HealthReport {
@@ -107,12 +111,14 @@ export async function collectHealthReport(config: AppConfig): Promise<HealthRepo
 async function collectRuntimeSummary(config: AppConfig): Promise<RuntimeHealthSummary> {
   const pool = createDbPool(config);
   const fillStore = createFillStore(pool);
+  const alertStore = createAlertStore(pool);
   const signalEventStore = createSignalEventStore(pool);
   const redis = createRedisClient(config);
 
   try {
-    const [fillSummary, recentSignalEventCount, heartbeatRaw] = await Promise.all([
+    const [fillSummary, recentAlertCount, recentSignalEventCount, heartbeatRaw] = await Promise.all([
       fillStore.getRuntimeSummary(),
+      alertStore.countRecentPromotedAlerts(new Date(Date.now() - RECENT_ALERTS_WINDOW_MINUTES * 60_000)),
       signalEventStore.countRecentLiveSignalEvents(
         new Date(Date.now() - RECENT_SIGNAL_EVENTS_WINDOW_MINUTES * 60_000),
       ),
@@ -132,6 +138,8 @@ async function collectRuntimeSummary(config: AppConfig): Promise<RuntimeHealthSu
       newestFillTimestamp: fillSummary.newestFillTimestamp?.toISOString() ?? null,
       recentSignalEventCount,
       recentSignalEventsWindowMinutes: RECENT_SIGNAL_EVENTS_WINDOW_MINUTES,
+      recentAlertCount,
+      recentAlertsWindowMinutes: RECENT_ALERTS_WINDOW_MINUTES,
     };
   } catch {
     return {
@@ -144,6 +152,8 @@ async function collectRuntimeSummary(config: AppConfig): Promise<RuntimeHealthSu
       newestFillTimestamp: null,
       recentSignalEventCount: null,
       recentSignalEventsWindowMinutes: RECENT_SIGNAL_EVENTS_WINDOW_MINUTES,
+      recentAlertCount: null,
+      recentAlertsWindowMinutes: RECENT_ALERTS_WINDOW_MINUTES,
     };
   } finally {
     redis.disconnect(false);

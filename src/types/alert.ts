@@ -10,10 +10,18 @@ export interface SignalPreview {
   walletLiveScore: number;
   walletLiveTier: AlertTier;
   signal: TriggeredSignal;
+  promotedAlertId: string | null;
+  promotedAt: string | null;
   dryRun: boolean;
 }
 
 export interface PromotedAlert extends SignalPreview {
   promotedAt: string;
   deliveryTier: PromotedAlertTier;
+}
+
+export interface StoredAlert extends PromotedAlert {
+  id: string;
+  dispatchEligible: boolean;
+  createdAt: string;
 }

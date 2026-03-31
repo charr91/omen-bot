@@ -28,6 +28,7 @@ function makeAlert(): PromotedAlert {
       ],
       triggeredAt: new Date('2026-03-31T02:00:00.000Z'),
     },
+    promotedAlertId: null,
     promotedAt: '2026-03-31T02:01:00.000Z',
     dryRun: false,
   };
@@ -75,6 +76,13 @@ describe('Telegram alert delivery', () => {
       status: 'suppressed-dry-run',
       channels: ['telegram'],
       failedChannels: [],
+      channelResults: [
+        {
+          channel: 'telegram',
+          status: 'suppressed-dry-run',
+          error: null,
+        },
+      ],
     });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -118,6 +126,13 @@ describe('Telegram alert delivery', () => {
       status: 'sent',
       channels: ['telegram'],
       failedChannels: [],
+      channelResults: [
+        {
+          channel: 'telegram',
+          status: 'sent',
+          error: null,
+        },
+      ],
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
@@ -161,6 +176,13 @@ describe('Telegram alert delivery', () => {
       status: 'suppressed-duplicate',
       channels: ['telegram'],
       failedChannels: [],
+      channelResults: [
+        {
+          channel: 'telegram',
+          status: 'suppressed-duplicate',
+          error: null,
+        },
+      ],
     });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -212,6 +234,13 @@ describe('Telegram alert delivery', () => {
       status: 'suppressed-duplicate',
       channels: ['telegram'],
       failedChannels: [],
+      channelResults: [
+        {
+          channel: 'telegram',
+          status: 'suppressed-duplicate',
+          error: null,
+        },
+      ],
     });
 
     resolveGet?.(null);
@@ -219,6 +248,13 @@ describe('Telegram alert delivery', () => {
       status: 'sent',
       channels: ['telegram'],
       failedChannels: [],
+      channelResults: [
+        {
+          channel: 'telegram',
+          status: 'sent',
+          error: null,
+        },
+      ],
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });

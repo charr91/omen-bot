@@ -10,7 +10,7 @@ export function promoteSignalPreview(
 
   return {
     ...preview,
-    promotedAt: promotedAt.toISOString(),
+    promotedAt: preview.promotedAt ?? promotedAt.toISOString(),
     deliveryTier: preview.walletLiveTier,
   };
 }

@@ -6,6 +6,17 @@ interface DiscordDispatcherOptions {
   fetchImpl?: typeof fetch;
 }
 
+export function isDiscordEnabledForTier(
+  config: Pick<AppConfig, 'discord'>,
+  tier: PromotedAlertTier,
+): boolean {
+  if (tier === 'CRITICAL' || tier === 'HIGH') {
+    return config.discord.criticalWebhookUrl !== null || config.discord.mediumWebhookUrl !== null;
+  }
+
+  return config.discord.mediumWebhookUrl !== null || config.discord.criticalWebhookUrl !== null;
+}
+
 export class DiscordDispatcher implements AlertDeliveryChannel {
   readonly name = 'discord' as const;
   private readonly criticalWebhookUrl: string | null;
@@ -19,7 +30,15 @@ export class DiscordDispatcher implements AlertDeliveryChannel {
   }
 
   isEnabledForTier(tier: PromotedAlertTier): boolean {
-    return this.resolveWebhookUrl(tier) !== null;
+    return isDiscordEnabledForTier(
+      {
+        discord: {
+          criticalWebhookUrl: this.criticalWebhookUrl,
+          mediumWebhookUrl: this.mediumWebhookUrl,
+        },
+      },
+      tier,
+    );
   }
 
   async dispatch(alert: PromotedAlert): Promise<void> {

@@ -105,6 +105,62 @@ const CREATE_SIGNAL_EVENTS_SUPPORTING_INDEXES_SQL = [
   'create index if not exists idx_signal_events_version on signal_events (scoring_version);',
 ];
 
+const CREATE_ALERTS_TABLE_SQL = `
+  create table if not exists alerts (
+    id text primary key,
+    wallet_address text not null,
+    market_id text not null,
+    fill_id text not null,
+    signal_id text not null,
+    signal_availability text not null,
+    signal_score double precision not null,
+    signal_confidence double precision not null,
+    signal_evidence jsonb not null,
+    signal_triggered_at timestamptz not null,
+    scoring_version text not null,
+    market_question text not null,
+    wallet_live_score double precision not null,
+    wallet_live_tier text not null,
+    delivery_tier text not null,
+    dry_run boolean not null default false,
+    dispatch_eligible boolean not null default false,
+    promoted_at timestamptz not null default now(),
+    created_at timestamptz not null default now()
+  );
+`;
+
+const CREATE_ALERTS_SUPPORTING_INDEXES_SQL = [
+  'create unique index if not exists idx_alerts_idemp on alerts (fill_id, signal_id);',
+  'create index if not exists idx_alerts_wallet on alerts (wallet_address);',
+  'create index if not exists idx_alerts_market on alerts (market_id);',
+  'create index if not exists idx_alerts_promoted_at on alerts (promoted_at);',
+  'create index if not exists idx_alerts_delivery_tier on alerts (delivery_tier);',
+  'create index if not exists idx_alerts_dispatch_eligible on alerts (dispatch_eligible) where dispatch_eligible = true;',
+];
+
+const CREATE_ALERT_DELIVERIES_TABLE_SQL = `
+  create table if not exists alert_deliveries (
+    id text primary key,
+    alert_id text not null,
+    channel text not null,
+    status text not null,
+    error_message text,
+    attempts integer not null default 1,
+    first_attempted_at timestamptz not null default now(),
+    last_attempted_at timestamptz not null default now(),
+    delivered_at timestamptz,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  );
+`;
+
+const CREATE_ALERT_DELIVERIES_SUPPORTING_INDEXES_SQL = [
+  'create unique index if not exists idx_alert_deliveries_alert_channel on alert_deliveries (alert_id, channel);',
+  'create index if not exists idx_alert_deliveries_status on alert_deliveries (status);',
+  'create index if not exists idx_alert_deliveries_channel on alert_deliveries (channel);',
+  'create index if not exists idx_alert_deliveries_last_attempted on alert_deliveries (last_attempted_at);',
+];
+
 const CREATE_WHALE_WHITELIST_TABLE_SQL = `
   create table if not exists whale_whitelist (
     wallet_address text primary key,
@@ -133,6 +189,16 @@ export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promis
 
   await pool.query(CREATE_SIGNAL_EVENTS_TABLE_SQL);
   for (const statement of CREATE_SIGNAL_EVENTS_SUPPORTING_INDEXES_SQL) {
+    await pool.query(statement);
+  }
+
+  await pool.query(CREATE_ALERTS_TABLE_SQL);
+  for (const statement of CREATE_ALERTS_SUPPORTING_INDEXES_SQL) {
+    await pool.query(statement);
+  }
+
+  await pool.query(CREATE_ALERT_DELIVERIES_TABLE_SQL);
+  for (const statement of CREATE_ALERT_DELIVERIES_SUPPORTING_INDEXES_SQL) {
     await pool.query(statement);
   }
 

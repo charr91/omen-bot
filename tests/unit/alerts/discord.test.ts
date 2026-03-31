@@ -28,6 +28,7 @@ function makeAlert(): PromotedAlert {
       ],
       triggeredAt: new Date('2026-03-31T02:00:00.000Z'),
     },
+    promotedAlertId: null,
     promotedAt: '2026-03-31T02:01:00.000Z',
     dryRun: false,
   };
@@ -114,6 +115,18 @@ describe('Discord alert delivery', () => {
       status: 'sent',
       channels: ['telegram', 'discord'],
       failedChannels: [],
+      channelResults: [
+        {
+          channel: 'telegram',
+          status: 'sent',
+          error: null,
+        },
+        {
+          channel: 'discord',
+          status: 'sent',
+          error: null,
+        },
+      ],
     });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
@@ -162,7 +175,70 @@ describe('Discord alert delivery', () => {
       status: 'sent-partial',
       channels: ['telegram'],
       failedChannels: ['discord'],
+      channelResults: [
+        {
+          channel: 'telegram',
+          status: 'sent',
+          error: null,
+        },
+        {
+          channel: 'discord',
+          status: 'failed',
+          error: 'discord webhook unavailable',
+        },
+      ],
     });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('can target only the missing channel during recovery dispatch', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+      statusText: 'No Content',
+    });
+    const dispatch = new AlertDispatcher(
+      {
+        alerts: {
+          criticalMinScore: 80,
+          highMinScore: 60,
+          mediumMinScore: 40,
+          lowMinScore: 20,
+          dedupCooldownMs: 60_000,
+        },
+        operational: {
+          dryRun: false,
+        },
+        telegram: {
+          botToken: 'bot-token',
+          criticalChatId: 'critical-chat',
+          mediumChatId: 'medium-chat',
+        },
+        discord: {
+          criticalWebhookUrl: 'https://discord.example/critical',
+          mediumWebhookUrl: 'https://discord.example/medium',
+        },
+      },
+      {
+        get: vi.fn().mockResolvedValue(null),
+        set: vi.fn().mockResolvedValue('OK'),
+      },
+      { fetchImpl },
+    );
+
+    await expect(dispatch.dispatch(makeAlert(), { channels: ['discord'] })).resolves.toEqual({
+      status: 'sent',
+      channels: ['discord'],
+      failedChannels: [],
+      channelResults: [
+        {
+          channel: 'discord',
+          status: 'sent',
+          error: null,
+        },
+      ],
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe('https://discord.example/critical');
   });
 });

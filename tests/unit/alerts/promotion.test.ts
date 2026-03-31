@@ -19,6 +19,8 @@ describe('promoteSignalPreview', () => {
         evidence: [],
         triggeredAt: new Date('2026-03-31T02:00:00.000Z'),
       },
+      promotedAlertId: null,
+      promotedAt: null,
       dryRun: false,
     });
 
@@ -42,6 +44,8 @@ describe('promoteSignalPreview', () => {
           evidence: [],
           triggeredAt: new Date('2026-03-31T02:00:00.000Z'),
         },
+        promotedAlertId: null,
+        promotedAt: null,
         dryRun: false,
       },
       new Date('2026-03-31T02:01:00.000Z'),

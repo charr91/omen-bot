@@ -1,6 +1,11 @@
 import type { AppConfig } from '../config/schema.js';
 import type { PromotedAlert } from '../types/alert.js';
-import type { AlertDeliveryChannel, AlertDeliveryChannelName, AlertDispatchResult } from './channel.js';
+import type {
+  AlertChannelDispatchResult,
+  AlertDeliveryChannel,
+  AlertDeliveryChannelName,
+  AlertDispatchResult,
+} from './channel.js';
 import { RedisAlertDeduper, buildAlertDedupKey } from './dedup.js';
 import { DiscordDispatcher } from './discord.js';
 import { TelegramDispatcher } from './telegram.js';
@@ -12,6 +17,10 @@ interface RedisDispatchStore {
 
 interface AlertDispatcherOptions {
   fetchImpl?: typeof fetch;
+}
+
+interface DispatchOptions {
+  channels?: AlertDeliveryChannelName[];
 }
 
 export class AlertDispatcher {
@@ -38,14 +47,30 @@ export class AlertDispatcher {
     this.dryRun = dryRun;
   }
 
-  async dispatch(alert: PromotedAlert): Promise<AlertDispatchResult> {
-    const enabledChannels = this.channels.filter((channel) => channel.isEnabledForTier(alert.deliveryTier));
+  getEnabledChannels(tier: PromotedAlert['deliveryTier']): AlertDeliveryChannelName[] {
+    return this.channels
+      .filter((channel) => channel.isEnabledForTier(tier))
+      .map((channel) => channel.name);
+  }
+
+  async dispatch(alert: PromotedAlert, options: DispatchOptions = {}): Promise<AlertDispatchResult> {
+    const requestedChannels = options.channels ?? null;
+    const enabledChannels = this.channels.filter(
+      (channel) =>
+        channel.isEnabledForTier(alert.deliveryTier) &&
+        (requestedChannels === null || requestedChannels.includes(channel.name)),
+    );
 
     if (this.dryRun) {
       return {
         status: 'suppressed-dry-run',
         channels: enabledChannels.map((channel) => channel.name),
         failedChannels: [],
+        channelResults: enabledChannels.map<AlertChannelDispatchResult>((channel) => ({
+          channel: channel.name,
+          status: 'suppressed-dry-run',
+          error: null,
+        })),
       };
     }
 
@@ -54,17 +79,24 @@ export class AlertDispatcher {
         status: 'disabled',
         channels: [],
         failedChannels: [],
+        channelResults: [],
       };
     }
 
     const sentChannels: AlertDeliveryChannelName[] = [];
     const failedChannels: AlertDeliveryChannelName[] = [];
+    const channelResults: AlertChannelDispatchResult[] = [];
     let duplicateChannels = 0;
 
     for (const channel of enabledChannels) {
       const dedupKey = buildAlertDedupKey(channel.name, alert);
       if (this.inFlightKeys.has(dedupKey)) {
         duplicateChannels += 1;
+        channelResults.push({
+          channel: channel.name,
+          status: 'suppressed-duplicate',
+          error: null,
+        });
         continue;
       }
 
@@ -72,6 +104,11 @@ export class AlertDispatcher {
       try {
         if (await this.deduper.hasRecentDispatch(channel.name, alert)) {
           duplicateChannels += 1;
+          channelResults.push({
+            channel: channel.name,
+            status: 'suppressed-duplicate',
+            error: null,
+          });
           continue;
         }
 
@@ -79,8 +116,18 @@ export class AlertDispatcher {
           await channel.dispatch(alert);
           await this.deduper.markDispatched(channel.name, alert);
           sentChannels.push(channel.name);
-        } catch {
+          channelResults.push({
+            channel: channel.name,
+            status: 'sent',
+            error: null,
+          });
+        } catch (error) {
           failedChannels.push(channel.name);
+          channelResults.push({
+            channel: channel.name,
+            status: 'failed',
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       } finally {
         this.inFlightKeys.delete(dedupKey);
@@ -92,6 +139,7 @@ export class AlertDispatcher {
         status: failedChannels.length > 0 ? 'sent-partial' : 'sent',
         channels: sentChannels,
         failedChannels,
+        channelResults,
       };
     }
 
@@ -100,6 +148,7 @@ export class AlertDispatcher {
         status: 'suppressed-duplicate',
         channels: enabledChannels.map((channel) => channel.name),
         failedChannels: [],
+        channelResults,
       };
     }
 
@@ -107,6 +156,7 @@ export class AlertDispatcher {
       status: failedChannels.length > 0 ? 'failed' : 'disabled',
       channels: [],
       failedChannels,
+      channelResults,
     };
   }
 }

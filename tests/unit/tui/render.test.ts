@@ -27,6 +27,7 @@ function makeAlert(overrides: Partial<PromotedAlert> = {}): PromotedAlert {
       ],
       triggeredAt: new Date('2026-03-31T02:00:00.000Z'),
     },
+    promotedAlertId: null,
     promotedAt: '2026-03-31T02:01:00.000Z',
     dryRun: false,
     ...overrides,

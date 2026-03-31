@@ -11,6 +11,21 @@ interface TelegramSendResponse {
   description?: string;
 }
 
+export function isTelegramEnabledForTier(
+  config: Pick<AppConfig, 'telegram'>,
+  tier: PromotedAlertTier,
+): boolean {
+  if (!config.telegram.botToken) {
+    return false;
+  }
+
+  if (tier === 'CRITICAL' || tier === 'HIGH') {
+    return config.telegram.criticalChatId !== null || config.telegram.mediumChatId !== null;
+  }
+
+  return config.telegram.mediumChatId !== null || config.telegram.criticalChatId !== null;
+}
+
 export class TelegramDispatcher implements AlertDeliveryChannel {
   readonly name = 'telegram' as const;
   private readonly botToken: string | null;
@@ -30,7 +45,16 @@ export class TelegramDispatcher implements AlertDeliveryChannel {
   }
 
   isEnabledForTier(tier: PromotedAlertTier): boolean {
-    return this.botToken !== null && this.resolveChatId(tier) !== null;
+    return isTelegramEnabledForTier(
+      {
+        telegram: {
+          botToken: this.botToken,
+          criticalChatId: this.criticalChatId,
+          mediumChatId: this.mediumChatId,
+        },
+      },
+      tier,
+    );
   }
 
   async dispatch(alert: PromotedAlert): Promise<void> {

@@ -7,12 +7,13 @@ import { HotWorkerClient } from '../hot-worker/client.js';
 import { createPolymarketFillSource, type FillSource } from '../ingestion/polymarket-client.js';
 import { sleep } from '../phase0/io.js';
 import { createDbPool } from '../persistence/db.js';
+import { createAlertStore, type AlertStore } from '../persistence/queries/alerts.js';
 import { createFillStore, type FillStore } from '../persistence/queries/fills.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { ensurePersistenceSchema } from '../persistence/schema.js';
 import { collectHealthReport } from '../resilience/health.js';
 import { TerminalDashboard } from '../tui/dashboard.js';
-import type { PromotedAlert, SignalPreview } from '../types/alert.js';
+import type { PromotedAlert, SignalPreview, StoredAlert } from '../types/alert.js';
 import type { FillRecord } from '../types/fill.js';
 import type { EnqueueFillResult, HotWorkerToMainMessage } from '../types/thread-messages.js';
 import type { AlertDispatchResult } from '../alerts/channel.js';
@@ -44,6 +45,7 @@ interface StartCommandOptions {
 }
 
 const DEFAULT_REPLAY_LIMIT = 1_000;
+const DEFAULT_PENDING_ALERT_BATCH_LIMIT = 1_000;
 const RUNTIME_STATS_INTERVAL_MS = 60_000;
 type SignalPreviewMessage = Extract<HotWorkerToMainMessage, { type: 'SIGNAL_PREVIEW' }>;
 
@@ -79,6 +81,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   const config = await loadAppConfig();
   const pool = createDbPool(config);
   const redis = createRedisClient(config);
+  const alertStore = createAlertStore(pool);
   const fillStore = createFillStore(pool);
   const fillSource = createPolymarketFillSource(config.ingestion.maxPagesPerPoll);
   const runtimeStatsCollector = new RuntimeStatsCollector();
@@ -106,6 +109,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
         signalPreviewTasks,
         handleSignalPreview({
           preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
+          alertStore,
           alertDispatcher,
           dashboard,
         }),
@@ -126,6 +130,11 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
     await pingRedis(redis);
     await ensurePersistenceSchema(pool);
     dashboard?.start();
+    await dispatchPendingAlerts({
+      alertStore,
+      alertDispatcher,
+      dashboard,
+    });
     await refreshDashboardCounts(pool, dashboard).catch((error) => {
       reportOperatorError({
         message: `[tui] ${formatError(error)}`,
@@ -206,6 +215,7 @@ export async function runReplayCommand(): Promise<number> {
   const config = await loadAppConfig();
   const pool = createDbPool(config);
   const redis = createRedisClient(config);
+  const alertStore = createAlertStore(pool);
   const fillStore = createFillStore(pool);
   const alertDispatcher = new AlertDispatcher(config, redis);
   const signalPreviewTasks = new Set<Promise<void>>();
@@ -215,6 +225,7 @@ export async function runReplayCommand(): Promise<number> {
         signalPreviewTasks,
         handleSignalPreview({
           preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
+          alertStore,
           alertDispatcher,
           dashboard: null,
         }),
@@ -229,6 +240,11 @@ export async function runReplayCommand(): Promise<number> {
   try {
     await pingRedis(redis);
     await ensurePersistenceSchema(pool);
+    await dispatchPendingAlerts({
+      alertStore,
+      alertDispatcher,
+      dashboard: null,
+    });
     replayed = await replayPendingFills(fillStore, hotWorker, DEFAULT_REPLAY_LIMIT);
 
     process.stdout.write(`${JSON.stringify({ type: 'replay', replayed })}\n`);
@@ -309,10 +325,11 @@ async function schedulePendingFills(
 
 async function handleSignalPreview(options: {
   preview: SignalPreview;
+  alertStore: AlertStore;
   alertDispatcher: AlertDispatcher;
   dashboard: TerminalDashboard | null;
 }): Promise<void> {
-  const { preview, alertDispatcher, dashboard } = options;
+  const { preview, alertStore, alertDispatcher, dashboard } = options;
   if (dashboard === null) {
     process.stdout.write(`${JSON.stringify({ type: 'signal-preview', ...preview })}\n`);
   }
@@ -323,11 +340,13 @@ async function handleSignalPreview(options: {
   }
 
   dashboard?.addAlert(promotedAlert);
+  const storedAlert = await resolveStoredAlert(promotedAlert, alertStore, alertDispatcher);
 
   try {
     const result = await alertDispatcher.dispatch(promotedAlert);
+    await alertStore.recordDispatchResult(storedAlert.id, result);
     if (dashboard === null) {
-      process.stdout.write(`${JSON.stringify(buildAlertDispatchLog(promotedAlert, result, preview.dryRun))}\n`);
+      process.stdout.write(`${JSON.stringify(buildAlertDispatchLog(storedAlert, result, preview.dryRun))}\n`);
     }
     if (result.failedChannels.length > 0) {
       reportOperatorError({
@@ -393,11 +412,12 @@ function formatError(error: unknown): string {
 }
 
 function buildAlertDispatchLog(
-  alert: PromotedAlert,
+  alert: StoredAlert,
   result: AlertDispatchResult,
   dryRun: boolean,
 ): {
   type: 'alert-dispatch';
+  alertId: string;
   fillId: string;
   walletAddress: string;
   marketId: string;
@@ -411,6 +431,7 @@ function buildAlertDispatchLog(
 } {
   return {
     type: 'alert-dispatch',
+    alertId: alert.id,
     fillId: alert.fillId,
     walletAddress: alert.walletAddress,
     marketId: alert.marketId,
@@ -437,4 +458,75 @@ async function waitForSignalPreviewTasks(pending: Set<Promise<void>>): Promise<v
   }
 
   await Promise.allSettled([...pending]);
+}
+
+async function dispatchPendingAlerts(options: {
+  alertStore: AlertStore;
+  alertDispatcher: AlertDispatcher;
+  dashboard: TerminalDashboard | null;
+}): Promise<void> {
+  while (true) {
+    const pendingAlerts = await options.alertStore.listPendingDispatchAlerts(DEFAULT_PENDING_ALERT_BATCH_LIMIT);
+    const candidates = pendingAlerts.filter((alert) => {
+      const enabledChannels = options.alertDispatcher.getEnabledChannels(alert.deliveryTier);
+      if (enabledChannels.length === 0) {
+        return false;
+      }
+
+      return enabledChannels.some((channel) => !alert.deliveredChannels.includes(channel));
+    });
+
+    if (candidates.length === 0) {
+      return;
+    }
+
+    let madeTerminalProgress = false;
+    for (const alert of candidates) {
+      options.dashboard?.addAlert(alert);
+      const missingChannels = options.alertDispatcher
+        .getEnabledChannels(alert.deliveryTier)
+        .filter((channel) => !alert.deliveredChannels.includes(channel));
+      try {
+        const result = await options.alertDispatcher.dispatch(alert, { channels: missingChannels });
+        await options.alertStore.recordDispatchResult(alert.id, result);
+        if (
+          result.channelResults.some(
+            (channelResult) =>
+              channelResult.status === 'sent' || channelResult.status === 'suppressed-duplicate',
+          )
+        ) {
+          madeTerminalProgress = true;
+        }
+        if (options.dashboard === null) {
+          process.stdout.write(`${JSON.stringify(buildAlertDispatchLog(alert, result, alert.dryRun))}\n`);
+        }
+        if (result.failedChannels.length > 0) {
+          reportOperatorError({
+            message: `[alerts] failed to dispatch on channel(s): ${result.failedChannels.join(', ')}`,
+            dashboard: options.dashboard,
+          });
+        }
+      } catch (error) {
+        reportOperatorError({
+          message: `[alerts] ${formatError(error)}`,
+          dashboard: options.dashboard,
+        });
+      }
+    }
+
+    if (!madeTerminalProgress || pendingAlerts.length < DEFAULT_PENDING_ALERT_BATCH_LIMIT) {
+      return;
+    }
+  }
+}
+
+async function resolveStoredAlert(
+  promotedAlert: PromotedAlert,
+  alertStore: AlertStore,
+  alertDispatcher: AlertDispatcher,
+): Promise<StoredAlert> {
+  return alertStore.upsertPromotedAlert(
+    promotedAlert,
+    !promotedAlert.dryRun && alertDispatcher.getEnabledChannels(promotedAlert.deliveryTier).length > 0,
+  );
 }

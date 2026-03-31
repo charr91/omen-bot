@@ -1,7 +1,11 @@
+import { promoteSignalPreview } from '../alerts/promote.js';
+import { isDiscordEnabledForTier } from '../alerts/discord.js';
+import { isTelegramEnabledForTier } from '../alerts/telegram.js';
 import { parentPort, workerData } from 'node:worker_threads';
 import type { AppConfig } from '../config/schema.js';
 import { ActiveMarketCatalog } from '../markets/catalog.js';
 import { createDbPool } from '../persistence/db.js';
+import { createAlertStore } from '../persistence/queries/alerts.js';
 import { createFillStore } from '../persistence/queries/fills.js';
 import { createSignalEventStore } from '../persistence/queries/signal-events.js';
 import { createWalletStore } from '../persistence/queries/wallets.js';
@@ -30,6 +34,7 @@ if (!config.alchemyApiKey) {
 }
 
 const pool = createDbPool(config);
+const alertStore = createAlertStore(pool);
 const fillStore = createFillStore(pool);
 const walletStore = createWalletStore(pool);
 const signalEventStore = createSignalEventStore(pool);
@@ -209,8 +214,7 @@ async function processFill(fill: FillRecord): Promise<void> {
       });
 
       if (inserted) {
-        postMessage({
-          type: 'SIGNAL_PREVIEW',
+        const preview = {
           fillId: fill.id,
           walletAddress: fill.walletAddress,
           marketId: fill.marketId,
@@ -218,7 +222,24 @@ async function processFill(fill: FillRecord): Promise<void> {
           walletLiveScore: walletProfile.liveSuspicionScore,
           walletLiveTier: walletProfile.liveTier,
           signal,
+          promotedAlertId: null,
+          promotedAt: null,
           dryRun: config.operational.dryRun,
+        } as const;
+        const promotedAlert = promoteSignalPreview(preview);
+        const storedAlert =
+          promotedAlert === null
+            ? null
+            : await alertStore.upsertPromotedAlert(
+                promotedAlert,
+                isAlertDispatchEligible(config, promotedAlert.deliveryTier),
+              );
+
+        postMessage({
+          type: 'SIGNAL_PREVIEW',
+          ...preview,
+          promotedAlertId: storedAlert?.id ?? null,
+          promotedAt: storedAlert?.promotedAt ?? null,
         });
       }
     }
@@ -289,4 +310,18 @@ function postMessage(message: HotWorkerToMainMessage): void {
 
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function isAlertDispatchEligible(
+  appConfig: Pick<AppConfig, 'operational' | 'telegram' | 'discord'>,
+  tier: Exclude<WalletProfile['liveTier'], 'CLEAN'>,
+): boolean {
+  if (appConfig.operational.dryRun) {
+    return false;
+  }
+
+  return (
+    isTelegramEnabledForTier({ telegram: appConfig.telegram }, tier) ||
+    isDiscordEnabledForTier({ discord: appConfig.discord }, tier)
+  );
 }
