@@ -19,11 +19,12 @@ function makeTrade(overrides: Partial<JsonObject> = {}): JsonObject {
 
 describe('polymarket fill source', () => {
   it('normalizes a public trade into a fill record', () => {
-    const fill = normalizeTradeToFill(makeTrade());
+    const fill = normalizeTradeToFill(makeTrade({ proxyWallet: '0xAbC123' }));
 
     expect(fill).not.toBeNull();
     expect(fill?.marketId).toBe('market-1');
     expect(fill?.tokenId).toBe('asset-1');
+    expect(fill?.walletAddress).toBe('0xabc123');
     expect(fill?.outcome).toBe('YES');
     expect(fill?.sizeUsd).toBe('4.200000');
     expect(fill?.orderType).toBe('UNKNOWN');
@@ -49,7 +50,10 @@ describe('polymarket fill source', () => {
 
     const offsets: number[] = [];
     const fills = await listRecentFills({
-      sinceTimestampMs: 1_710_000_000_000,
+      cursor: {
+        timestamp: new Date('2024-03-09T16:00:00.000Z'),
+        seenFillKeysAtTimestamp: ['0xtx-3|asset-1'],
+      },
       maxPagesPerPoll: 3,
       fetchPage: async (offset) => {
         offsets.push(offset);
@@ -64,6 +68,6 @@ describe('polymarket fill source', () => {
     });
 
     expect(offsets).toEqual([0, 500]);
-    expect(fills.map((fill) => fill.txHash)).toEqual(['0xtx-3', '0xtx-2', '0xtx-1']);
+    expect(fills.map((fill) => fill.txHash)).toEqual(['0xtx-2', '0xtx-1']);
   });
 });

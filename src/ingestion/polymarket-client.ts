@@ -1,25 +1,27 @@
 import { randomUUID } from 'node:crypto';
+import { canonicalizeEvmAddress } from '../evm/address.js';
 import { PUBLIC_TRADE_POLL_LIMIT } from '../phase0/constants.js';
 import { fetchPublicTrades } from '../phase0/public-api.js';
 import { getNumber, getString, normalizeSide, parseTimestampMs, stableObservationKey } from '../phase0/json.js';
+import type { FillCursor } from '../persistence/queries/fills.js';
 import type { JsonObject } from '../phase0/types.js';
 import type { FillOutcome, NewFill } from '../types/fill.js';
 
 export interface FillSource {
-  listRecentFills(sinceTimestampMs: number | null): Promise<NewFill[]>;
+  listRecentFills(cursor: FillCursor | null): Promise<NewFill[]>;
 }
 
 interface ListRecentFillsOptions {
-  sinceTimestampMs: number | null;
+  cursor: FillCursor | null;
   maxPagesPerPoll: number;
   fetchPage?: (offset: number) => Promise<JsonObject[]>;
 }
 
 export function createPolymarketFillSource(maxPagesPerPoll: number): FillSource {
   return {
-    listRecentFills: (sinceTimestampMs) =>
+    listRecentFills: (cursor) =>
       listRecentFills({
-        sinceTimestampMs,
+        cursor,
         maxPagesPerPoll,
       }),
   };
@@ -29,6 +31,8 @@ export async function listRecentFills(options: ListRecentFillsOptions): Promise<
   const fetchPage = options.fetchPage ?? fetchPublicTrades;
   const fills: NewFill[] = [];
   const seenFillKeys = new Set<string>();
+  const cursorTimestampMs = options.cursor?.timestamp.getTime() ?? null;
+  const seenCursorFillKeys = new Set(options.cursor?.seenFillKeysAtTimestamp ?? []);
 
   for (let pageIndex = 0; pageIndex < options.maxPagesPerPoll; pageIndex += 1) {
     const offset = pageIndex * PUBLIC_TRADE_POLL_LIMIT;
@@ -47,14 +51,14 @@ export async function listRecentFills(options: ListRecentFillsOptions): Promise<
     }
 
     let pageContainsCursorOrNewer = false;
-    let pageAllOlderThanCursor = options.sinceTimestampMs !== null;
+    let pageAllOlderThanCursor = cursorTimestampMs !== null;
 
     for (const trade of page) {
       const timestampMs = getTradeTimestampMs(trade);
-      if (timestampMs !== null && options.sinceTimestampMs !== null && timestampMs >= options.sinceTimestampMs) {
+      if (timestampMs !== null && cursorTimestampMs !== null && timestampMs >= cursorTimestampMs) {
         pageContainsCursorOrNewer = true;
       }
-      if (timestampMs === null || options.sinceTimestampMs === null || timestampMs >= options.sinceTimestampMs) {
+      if (timestampMs === null || cursorTimestampMs === null || timestampMs >= cursorTimestampMs) {
         pageAllOlderThanCursor = false;
       }
 
@@ -62,11 +66,21 @@ export async function listRecentFills(options: ListRecentFillsOptions): Promise<
       if (!fill) {
         continue;
       }
-      if (options.sinceTimestampMs !== null && fill.timestamp.getTime() < options.sinceTimestampMs) {
+
+      const fillTimestampMs = fill.timestamp.getTime();
+      if (cursorTimestampMs !== null && fillTimestampMs < cursorTimestampMs) {
         continue;
       }
 
       const fillKey = stableObservationKey([fill.txHash, fill.tokenId]);
+      if (
+        cursorTimestampMs !== null &&
+        fillTimestampMs === cursorTimestampMs &&
+        seenCursorFillKeys.has(fillKey)
+      ) {
+        continue;
+      }
+
       if (seenFillKeys.has(fillKey)) {
         continue;
       }
@@ -122,7 +136,7 @@ export function normalizeTradeToFill(trade: JsonObject): NewFill | null {
     id: randomUUID(),
     marketId,
     tokenId,
-    walletAddress,
+    walletAddress: canonicalizeEvmAddress(walletAddress),
     side,
     outcome,
     price: formatNumeric(price),

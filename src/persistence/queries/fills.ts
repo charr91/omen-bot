@@ -1,4 +1,6 @@
 import type { Pool } from 'pg';
+import { canonicalizeEvmAddress } from '../../evm/address.js';
+import { stableObservationKey } from '../../phase0/json.js';
 import type { FillRecord, NewFill } from '../../types/fill.js';
 
 interface FillRow {
@@ -18,21 +20,68 @@ interface FillRow {
   created_at: Date;
 }
 
+interface LatestFillCursorRow {
+  timestamp: Date;
+  tx_hash: string | null;
+  token_id: string | null;
+}
+
+interface FillRuntimeSummaryRow {
+  unanalyzed_count: string;
+  newest_fill_timestamp: Date | null;
+}
+
+export interface FillCursor {
+  timestamp: Date;
+  seenFillKeysAtTimestamp: string[];
+}
+
+export interface FillRuntimeSummary {
+  unanalyzedFillCount: number;
+  newestFillTimestamp: Date | null;
+}
+
 export interface FillStore {
-  getLatestFillTimestamp(): Promise<Date | null>;
+  getLatestFillCursor(): Promise<FillCursor | null>;
   insertFill(fill: NewFill): Promise<boolean>;
   listUnanalyzedFills(limit: number): Promise<FillRecord[]>;
   markFillAnalyzed(fillId: string): Promise<void>;
+  getRuntimeSummary(): Promise<FillRuntimeSummary>;
 }
 
 export function createFillStore(pool: Pick<Pool, 'query'>): FillStore {
   return {
-    async getLatestFillTimestamp(): Promise<Date | null> {
-      const result = await pool.query<{ timestamp: Date | null }>('select max(timestamp) as timestamp from fills');
-      return result.rows[0]?.timestamp ?? null;
+    async getLatestFillCursor(): Promise<FillCursor | null> {
+      const result = await pool.query<LatestFillCursorRow>(
+        `
+          select latest.timestamp, fills.tx_hash, fills.token_id
+          from (select max(timestamp) as timestamp from fills) latest
+          left join fills on fills.timestamp = latest.timestamp
+          where latest.timestamp is not null
+        `,
+      );
+
+      const timestamp = result.rows[0]?.timestamp ?? null;
+      if (!timestamp) {
+        return null;
+      }
+
+      const seenFillKeysAtTimestamp = [
+        ...new Set(
+          result.rows.flatMap((row) =>
+            row.tx_hash && row.token_id ? [stableObservationKey([row.tx_hash, row.token_id])] : [],
+          ),
+        ),
+      ];
+
+      return {
+        timestamp,
+        seenFillKeysAtTimestamp,
+      };
     },
 
     async insertFill(fill: NewFill): Promise<boolean> {
+      const walletAddress = canonicalizeEvmAddress(fill.walletAddress);
       const result = await pool.query<{ id: string }>(
         `
           insert into fills (
@@ -58,7 +107,7 @@ export function createFillStore(pool: Pick<Pool, 'query'>): FillStore {
           fill.id,
           fill.marketId,
           fill.tokenId,
-          fill.walletAddress,
+          walletAddress,
           fill.side,
           fill.outcome,
           fill.price,
@@ -105,6 +154,22 @@ export function createFillStore(pool: Pick<Pool, 'query'>): FillStore {
     async markFillAnalyzed(fillId: string): Promise<void> {
       await pool.query('update fills set analyzed = true where id = $1', [fillId]);
     },
+
+    async getRuntimeSummary(): Promise<FillRuntimeSummary> {
+      const result = await pool.query<FillRuntimeSummaryRow>(
+        `
+          select
+            count(*) filter (where analyzed = false)::text as unanalyzed_count,
+            max(timestamp) as newest_fill_timestamp
+          from fills
+        `,
+      );
+
+      return {
+        unanalyzedFillCount: Number(result.rows[0]?.unanalyzed_count ?? '0'),
+        newestFillTimestamp: result.rows[0]?.newest_fill_timestamp ?? null,
+      };
+    },
   };
 }
 
@@ -113,7 +178,7 @@ function mapFillRow(row: FillRow): FillRecord {
     id: row.id,
     marketId: row.market_id,
     tokenId: row.token_id,
-    walletAddress: row.wallet_address,
+    walletAddress: canonicalizeEvmAddress(row.wallet_address),
     side: row.side,
     outcome: row.outcome,
     price: row.price,

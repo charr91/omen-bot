@@ -1,0 +1,3 @@
+export const HOT_WORKER_HEARTBEAT_INTERVAL_MS = 5_000;
+export const HOT_WORKER_HEARTBEAT_TTL_MS = HOT_WORKER_HEARTBEAT_INTERVAL_MS * 3;
+export const HOT_WORKER_HEARTBEAT_KEY = 'omen:health:hot-worker';
