@@ -23,38 +23,60 @@ interface BlockResult {
 
 interface WalletProfilerOptions {
   cacheTtlMs?: number;
+  maxCacheEntries?: number;
+  rpcTimeoutMs?: number;
   fetchImpl?: typeof fetch;
   now?: () => number;
 }
 
 const DEFAULT_CACHE_TTL_MS = 5 * 60_000;
+const DEFAULT_MAX_CACHE_ENTRIES = 2_000;
+const DEFAULT_RPC_TIMEOUT_MS = 10_000;
+
+interface CachedWalletProfile {
+  expiresAt: number;
+  value: Promise<WalletChainProfile>;
+}
 
 export class AlchemyWalletProfiler {
   private readonly rpcUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly cacheTtlMs: number;
+  private readonly maxCacheEntries: number;
+  private readonly rpcTimeoutMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<string, { expiresAt: number; value: Promise<WalletChainProfile> }>();
+  private readonly cache = new Map<string, CachedWalletProfile>();
 
   constructor(apiKey: string, options: WalletProfilerOptions = {}) {
     this.rpcUrl = `https://polygon-mainnet.g.alchemy.com/v2/${apiKey}`;
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.cacheTtlMs = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
+    this.maxCacheEntries = options.maxCacheEntries ?? DEFAULT_MAX_CACHE_ENTRIES;
+    this.rpcTimeoutMs = options.rpcTimeoutMs ?? DEFAULT_RPC_TIMEOUT_MS;
     this.now = options.now ?? (() => Date.now());
   }
 
   async profileWallet(address: string): Promise<WalletChainProfile> {
     const canonicalAddress = canonicalizeEvmAddress(address);
+    const now = this.now();
+    this.pruneCache(now);
+
     const cached = this.cache.get(canonicalAddress);
-    if (cached && cached.expiresAt > this.now()) {
+    if (cached && cached.expiresAt > now) {
+      this.touchCacheEntry(canonicalAddress, cached);
       return cached.value;
+    }
+
+    if (cached) {
+      this.cache.delete(canonicalAddress);
     }
 
     const value = this.loadWalletProfile(canonicalAddress);
     this.cache.set(canonicalAddress, {
-      expiresAt: this.now() + this.cacheTtlMs,
+      expiresAt: now + this.cacheTtlMs,
       value,
     });
+    this.enforceCacheLimit();
 
     try {
       return await value;
@@ -140,30 +162,77 @@ export class AlchemyWalletProfiler {
   }
 
   private async rpcRequest<TResult>(method: string, params: unknown[]): Promise<TResult | null> {
-    const response = await this.fetchImpl(this.rpcUrl, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method,
-        params,
-      }),
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, this.rpcTimeoutMs);
 
-    if (!response.ok) {
-      throw new Error(`Alchemy RPC request failed: ${response.status} ${response.statusText} for ${method}`);
+    try {
+      const response = await this.fetchImpl(this.rpcUrl, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method,
+          params,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Alchemy RPC request failed: ${response.status} ${response.statusText} for ${method}`);
+      }
+
+      const payload = (await response.json()) as RpcResponse<TResult>;
+      if (payload.error) {
+        throw new Error(`Alchemy RPC request failed for ${method}: ${payload.error.message}`);
+      }
+
+      return payload.result ?? null;
+    } catch (error) {
+      if (isAbortError(error)) {
+        throw new Error(`Alchemy RPC request timed out after ${this.rpcTimeoutMs}ms for ${method}`);
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timer);
     }
-
-    const payload = (await response.json()) as RpcResponse<TResult>;
-    if (payload.error) {
-      throw new Error(`Alchemy RPC request failed for ${method}: ${payload.error.message}`);
-    }
-
-    return payload.result ?? null;
   }
+
+  private pruneCache(now: number): void {
+    for (const [address, entry] of this.cache.entries()) {
+      if (entry.expiresAt <= now) {
+        this.cache.delete(address);
+      }
+    }
+  }
+
+  private enforceCacheLimit(): void {
+    while (this.cache.size > this.maxCacheEntries) {
+      const oldestAddress = this.cache.keys().next().value;
+      if (typeof oldestAddress !== 'string') {
+        break;
+      }
+
+      this.cache.delete(oldestAddress);
+    }
+  }
+
+  private touchCacheEntry(address: string, entry: CachedWalletProfile): void {
+    this.cache.delete(address);
+    this.cache.set(address, entry);
+  }
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
 }
 
 function parseHexInteger(value: string): number {
