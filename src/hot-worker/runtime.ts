@@ -48,13 +48,7 @@ void start();
 async function start(): Promise<void> {
   await pingRedis(redis);
   const heartbeatTimer = setInterval(() => {
-    void emitHeartbeat().catch((error) => {
-      postMessage({
-        type: 'ERROR',
-        error: `failed to emit hot-worker heartbeat: ${formatError(error)}`,
-        fillId: null,
-      });
-    });
+    void emitHeartbeatSafely('heartbeat timer');
   }, HOT_WORKER_HEARTBEAT_INTERVAL_MS);
 
   if (typeof heartbeatTimer.unref === 'function') {
@@ -108,8 +102,8 @@ async function handleMessage(message: MainToHotWorkerMessage): Promise<void> {
     fillId: message.fill.id,
     result: 'accepted',
   });
-  await emitHeartbeat();
-  void processQueue();
+  kickProcessQueue();
+  await emitHeartbeatSafely('enqueue accepted fill', message.fill.id);
 }
 
 async function processQueue(): Promise<void> {
@@ -148,12 +142,12 @@ async function processQueue(): Promise<void> {
         });
       } finally {
         queuedFillIds.delete(fill.id);
-        await emitHeartbeat();
+        await emitHeartbeatSafely('fill completion', fill.id);
       }
     }
   } finally {
     processing = false;
-    await emitHeartbeat();
+    await emitHeartbeatSafely('queue idle');
     if (stopping) {
       await shutdown();
     }
@@ -252,6 +246,28 @@ async function emitHeartbeat(): Promise<void> {
     queueDepth: queue.length,
     processing,
     lastProcessedAt,
+  });
+}
+
+async function emitHeartbeatSafely(context: string, fillId: string | null = null): Promise<void> {
+  try {
+    await emitHeartbeat();
+  } catch (error) {
+    postMessage({
+      type: 'ERROR',
+      error: `failed to emit hot-worker heartbeat during ${context}: ${formatError(error)}`,
+      fillId,
+    });
+  }
+}
+
+function kickProcessQueue(): void {
+  void processQueue().catch((error) => {
+    postMessage({
+      type: 'ERROR',
+      error: `hot-worker queue processor crashed: ${formatError(error)}`,
+      fillId: null,
+    });
   });
 }
 
