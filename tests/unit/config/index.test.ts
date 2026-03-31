@@ -11,6 +11,8 @@ const ENV_KEYS = [
   'TELEGRAM_BOT_TOKEN',
   'TELEGRAM_CHAT_ID_CRITICAL',
   'TELEGRAM_CHAT_ID_MEDIUM',
+  'DISCORD_WEBHOOK_CRITICAL',
+  'DISCORD_WEBHOOK_MEDIUM',
   'LOG_LEVEL',
   'LOG_PRETTY',
   'OMEN_INGESTION_POLL_INTERVAL_MS',
@@ -66,6 +68,8 @@ hot_worker_queue_depth = 55
     process.env.TELEGRAM_BOT_TOKEN = 'telegram-token';
     process.env.TELEGRAM_CHAT_ID_CRITICAL = 'critical-chat';
     process.env.TELEGRAM_CHAT_ID_MEDIUM = 'medium-chat';
+    process.env.DISCORD_WEBHOOK_CRITICAL = 'https://discord.example/critical';
+    process.env.DISCORD_WEBHOOK_MEDIUM = 'https://discord.example/medium';
 
     const config = await loadAppConfig({ cwd });
 
@@ -85,6 +89,8 @@ hot_worker_queue_depth = 55
     expect(config.telegram.botToken).toBe('telegram-token');
     expect(config.telegram.criticalChatId).toBe('critical-chat');
     expect(config.telegram.mediumChatId).toBe('medium-chat');
+    expect(config.discord.criticalWebhookUrl).toBe('https://discord.example/critical');
+    expect(config.discord.mediumWebhookUrl).toBe('https://discord.example/medium');
     expect(config.logLevel).toBe('info');
     expect(config.logPretty).toBe(true);
   });

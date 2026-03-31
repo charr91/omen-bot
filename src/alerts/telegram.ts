@@ -1,5 +1,6 @@
 import type { AppConfig } from '../config/schema.js';
 import type { PromotedAlert, PromotedAlertTier } from '../types/alert.js';
+import type { AlertDeliveryChannel } from './channel.js';
 
 interface TelegramDispatcherOptions {
   fetchImpl?: typeof fetch;
@@ -10,7 +11,8 @@ interface TelegramSendResponse {
   description?: string;
 }
 
-export class TelegramDispatcher {
+export class TelegramDispatcher implements AlertDeliveryChannel {
+  readonly name = 'telegram' as const;
   private readonly botToken: string | null;
   private readonly criticalChatId: string | null;
   private readonly mediumChatId: string | null;
@@ -90,5 +92,6 @@ function escapeTelegramHtml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }

@@ -63,7 +63,7 @@ function renderHelp(width: number, dryRun: boolean, tierFilter: AlertFeedFilter)
     padRight('q     Quit the dashboard and stop omen start', width),
     padRight('?     Toggle this help overlay', width),
     padRight('t     Cycle alert tier filter (ALL -> CRITICAL -> HIGH -> MEDIUM -> LOW)', width),
-    padRight('d     Toggle Telegram dry-run mode for promoted alerts', width),
+    padRight('d     Toggle external-alert dry-run mode for promoted alerts', width),
     padRight('Esc   Reset the filter and close help', width),
     padRight('', width),
     padRight('Signal previews are persisted LIVE signal events.', width),

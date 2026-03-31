@@ -130,7 +130,7 @@ export class TerminalDashboard {
     if (key.name === 'd') {
       this.dryRun = !this.dryRun;
       this.onDryRunToggle?.(this.dryRun);
-      this.lastStatusMessage = `Telegram dry-run ${this.dryRun ? 'enabled' : 'disabled'}`;
+      this.lastStatusMessage = `External alert dry-run ${this.dryRun ? 'enabled' : 'disabled'}`;
       this.render();
       return;
     }

@@ -26,8 +26,13 @@ function makeAlert(): PromotedAlert {
 }
 
 describe('RedisAlertDeduper', () => {
-  it('builds market-scoped dedup keys', () => {
-    expect(buildAlertDedupKey(makeAlert())).toBe('omen:dedup:market-1:0xabc:OUTSIZED_POSITION');
+  it('builds per-channel market-scoped dedup keys', () => {
+    expect(buildAlertDedupKey('telegram', makeAlert())).toBe(
+      'omen:dedup:telegram:market-1:0xabc:OUTSIZED_POSITION',
+    );
+    expect(buildAlertDedupKey('discord', makeAlert())).toBe(
+      'omen:dedup:discord:market-1:0xabc:OUTSIZED_POSITION',
+    );
   });
 
   it('marks dispatched alerts with a cooldown TTL', async () => {
@@ -36,12 +41,12 @@ describe('RedisAlertDeduper', () => {
     const deduper = new RedisAlertDeduper({ get, set }, 60_000);
     const alert = makeAlert();
 
-    await expect(deduper.hasRecentDispatch(alert)).resolves.toBe(false);
-    await deduper.markDispatched(alert, new Date('2026-03-31T02:01:00.000Z'));
-    await expect(deduper.hasRecentDispatch(alert)).resolves.toBe(true);
+    await expect(deduper.hasRecentDispatch('telegram', alert)).resolves.toBe(false);
+    await deduper.markDispatched('telegram', alert, new Date('2026-03-31T02:01:00.000Z'));
+    await expect(deduper.hasRecentDispatch('telegram', alert)).resolves.toBe(true);
 
     expect(set).toHaveBeenCalledWith(
-      'omen:dedup:market-1:0xabc:OUTSIZED_POSITION',
+      'omen:dedup:telegram:market-1:0xabc:OUTSIZED_POSITION',
       '2026-03-31T02:01:00.000Z',
       'PX',
       60_000,
