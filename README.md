@@ -10,7 +10,7 @@ Current state:
 - Persists LIVE `signal_events`
 - Emits `signal-preview` JSON lines during `start` and `replay`
 - Promotes LOW+ signal combinations into operator alerts
-- Supports Telegram dispatch with market-scoped dedup
+- Supports Telegram and Discord dispatch with per-channel market-scoped dedup
 - Supports a Phase 1 terminal dashboard via `start --tui`
 - Exposes `start`, `replay`, `health`, and Phase 0 validation commands
 
@@ -33,7 +33,7 @@ Requirements:
 - `pnpm`
 - Docker / Docker Compose
 - `ALCHEMY_API_KEY` for the hot worker
-- Optional Telegram bot token + chat ids for operator alerts
+- Optional Telegram bot token/chat ids and Discord webhooks for operator alerts
 
 Install and boot local dependencies:
 
@@ -74,7 +74,7 @@ pnpm exec tsx src/cli.ts start --tui
 - Writes `signal_events`
 - Emits `signal-preview` diagnostics for every persisted LIVE signal event
 - Promotes LOW+ composite scores into operator alerts
-- Optionally dispatches Telegram alerts when configured and not in dry-run
+- Optionally dispatches Telegram and Discord alerts when configured and not in dry-run
 - Marks fills `analyzed = true` only after hot-path work completes
 
 `replay`
@@ -94,6 +94,7 @@ You will see JSON lines like:
 ```json
 {"type":"ingest-cycle","checkpoint":"2026-03-31T01:53:07.000Z","fetched":566,"inserted":566,"replayed":101}
 {"type":"signal-preview","fillId":"...","walletAddress":"0x...","marketId":"0x...","marketQuestion":"...","walletLiveScore":12,"walletLiveTier":"CLEAN","signal":{"signalId":"OUTSIZED_POSITION","availability":"LIVE","score":12,"confidence":0.8,"evidence":[...],"triggeredAt":"2026-03-31T01:59:11.495Z"},"dryRun":false}
+{"type":"alert-dispatch","fillId":"...","walletAddress":"0x...","marketId":"0x...","signalId":"OUTSIZED_POSITION","walletLiveTier":"LOW","deliveryTier":"LOW","result":"sent","channels":["telegram","discord"],"dryRun":false}
 {"type":"runtime-stats","collectedAt":"2026-03-31T02:00:00.000Z","windowSeconds":60,"ingest":{"cycles":4,"fetched":12,"inserted":12,"replayAccepted":12},"hotWorker":{"enqueueAccepted":12,"enqueueDuplicate":0,"enqueueFull":0,"processed":12,"failed":0,"queueDepth":0,"pendingFillCount":0,"processing":false,"lastHeartbeatAt":"2026-03-31T01:59:59.991Z","lastProcessedAt":"2026-03-31T01:59:57.012Z","lastProcessedAgeMs":2988},"signals":{"previewCountsBySignalId":{"OUTSIZED_POSITION":3}}}
 ```
 
@@ -102,11 +103,12 @@ Interpretation:
 - `inserted`: new fills written to Postgres
 - `replayed`: pending fills the worker accepted for hot-path analysis in that cycle
 - `signal-preview`: a LIVE signal fired for that fill and was persisted
+- `alert-dispatch`: a promoted LOW+ operator alert was evaluated for external delivery
 - `runtime-stats`: one-minute aggregate counters for ingest, worker throughput, backpressure, and signal volume
 
 Important distinction:
 - `signal-preview` is a diagnostic stream for every persisted LIVE signal event, including `CLEAN` outcomes
-- Telegram and the TUI alert feed only show promoted operator alerts where the wallet live tier is `LOW` or above
+- Telegram, Discord, and the TUI alert feed only show promoted operator alerts where the wallet live tier is `LOW` or above
 - `OUTSIZED_POSITION` by itself often stays diagnostic-only under the default score thresholds, which is expected
 
 Practical expectations:

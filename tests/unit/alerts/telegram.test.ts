@@ -9,7 +9,7 @@ function makeAlert(): PromotedAlert {
     fillId: 'fill-1',
     walletAddress: '0xabc',
     marketId: 'market-1',
-    marketQuestion: 'Will <X> & Y happen?',
+    marketQuestion: 'Will "<X>" & Y happen?',
     walletLiveScore: 62,
     walletLiveTier: 'HIGH',
     deliveryTier: 'HIGH',
@@ -36,7 +36,7 @@ function makeAlert(): PromotedAlert {
 describe('Telegram alert delivery', () => {
   it('formats escaped HTML messages', () => {
     const message = formatTelegramAlertMessage(makeAlert());
-    expect(message).toContain('Will &lt;X&gt; &amp; Y happen?');
+    expect(message).toContain('Will &quot;&lt;X&gt;&quot; &amp; Y happen?');
     expect(message).toContain('<code>OUTSIZED_POSITION</code>');
   });
 
@@ -59,6 +59,10 @@ describe('Telegram alert delivery', () => {
           criticalChatId: 'critical-chat',
           mediumChatId: 'medium-chat',
         },
+        discord: {
+          criticalWebhookUrl: null,
+          mediumWebhookUrl: null,
+        },
       },
       {
         get: vi.fn().mockResolvedValue(null),
@@ -67,7 +71,11 @@ describe('Telegram alert delivery', () => {
       { fetchImpl },
     );
 
-    await expect(dispatch.dispatch(makeAlert())).resolves.toBe('suppressed-dry-run');
+    await expect(dispatch.dispatch(makeAlert())).resolves.toEqual({
+      status: 'suppressed-dry-run',
+      channels: ['telegram'],
+      failedChannels: [],
+    });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -97,12 +105,20 @@ describe('Telegram alert delivery', () => {
           criticalChatId: 'critical-chat',
           mediumChatId: 'medium-chat',
         },
+        discord: {
+          criticalWebhookUrl: null,
+          mediumWebhookUrl: null,
+        },
       },
       redis,
       { fetchImpl },
     );
 
-    await expect(dispatch.dispatch(makeAlert())).resolves.toBe('sent');
+    await expect(dispatch.dispatch(makeAlert())).resolves.toEqual({
+      status: 'sent',
+      channels: ['telegram'],
+      failedChannels: [],
+    });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
       method: 'POST',
@@ -129,6 +145,10 @@ describe('Telegram alert delivery', () => {
           criticalChatId: 'critical-chat',
           mediumChatId: 'medium-chat',
         },
+        discord: {
+          criticalWebhookUrl: null,
+          mediumWebhookUrl: null,
+        },
       },
       {
         get: vi.fn().mockResolvedValue('2026-03-31T02:01:00.000Z'),
@@ -137,8 +157,70 @@ describe('Telegram alert delivery', () => {
       { fetchImpl },
     );
 
-    await expect(dispatch.dispatch(makeAlert())).resolves.toBe('suppressed-duplicate');
+    await expect(dispatch.dispatch(makeAlert())).resolves.toEqual({
+      status: 'suppressed-duplicate',
+      channels: ['telegram'],
+      failedChannels: [],
+    });
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('suppresses concurrent same-key dispatch attempts while the dedup lookup is in flight', async () => {
+    let resolveGet: ((value: string | null) => void) | null = null;
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+    const dispatch = new AlertDispatcher(
+      {
+        alerts: {
+          criticalMinScore: 80,
+          highMinScore: 60,
+          mediumMinScore: 40,
+          lowMinScore: 20,
+          dedupCooldownMs: 60_000,
+        },
+        operational: {
+          dryRun: false,
+        },
+        telegram: {
+          botToken: 'bot-token',
+          criticalChatId: 'critical-chat',
+          mediumChatId: 'medium-chat',
+        },
+        discord: {
+          criticalWebhookUrl: null,
+          mediumWebhookUrl: null,
+        },
+      },
+      {
+        get: vi.fn().mockImplementation(
+          () =>
+            new Promise<string | null>((resolve) => {
+              resolveGet = resolve;
+            }),
+        ),
+        set: vi.fn().mockResolvedValue('OK'),
+      },
+      { fetchImpl },
+    );
+
+    const firstDispatch = dispatch.dispatch(makeAlert());
+    await Promise.resolve();
+
+    await expect(dispatch.dispatch(makeAlert())).resolves.toEqual({
+      status: 'suppressed-duplicate',
+      channels: ['telegram'],
+      failedChannels: [],
+    });
+
+    resolveGet?.(null);
+    await expect(firstDispatch).resolves.toEqual({
+      status: 'sent',
+      channels: ['telegram'],
+      failedChannels: [],
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to the medium chat when a high-severity chat is missing', async () => {

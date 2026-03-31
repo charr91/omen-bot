@@ -1,3 +1,4 @@
+import type { AlertDeliveryChannelName } from './channel.js';
 import type { PromotedAlert } from '../types/alert.js';
 
 interface RedisDedupStore {
@@ -8,9 +9,10 @@ interface RedisDedupStore {
 const ALERT_DEDUP_PREFIX = 'omen:dedup';
 
 export function buildAlertDedupKey(
+  channel: AlertDeliveryChannelName,
   alert: Pick<PromotedAlert, 'marketId' | 'walletAddress' | 'signal'>,
 ): string {
-  return `${ALERT_DEDUP_PREFIX}:${alert.marketId}:${alert.walletAddress}:${alert.signal.signalId}`;
+  return `${ALERT_DEDUP_PREFIX}:${channel}:${alert.marketId}:${alert.walletAddress}:${alert.signal.signalId}`;
 }
 
 export class RedisAlertDeduper {
@@ -19,16 +21,20 @@ export class RedisAlertDeduper {
     private readonly cooldownMs: number,
   ) {}
 
-  async hasRecentDispatch(alert: Pick<PromotedAlert, 'marketId' | 'walletAddress' | 'signal'>): Promise<boolean> {
-    return (await this.store.get(buildAlertDedupKey(alert))) !== null;
+  async hasRecentDispatch(
+    channel: AlertDeliveryChannelName,
+    alert: Pick<PromotedAlert, 'marketId' | 'walletAddress' | 'signal'>,
+  ): Promise<boolean> {
+    return (await this.store.get(buildAlertDedupKey(channel, alert))) !== null;
   }
 
   async markDispatched(
+    channel: AlertDeliveryChannelName,
     alert: Pick<PromotedAlert, 'marketId' | 'walletAddress' | 'signal'>,
     dispatchedAt = new Date(),
   ): Promise<void> {
     await this.store.set(
-      buildAlertDedupKey(alert),
+      buildAlertDedupKey(channel, alert),
       dispatchedAt.toISOString(),
       'PX',
       this.cooldownMs,

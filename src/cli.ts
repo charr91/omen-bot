@@ -111,7 +111,7 @@ function parseStartOptions(args: string[]): StartCliOptions {
   });
 
   return {
-    tui: parsed.values.tui,
+    tui: parsed.values.tui ?? false,
   };
 }
 

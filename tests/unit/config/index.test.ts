@@ -11,6 +11,8 @@ const ENV_KEYS = [
   'TELEGRAM_BOT_TOKEN',
   'TELEGRAM_CHAT_ID_CRITICAL',
   'TELEGRAM_CHAT_ID_MEDIUM',
+  'DISCORD_WEBHOOK_CRITICAL',
+  'DISCORD_WEBHOOK_MEDIUM',
   'LOG_LEVEL',
   'LOG_PRETTY',
   'OMEN_INGESTION_POLL_INTERVAL_MS',
@@ -66,6 +68,8 @@ hot_worker_queue_depth = 55
     process.env.TELEGRAM_BOT_TOKEN = 'telegram-token';
     process.env.TELEGRAM_CHAT_ID_CRITICAL = 'critical-chat';
     process.env.TELEGRAM_CHAT_ID_MEDIUM = 'medium-chat';
+    process.env.DISCORD_WEBHOOK_CRITICAL = 'https://discord.example/critical';
+    process.env.DISCORD_WEBHOOK_MEDIUM = 'https://discord.example/medium';
 
     const config = await loadAppConfig({ cwd });
 
@@ -85,6 +89,8 @@ hot_worker_queue_depth = 55
     expect(config.telegram.botToken).toBe('telegram-token');
     expect(config.telegram.criticalChatId).toBe('critical-chat');
     expect(config.telegram.mediumChatId).toBe('medium-chat');
+    expect(config.discord.criticalWebhookUrl).toBe('https://discord.example/critical');
+    expect(config.discord.mediumWebhookUrl).toBe('https://discord.example/medium');
     expect(config.logLevel).toBe('info');
     expect(config.logPretty).toBe(true);
   });
@@ -122,5 +128,47 @@ hot_worker_queue_depth = 100
     expect(config.operational.dryRun).toBe(true);
     expect(config.logLevel).toBe('debug');
     expect(config.logPretty).toBe(false);
+  });
+
+  it('rejects invalid Discord webhook URLs early', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'omen-config-'));
+    await writeFile(join(cwd, 'omen.config.toml'), '', 'utf8');
+
+    process.env.DATABASE_URL = 'postgresql://omen:omen@localhost:5432/omen';
+    process.env.REDIS_URL = 'redis://localhost:6379';
+    process.env.DISCORD_WEBHOOK_CRITICAL = 'htps://discord.example/not-a-real-url';
+
+    await expect(loadAppConfig({ cwd })).rejects.toThrow(/HTTPS URL/i);
+  });
+
+  it('treats blank optional env vars as unset', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'omen-config-'));
+    await writeFile(join(cwd, 'omen.config.toml'), '', 'utf8');
+
+    process.env.DATABASE_URL = 'postgresql://omen:omen@localhost:5432/omen';
+    process.env.REDIS_URL = 'redis://localhost:6379';
+    process.env.ALCHEMY_API_KEY = '';
+    process.env.TELEGRAM_BOT_TOKEN = '';
+    process.env.TELEGRAM_CHAT_ID_CRITICAL = '';
+    process.env.TELEGRAM_CHAT_ID_MEDIUM = '';
+    process.env.DISCORD_WEBHOOK_CRITICAL = '';
+    process.env.DISCORD_WEBHOOK_MEDIUM = '';
+    process.env.OMEN_INGESTION_POLL_INTERVAL_MS = '';
+    process.env.OMEN_INGESTION_MAX_PAGES_PER_POLL = '';
+    process.env.OMEN_OPERATIONAL_DRY_RUN = '';
+    process.env.OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH = '';
+
+    const config = await loadAppConfig({ cwd });
+
+    expect(config.alchemyApiKey).toBeNull();
+    expect(config.telegram.botToken).toBeNull();
+    expect(config.telegram.criticalChatId).toBeNull();
+    expect(config.telegram.mediumChatId).toBeNull();
+    expect(config.discord.criticalWebhookUrl).toBeNull();
+    expect(config.discord.mediumWebhookUrl).toBeNull();
+    expect(config.ingestion.pollIntervalMs).toBe(15_000);
+    expect(config.ingestion.maxPagesPerPoll).toBe(20);
+    expect(config.operational.dryRun).toBe(false);
+    expect(config.backpressure.hotWorkerQueueDepth).toBe(100);
   });
 });

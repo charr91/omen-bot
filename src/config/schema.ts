@@ -10,6 +10,11 @@ const positiveIntegerStringSchema = z
   .transform((value) => Number(value))
   .pipe(z.number().int().positive());
 
+const webhookUrlSchema = z
+  .string()
+  .url()
+  .refine((value) => value.startsWith('https://'), 'must be an HTTPS URL');
+
 export const fileConfigSchema = z
   .object({
     ingestion: z
@@ -95,6 +100,8 @@ export const envConfigSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
   TELEGRAM_CHAT_ID_CRITICAL: z.string().min(1).optional(),
   TELEGRAM_CHAT_ID_MEDIUM: z.string().min(1).optional(),
+  DISCORD_WEBHOOK_CRITICAL: webhookUrlSchema.optional(),
+  DISCORD_WEBHOOK_MEDIUM: webhookUrlSchema.optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']),
   LOG_PRETTY: booleanStringSchema,
   OMEN_INGESTION_POLL_INTERVAL_MS: positiveIntegerStringSchema.optional(),
@@ -115,6 +122,10 @@ export interface AppConfig {
     botToken: string | null;
     criticalChatId: string | null;
     mediumChatId: string | null;
+  };
+  discord: {
+    criticalWebhookUrl: string | null;
+    mediumWebhookUrl: string | null;
   };
   logLevel: EnvConfig['LOG_LEVEL'];
   logPretty: boolean;

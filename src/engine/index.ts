@@ -12,9 +12,10 @@ import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { ensurePersistenceSchema } from '../persistence/schema.js';
 import { collectHealthReport } from '../resilience/health.js';
 import { TerminalDashboard } from '../tui/dashboard.js';
-import type { SignalPreview } from '../types/alert.js';
+import type { PromotedAlert, SignalPreview } from '../types/alert.js';
 import type { FillRecord } from '../types/fill.js';
-import type { EnqueueFillResult } from '../types/thread-messages.js';
+import type { EnqueueFillResult, HotWorkerToMainMessage } from '../types/thread-messages.js';
+import type { AlertDispatchResult } from '../alerts/channel.js';
 
 export interface FillAnalysisQueue {
   enqueue(fill: FillRecord): Promise<EnqueueFillResult>;
@@ -44,6 +45,7 @@ interface StartCommandOptions {
 
 const DEFAULT_REPLAY_LIMIT = 1_000;
 const RUNTIME_STATS_INTERVAL_MS = 60_000;
+type SignalPreviewMessage = Extract<HotWorkerToMainMessage, { type: 'SIGNAL_PREVIEW' }>;
 
 export async function runIngestionCycle(options: IngestionCycleOptions): Promise<IngestionCycleResult> {
   const latestCursor = await options.fillStore.getLatestFillCursor();
@@ -80,6 +82,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   const fillStore = createFillStore(pool);
   const fillSource = createPolymarketFillSource(config.ingestion.maxPagesPerPoll);
   const runtimeStatsCollector = new RuntimeStatsCollector();
+  const signalPreviewTasks = new Set<Promise<void>>();
   let stopping = false;
 
   const stop = (): void => {
@@ -99,11 +102,14 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
       : null;
   const hotWorker = new HotWorkerClient(config, {
     onSignalPreview: (message) => {
-      void handleSignalPreview({
-        preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
-        alertDispatcher,
-        dashboard,
-      });
+      trackSignalPreviewTask(
+        signalPreviewTasks,
+        handleSignalPreview({
+          preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
+          alertDispatcher,
+          dashboard,
+        }),
+      );
     },
     onWorkerError: (message) => {
       reportOperatorError({
@@ -188,8 +194,8 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   } finally {
     process.off('SIGINT', stop);
     process.off('SIGTERM', stop);
-    await hotWorker.waitForIdle(30_000).catch(() => undefined);
     await hotWorker.stop();
+    await waitForSignalPreviewTasks(signalPreviewTasks);
     dashboard?.stop();
     redis.disconnect(false);
     await pool.end();
@@ -202,13 +208,17 @@ export async function runReplayCommand(): Promise<number> {
   const redis = createRedisClient(config);
   const fillStore = createFillStore(pool);
   const alertDispatcher = new AlertDispatcher(config, redis);
+  const signalPreviewTasks = new Set<Promise<void>>();
   const hotWorker = new HotWorkerClient(config, {
     onSignalPreview: (message) => {
-      void handleSignalPreview({
-        preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
-        alertDispatcher,
-        dashboard: null,
-      });
+      trackSignalPreviewTask(
+        signalPreviewTasks,
+        handleSignalPreview({
+          preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
+          alertDispatcher,
+          dashboard: null,
+        }),
+      );
     },
     onWorkerError: (message) => {
       process.stderr.write(`[hot-worker] ${message}\n`);
@@ -225,6 +235,7 @@ export async function runReplayCommand(): Promise<number> {
     return replayed;
   } finally {
     await hotWorker.stop();
+    await waitForSignalPreviewTasks(signalPreviewTasks);
     redis.disconnect(false);
     await pool.end();
   }
@@ -315,7 +326,16 @@ async function handleSignalPreview(options: {
 
   try {
     const result = await alertDispatcher.dispatch(promotedAlert);
-    if (dashboard && result === 'suppressed-dry-run') {
+    if (dashboard === null) {
+      process.stdout.write(`${JSON.stringify(buildAlertDispatchLog(promotedAlert, result, preview.dryRun))}\n`);
+    }
+    if (result.failedChannels.length > 0) {
+      reportOperatorError({
+        message: `[alerts] failed to dispatch on channel(s): ${result.failedChannels.join(', ')}`,
+        dashboard,
+      });
+    }
+    if (dashboard && result.status === 'suppressed-dry-run') {
       dashboard.notify('Promoted alert kept local because dry-run is enabled');
     }
   } catch (error) {
@@ -327,7 +347,7 @@ async function handleSignalPreview(options: {
 }
 
 function withEffectiveDryRun(
-  message: Extract<import('../types/thread-messages.js').HotWorkerToMainMessage, { type: 'SIGNAL_PREVIEW' }>,
+  message: SignalPreviewMessage,
   dryRun: boolean,
 ): SignalPreview {
   const { type: _type, dryRun: _workerDryRun, ...payload } = message;
@@ -370,4 +390,51 @@ function reportOperatorError(options: {
 
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function buildAlertDispatchLog(
+  alert: PromotedAlert,
+  result: AlertDispatchResult,
+  dryRun: boolean,
+): {
+  type: 'alert-dispatch';
+  fillId: string;
+  walletAddress: string;
+  marketId: string;
+  signalId: PromotedAlert['signal']['signalId'];
+  walletLiveTier: PromotedAlert['walletLiveTier'];
+  deliveryTier: PromotedAlert['deliveryTier'];
+  result: AlertDispatchResult['status'];
+  channels: AlertDispatchResult['channels'];
+  failedChannels: AlertDispatchResult['failedChannels'];
+  dryRun: boolean;
+} {
+  return {
+    type: 'alert-dispatch',
+    fillId: alert.fillId,
+    walletAddress: alert.walletAddress,
+    marketId: alert.marketId,
+    signalId: alert.signal.signalId,
+    walletLiveTier: alert.walletLiveTier,
+    deliveryTier: alert.deliveryTier,
+    result: result.status,
+    channels: result.channels,
+    failedChannels: result.failedChannels,
+    dryRun,
+  };
+}
+
+function trackSignalPreviewTask(pending: Set<Promise<void>>, task: Promise<void>): void {
+  pending.add(task);
+  task.finally(() => {
+    pending.delete(task);
+  });
+}
+
+async function waitForSignalPreviewTasks(pending: Set<Promise<void>>): Promise<void> {
+  if (pending.size === 0) {
+    return;
+  }
+
+  await Promise.allSettled([...pending]);
 }
