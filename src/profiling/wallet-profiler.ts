@@ -1,4 +1,5 @@
 import type { WalletChainProfile } from '../types/wallet.js';
+import { canonicalizeEvmAddress } from '../evm/address.js';
 
 interface RpcResponse<TResult> {
   result?: TResult;
@@ -43,13 +44,14 @@ export class AlchemyWalletProfiler {
   }
 
   async profileWallet(address: string): Promise<WalletChainProfile> {
-    const cached = this.cache.get(address);
+    const canonicalAddress = canonicalizeEvmAddress(address);
+    const cached = this.cache.get(canonicalAddress);
     if (cached && cached.expiresAt > this.now()) {
       return cached.value;
     }
 
-    const value = this.loadWalletProfile(address);
-    this.cache.set(address, {
+    const value = this.loadWalletProfile(canonicalAddress);
+    this.cache.set(canonicalAddress, {
       expiresAt: this.now() + this.cacheTtlMs,
       value,
     });
@@ -57,7 +59,7 @@ export class AlchemyWalletProfiler {
     try {
       return await value;
     } catch (error) {
-      this.cache.delete(address);
+      this.cache.delete(canonicalAddress);
       throw error;
     }
   }

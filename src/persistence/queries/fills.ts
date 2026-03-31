@@ -1,4 +1,5 @@
 import type { Pool } from 'pg';
+import { canonicalizeEvmAddress } from '../../evm/address.js';
 import { stableObservationKey } from '../../phase0/json.js';
 import type { FillRecord, NewFill } from '../../types/fill.js';
 
@@ -80,6 +81,7 @@ export function createFillStore(pool: Pick<Pool, 'query'>): FillStore {
     },
 
     async insertFill(fill: NewFill): Promise<boolean> {
+      const walletAddress = canonicalizeEvmAddress(fill.walletAddress);
       const result = await pool.query<{ id: string }>(
         `
           insert into fills (
@@ -105,7 +107,7 @@ export function createFillStore(pool: Pick<Pool, 'query'>): FillStore {
           fill.id,
           fill.marketId,
           fill.tokenId,
-          fill.walletAddress,
+          walletAddress,
           fill.side,
           fill.outcome,
           fill.price,
@@ -176,7 +178,7 @@ function mapFillRow(row: FillRow): FillRecord {
     id: row.id,
     marketId: row.market_id,
     tokenId: row.token_id,
-    walletAddress: row.wallet_address,
+    walletAddress: canonicalizeEvmAddress(row.wallet_address),
     side: row.side,
     outcome: row.outcome,
     price: row.price,

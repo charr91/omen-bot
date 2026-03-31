@@ -26,6 +26,7 @@ const CREATE_FILLS_UNIQUE_INDEX_SQL = `
 
 const CREATE_FILLS_SUPPORTING_INDEXES_SQL = [
   'create index if not exists idx_fills_wallet on fills (wallet_address);',
+  'create index if not exists idx_fills_wallet_canonical on fills ((lower(wallet_address)));',
   'create index if not exists idx_fills_market on fills (market_id);',
   'create index if not exists idx_fills_timestamp on fills (timestamp);',
   'create index if not exists idx_fills_unanalyzed on fills (analyzed) where analyzed = false;',
@@ -113,6 +114,10 @@ const CREATE_WHALE_WHITELIST_TABLE_SQL = `
   );
 `;
 
+const CREATE_WHALE_WHITELIST_SUPPORTING_INDEXES_SQL = [
+  'create index if not exists idx_whale_whitelist_wallet_canonical on whale_whitelist ((lower(wallet_address)));',
+];
+
 export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promise<void> {
   await pool.query(CREATE_FILLS_TABLE_SQL);
   await pool.query(CREATE_FILLS_UNIQUE_INDEX_SQL);
@@ -132,4 +137,7 @@ export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promis
   }
 
   await pool.query(CREATE_WHALE_WHITELIST_TABLE_SQL);
+  for (const statement of CREATE_WHALE_WHITELIST_SUPPORTING_INDEXES_SQL) {
+    await pool.query(statement);
+  }
 }

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { canonicalizeEvmAddress } from '../evm/address.js';
 import { PUBLIC_TRADE_POLL_LIMIT } from '../phase0/constants.js';
 import { fetchPublicTrades } from '../phase0/public-api.js';
 import { getNumber, getString, normalizeSide, parseTimestampMs, stableObservationKey } from '../phase0/json.js';
@@ -135,7 +136,7 @@ export function normalizeTradeToFill(trade: JsonObject): NewFill | null {
     id: randomUUID(),
     marketId,
     tokenId,
-    walletAddress,
+    walletAddress: canonicalizeEvmAddress(walletAddress),
     side,
     outcome,
     price: formatNumeric(price),

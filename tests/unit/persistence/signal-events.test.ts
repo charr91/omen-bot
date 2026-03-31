@@ -3,7 +3,7 @@ import { createSignalEventStore } from '../../../src/persistence/queries/signal-
 import { SignalId, type TriggeredSignal } from '../../../src/types/signal.js';
 
 describe('createSignalEventStore', () => {
-  it('serializes evidence as JSON before inserting live signal events', async () => {
+  it('serializes evidence as JSON and canonicalizes wallet addresses before inserting live signal events', async () => {
     const query = vi.fn().mockResolvedValue({
       rowCount: 1,
       rows: [{ id: 'signal-event-1' }],
@@ -26,7 +26,7 @@ describe('createSignalEventStore', () => {
     };
 
     const inserted = await store.insertLiveSignalEvent({
-      walletAddress: '0xwallet',
+      walletAddress: '0xAbC123',
       marketId: 'market-1',
       fillId: 'fill-1',
       signal,
@@ -34,6 +34,7 @@ describe('createSignalEventStore', () => {
 
     expect(inserted).toBe(true);
     expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0]?.[1]?.[1]).toBe('0xabc123');
     expect(query.mock.calls[0]?.[1]?.[8]).toBe(JSON.stringify(signal.evidence));
   });
 });

@@ -1,4 +1,5 @@
 import type { Pool } from 'pg';
+import { canonicalizeEvmAddress, canonicalizeOptionalEvmAddress } from '../../evm/address.js';
 import type { WalletProfile } from '../../types/wallet.js';
 
 interface WalletAggregateRow {
@@ -23,6 +24,7 @@ export interface WalletStore {
 export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
   return {
     async upsertWalletStub(address: string, seenAt: Date): Promise<void> {
+      const canonicalAddress = canonicalizeEvmAddress(address);
       await pool.query(
         `
           insert into wallets (
@@ -37,11 +39,12 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
             last_active_at = greatest(wallets.last_active_at, excluded.last_active_at),
             updated_at = now()
         `,
-        [address, seenAt],
+        [canonicalAddress, seenAt],
       );
     },
 
     async getAggregateStats(address: string): Promise<WalletAggregateStats> {
+      const canonicalAddress = canonicalizeEvmAddress(address);
       const result = await pool.query<WalletAggregateRow>(
         `
           select
@@ -49,9 +52,9 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
             count(distinct market_id)::text as total_markets,
             coalesce(sum(size_usd), 0)::text as total_volume_usd
           from fills
-          where wallet_address = $1
+          where lower(wallet_address) = $1
         `,
-        [address],
+        [canonicalAddress],
       );
 
       const row = result.rows[0];
@@ -63,21 +66,24 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
     },
 
     async isWhitelisted(address: string): Promise<boolean> {
+      const canonicalAddress = canonicalizeEvmAddress(address);
       const result = await pool.query<{ exists: boolean }>(
         `
           select exists (
             select 1
             from whale_whitelist
-            where wallet_address = $1
+            where lower(wallet_address) = $1
           ) as exists
         `,
-        [address],
+        [canonicalAddress],
       );
 
       return result.rows[0]?.exists ?? false;
     },
 
     async upsertLiveProfile(profile: WalletProfile): Promise<void> {
+      const canonicalAddress = canonicalizeEvmAddress(profile.address);
+      const controllerAddress = canonicalizeOptionalEvmAddress(profile.controllerAddress);
       await pool.query(
         `
           insert into wallets (
@@ -119,12 +125,12 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
             updated_at = now()
         `,
         [
-          profile.address,
+          canonicalAddress,
           profile.ageSeconds,
           profile.activityAgeKnown,
           profile.totalTransactions,
           profile.isContract,
-          profile.controllerAddress,
+          controllerAddress,
           profile.firstSeenAt,
           profile.lastActiveAt,
           profile.totalMarkets,

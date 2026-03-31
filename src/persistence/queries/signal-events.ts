@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
 import { SCORING_VERSION } from '../../config/constants.js';
+import { canonicalizeEvmAddress } from '../../evm/address.js';
 import type { TriggeredSignal } from '../../types/signal.js';
 
 export interface LiveSignalEventInsert {
@@ -18,6 +19,7 @@ export interface SignalEventStore {
 export function createSignalEventStore(pool: Pick<Pool, 'query'>): SignalEventStore {
   return {
     async insertLiveSignalEvent(input: LiveSignalEventInsert): Promise<boolean> {
+      const walletAddress = canonicalizeEvmAddress(input.walletAddress);
       const result = await pool.query<{ id: string }>(
         `
           insert into signal_events (
@@ -38,7 +40,7 @@ export function createSignalEventStore(pool: Pick<Pool, 'query'>): SignalEventSt
         `,
         [
           randomUUID(),
-          input.walletAddress,
+          walletAddress,
           input.marketId,
           input.fillId,
           input.signal.signalId,

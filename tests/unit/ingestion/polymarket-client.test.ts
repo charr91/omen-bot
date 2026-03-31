@@ -19,11 +19,12 @@ function makeTrade(overrides: Partial<JsonObject> = {}): JsonObject {
 
 describe('polymarket fill source', () => {
   it('normalizes a public trade into a fill record', () => {
-    const fill = normalizeTradeToFill(makeTrade());
+    const fill = normalizeTradeToFill(makeTrade({ proxyWallet: '0xAbC123' }));
 
     expect(fill).not.toBeNull();
     expect(fill?.marketId).toBe('market-1');
     expect(fill?.tokenId).toBe('asset-1');
+    expect(fill?.walletAddress).toBe('0xabc123');
     expect(fill?.outcome).toBe('YES');
     expect(fill?.sizeUsd).toBe('4.200000');
     expect(fill?.orderType).toBe('UNKNOWN');
