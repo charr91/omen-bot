@@ -171,6 +171,24 @@ shutdown_timeout_ms = 30000
     await expect(loadAppConfig({ cwd })).rejects.toThrow(/HTTPS URL/i);
   });
 
+  it('rejects elevated_fill_usd <= min_fill_usd', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'omen-config-'));
+    await writeFile(
+      join(cwd, 'omen.config.toml'),
+      `
+[detection.cluster]
+min_fill_usd = 500
+elevated_fill_usd = 200
+`.trimStart(),
+      'utf8',
+    );
+
+    process.env.DATABASE_URL = 'postgresql://omen:omen@localhost:5432/omen';
+    process.env.REDIS_URL = 'redis://localhost:6379';
+
+    await expect(loadAppConfig({ cwd })).rejects.toThrow(/elevated_fill_usd must be greater than min_fill_usd/);
+  });
+
   it('treats blank optional env vars as unset', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'omen-config-'));
     await writeFile(join(cwd, 'omen.config.toml'), '', 'utf8');
@@ -204,7 +222,8 @@ shutdown_timeout_ms = 30000
     expect(config.operational.dryRun).toBe(false);
     expect(config.backpressure.hotWorkerQueueDepth).toBe(100);
     expect(config.alerts.dedupScoreIncrease).toBe(10);
-    expect(config.detection.cluster.minFillUsd).toBe(25);
+    expect(config.detection.cluster.minFillUsd).toBe(200);
+    expect(config.detection.cluster.elevatedFillUsd).toBe(500);
     expect(config.detection.cluster.sameMarketSameSideWindowMs).toBe(3_600_000);
     expect(config.coldPath.concurrency).toBe(1);
     expect(config.coldPath.rebuildFailureCooldownMs).toBe(900_000);

@@ -32,7 +32,8 @@ function makeConfig(): Pick<AppConfig, 'detection'> {
       },
       cluster: {
         minSize: 3,
-        minFillUsd: 25,
+        minFillUsd: 200,
+        elevatedFillUsd: 500,
         fundingMaxDepth: 4,
         fanoutLimit: 5,
         maxRpcCalls: 200,
@@ -74,7 +75,8 @@ describe('evaluateSybilCluster', () => {
     });
 
     expect(signal?.signalId).toBe('SYBIL_CLUSTER');
-    expect(signal?.score).toBe(25);
+    expect(signal?.score).toBe(30);
+    expect(signal?.confidence).toBe(0.9);
   });
 
   it('does not trigger without enough same-market entries', () => {
@@ -103,5 +105,37 @@ describe('evaluateSybilCluster', () => {
     });
 
     expect(signal).toBeNull();
+  });
+
+  it('returns base score for fills between min and elevated thresholds', () => {
+    const signal = evaluateSybilCluster({
+      fill: makeFill({ sizeUsd: '300.000000' }),
+      cluster: {
+        fundingClusterId: 'fc:abc',
+        clusterSize: 5,
+        sameMarketSameSideEntries: 2,
+      },
+      config: makeConfig(),
+    });
+
+    expect(signal?.signalId).toBe('SYBIL_CLUSTER');
+    expect(signal?.score).toBe(15);
+    expect(signal?.confidence).toBe(0.8);
+  });
+
+  it('returns elevated score for fills above elevated threshold', () => {
+    const signal = evaluateSybilCluster({
+      fill: makeFill({ sizeUsd: '600.000000' }),
+      cluster: {
+        fundingClusterId: 'fc:abc',
+        clusterSize: 5,
+        sameMarketSameSideEntries: 2,
+      },
+      config: makeConfig(),
+    });
+
+    expect(signal?.signalId).toBe('SYBIL_CLUSTER');
+    expect(signal?.score).toBe(30);
+    expect(signal?.confidence).toBe(0.9);
   });
 });

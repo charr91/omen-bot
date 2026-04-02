@@ -63,6 +63,7 @@ export const fileConfigSchema = z
           .object({
             min_size: z.number().int().positive().optional(),
             min_fill_usd: z.number().positive().optional(),
+            elevated_fill_usd: z.number().positive().optional(),
             funding_max_depth: z.number().int().positive().optional(),
             fanout_limit: z.number().int().positive().optional(),
             max_rpc_calls: z.number().int().positive().optional(),
@@ -133,7 +134,8 @@ export const fileConfigSchema = z
       },
       cluster: {
         min_size: value.detection?.cluster?.min_size ?? 3,
-        min_fill_usd: value.detection?.cluster?.min_fill_usd ?? 25,
+        min_fill_usd: value.detection?.cluster?.min_fill_usd ?? 200,
+        elevatedFillUsd: value.detection?.cluster?.elevated_fill_usd ?? 500,
         funding_max_depth: value.detection?.cluster?.funding_max_depth ?? 4,
         fanout_limit: value.detection?.cluster?.fanout_limit ?? 5,
         max_rpc_calls: value.detection?.cluster?.max_rpc_calls ?? 200,
@@ -160,7 +162,14 @@ export const fileConfigSchema = z
       rebuild_failure_cooldown_ms: value.cold_path?.rebuild_failure_cooldown_ms ?? 15 * 60_000,
       shutdown_timeout_ms: value.cold_path?.shutdown_timeout_ms ?? 30_000,
     },
-  }));
+  }))
+  .refine(
+    (cfg) => cfg.detection.cluster.elevatedFillUsd > cfg.detection.cluster.min_fill_usd,
+    {
+      message: 'elevated_fill_usd must be greater than min_fill_usd',
+      path: ['detection', 'cluster', 'elevated_fill_usd'],
+    },
+  );
 
 export const envConfigSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
@@ -233,6 +242,7 @@ export interface AppConfig {
     cluster: {
       minSize: number;
       minFillUsd: number;
+      elevatedFillUsd: number;
       fundingMaxDepth: number;
       fanoutLimit: number;
       maxRpcCalls: number;
