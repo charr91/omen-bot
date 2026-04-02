@@ -14,6 +14,13 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
     "omen": "node dist/cli.js",
+    "omen:launchd:install": "bash scripts/omen-launchdctl.sh install",
+    "omen:launchd:status": "bash scripts/omen-launchdctl.sh status",
+    "omen:launchd:uninstall": "bash scripts/omen-launchdctl.sh uninstall",
+    "omen:screen:start": "bash scripts/omen-screen.sh start",
+    "omen:screen:attach": "bash scripts/omen-screen.sh attach",
+    "omen:screen:stop": "bash scripts/omen-screen.sh stop",
+    "omen:screen:status": "bash scripts/omen-screen.sh status",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
