@@ -15,15 +15,18 @@ one operator, designed to grow indefinitely.
 
 ### 1.1 The Platform
 
-The long-term direction borrowed from Palantir is **entity-centric intelligence**:
-multiple sources eventually project into a shared graph of wallets, markets, people,
-organizations, events, and typed relationships between them.
+The core architectural principle borrowed from Palantir is **entity-centric
+intelligence**: multiple sources project into a shared graph of wallets, markets,
+people, organizations, events, and typed relationships between them.
 
-That is **not** the current runtime contract for the prediction-market module. Today,
-live scoring, alerting, replay, and operator workflows run on domain-specific tables
-(`fills`, `wallets`, `signal_events`, `alerts`) optimized for the Polymarket detector.
-The ontology is a later integration layer that should enrich investigation workflows
-without disturbing the real-time detector.
+The prediction-market module preserves a deliberate split between:
+
+- a domain-specific real-time detector optimized for live scoring and alerts
+- a shared ontology, introduced in Phase 5, optimized for cross-domain investigation
+
+That split is intentional. Detection stays fast, conservative, and domain-specific.
+Cross-domain enrichment compounds separately without dragging ontology complexity into the
+hot path.
 
 The architectural bar for future platform work is therefore:
 
@@ -54,22 +57,19 @@ front-running tool. Monetization is via intelligence services, not trade executi
 
 Omen grows by adding **connectors** (new data sources that populate the entity graph)
 and **enrichment modules** (cross-domain analysis that no single connector can provide).
-The current implementation plan covers the prediction market module (Phases 0-4). The
-platform evolution plan (Phases 5-6) introduces the shared entity ontology and the first
-cross-domain enrichments. See §15 for detailed platform architecture.
+Phases 0-4 define the prediction-market module. Phases 5-6 introduce the shared entity
+ontology and the first cross-domain enrichments. See §15 for the platform architecture.
 
 Planned connectors and modules (not all will be built — prioritize by value):
 
 | Module | Data Sources | Entity Types Added | Key Questions Answered |
 |--------|-------------|-------------------|----------------------|
-| Prediction markets (current) | Polymarket, Kalshi | Wallet, Market, Cluster | "Who's insider trading?" |
+| Prediction markets | Polymarket, Kalshi | Wallet, Market, Cluster | "Who's insider trading?" |
 | Identity attribution | ENS, Twitter, GitHub, Polymarket profiles | Person | "Who is this wallet?" |
 | Event correlation | News RSS, gov calendars, Twitter | Event, Document | "What do the insiders know?" |
 | Token intelligence | DEX trades, holder data, Solana/Base | Token, LiquidityPool | "Is this token safe?" |
 | Social signals | Discord, Telegram, CT | Channel, Post | "What's the alpha chatter?" |
 | Cyber threat intel | CVE feeds, Shodan, WHOIS, breach DBs | Domain, IP, Vulnerability | "What's the threat surface?" |
-
-**Repository**: `omen-bot`
 
 ---
 
@@ -93,35 +93,34 @@ Planned connectors and modules (not all will be built — prioritize by value):
 │  └──────────────────────────────────────────────────────────────────┘   │
 │                                                                         │
 │  ┌─── COLD PATH PROCESS (BullMQ, durable) ──────────────────────────┐   │
-│  │  Current: funding-graph rebuild jobs                             │   │
-│  │  Future: deeper clustering, post-resolution scoring, ontology    │   │
-│  │  projection, retention jobs, cross-domain enrichment             │   │
+│  │  Phase 1: funding-graph rebuilds                                 │   │
+│  │  Phase 2: clustering + retrospective scoring                     │   │
+│  │  Phase 5+: ontology projection + cross-domain enrichment         │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
 │                                                                         │
 │  ┌─── PERSISTENCE ──────────────────────────────────────────────────┐   │
-│  │  PostgreSQL 16: current domain tables for detector state         │   │
+│  │  PostgreSQL 16: detector domain tables + Phase 5 ontology tables │   │
 │  │  Redis 7: BullMQ, alert dedup, health heartbeats                 │   │
-│  │  Future: ontology tables for cross-domain investigation (§15)    │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.1 Hot Path / Cold Path Split
 
-**Main thread / process** — handles Polymarket polling, fill persistence, replay
-scheduling, alert dispatch, operator presentation, and supervision of the cold-worker
-process. It does not consume BullMQ jobs directly.
+**Main thread / process** — owns Polymarket polling, fill persistence, replay
+scheduling, alert dispatch, operator presentation, and cold-worker supervision. Durable
+BullMQ job consumption stays off this thread.
 
-**Hot worker thread** (`worker_threads`) — evaluates the current LIVE detector on each
+**Hot worker thread** (`worker_threads`) — evaluates LIVE detector logic on each
 persisted fill. The queue is bounded in memory. If the queue is full, enqueue returns
-`full`; the system relies on `fills.analyzed = false` replay semantics to recover later.
-The hot worker is intentionally narrow: lightweight wallet profiling, live signal
-evaluation, signal persistence, and alert promotion.
+`full`; replay semantics recover the backlog later. The hot worker remains narrow:
+lightweight wallet profiling, live signal evaluation, signal persistence, and alert
+promotion.
 
-**Cold path process** (`bullmq`) — durable background work with no real-time latency
-budget. Today that means funding-graph rebuild jobs. The same boundary is where deeper
-profile builds, post-resolution scoring, retention jobs, ontology projection, and
-cross-domain enrichment belong later.
+**Cold path process** (`bullmq`) — owns durable background work with no real-time
+latency budget. Phase 1 uses it for funding-graph rebuilds. Phase 2 adds deeper
+clustering and retrospective scoring. Phase 5 adds ontology projection and cross-domain
+enrichment.
 
 ### 2.2 Async Backbone Responsibilities
 
@@ -140,19 +139,18 @@ Hot worker:        pg Pool max 5
 Cold worker:       pg Pool max 5
 ```
 
-The current code uses the same conservative pool size in each runtime. If Phase 2/3
-adds more parallel cold-path jobs or ACP workloads, re-tune this intentionally rather
-than letting implicit defaults drift.
+Use separate conservative pools in each runtime. If later phases add materially more
+parallel cold-path work or ACP load, re-tune intentionally rather than letting defaults
+drift.
 
 ### 2.4 Worker Heartbeat & Restart
 
 Hot worker sends `HEARTBEAT` every 5s and also writes heartbeat state to Redis for the
-`health` command. The current runtime **does not auto-restart the hot worker**; if the
-thread errors, the process surfaces the failure and stops doing useful work until the
-operator restarts it.
+`health` command. Missed heartbeats must mark the runtime degraded and trigger operator
+attention.
 
-The cold worker is different: it runs as a separate child process supervised by the main
-runtime and is restarted after unexpected exit.
+The cold worker runs as a separate supervised process and should restart after
+unexpected exit.
 
 > **Known limitation**: `worker_threads` share the main process. A V8 fatal error or OOM
 > in the hot worker still takes the process down. If hot-worker restarts become a real
@@ -174,22 +172,19 @@ On restart:
 
 The natural key was validated in Phase 0 and locked in [ADR 0001](../docs/adr/0001-phase0-fills-schema.md).
 
-Current idempotency boundaries:
+Idempotency boundaries:
 
 - LIVE signal persistence: `signal_events` is idempotent on `(fill_id, signal_id)`
 - Promoted alerts: `alerts` is idempotent on `(fill_id, signal_id)`
 - Channel delivery state: `alert_deliveries` stores per-channel outcomes
 - Replay boundary: `fills.analyzed = true` only after hot-path work completes
 
-Post-resolution idempotency remains a future design concern for the later retrospective
-pipeline; it is not part of the current runtime contract.
+Post-resolution idempotency belongs to the retrospective pipeline introduced in Phase 2.
 
 ### 2.6 Ingestion Mode
 
-REST polling is **primary** in the current runtime. WebSocket capture exists in Phase 0
-validation tooling, but `omen start` is intentionally correct in REST-only mode. If a WS
-upgrade is added later, it must remain an optimization rather than a correctness
-dependency.
+REST polling is **primary**. WebSocket is a latency optimization and validation aid, not
+a correctness dependency. The detector must remain correct in REST-only mode.
 
 ### 2.7 Input Sanitization
 
@@ -200,7 +195,7 @@ All external text is treated as hostile. Per-surface sanitizers:
 - **Telegram**: escape HTML/Markdown injection
 - **Discord**: escape Markdown, disable `@everyone`/`@here`
 - **Logs**: pino safe serializers, max field length 1024
-- **ACP (future)**: sanitize through explicit external DTOs (§8)
+- **ACP**: sanitize through explicit external DTOs (§8)
 
 ### 2.8 Graceful Shutdown
 
@@ -215,7 +210,7 @@ Shutdown ordering matters with multiple runtimes and connections:
 7. Close Redis and Postgres clients
 8. Exit
 
-ACP shutdown hooks belong here only once ACP exists in the runtime.
+ACP shutdown hooks belong in the same ordered shutdown path once Phase 3 is introduced.
 
 ### 2.9 Operational Notes
 
@@ -232,9 +227,9 @@ ALTER TABLE fills SET (
 ```
 
 **Alchemy rate limits**: Free tier is 330 CU/s. `getAssetTransfers` costs ~10 CU.
-At scale, funding graph builds will bottleneck. The current implementation degrades by
-cooling down rebuild attempts and continuing live scoring without fresh graph data. If
-sustained throughput is needed, upgrade to a paid tier or add fallback infrastructure.
+At scale, funding graph builds will bottleneck. The system should degrade by cooling
+down rebuild attempts and continuing live scoring without fresh graph data. If sustained
+throughput is needed, upgrade to a paid tier or add fallback infrastructure.
 
 ---
 
@@ -247,14 +242,14 @@ sustained throughput is needed, upgrade to a paid tier or add fallback infrastru
 | Language          | TypeScript 5.x (strict) | Strong typing across threads, runtime schemas, and persistence |
 | Runtime           | Node.js 22 LTS          | Stable worker threads, modern ESM support          |
 | Package manager   | pnpm                    | Fast, deterministic dependency management          |
-| Module system     | ESM                     | Matches the current repo and runtime entrypoints   |
+| Module system     | ESM                     | Modern Node standard with clean module boundaries  |
 
 ### Data & Persistence
 
 | Concern           | Choice                  | Rationale                                          |
 | ----------------- | ----------------------- | -------------------------------------------------- |
 | Primary DB        | PostgreSQL 16           | Relational durability, numeric money fields, replay-safe ledger |
-| DB access         | `pg` + explicit SQL     | Current repo uses hand-written DDL and query modules |
+| DB access         | `pg` + explicit SQL     | Clear control over schema, idempotency, and perf-critical queries |
 | Cache / queue infra | Redis 7 (`ioredis`)   | BullMQ backend, heartbeats, alert dedup            |
 | Durable queue     | BullMQ                  | Separate-process cold-path jobs                    |
 
@@ -264,9 +259,9 @@ sustained throughput is needed, upgrade to a paid tier or add fallback infrastru
 | ------------------ | ----------------- | ------------------------------------------------- |
 | Polymarket data API | REST             | Recent fills for the live detector                 |
 | Polymarket Gamma   | REST              | Active-market metadata used by the market catalog  |
-| Polymarket market WS | WebSocket       | Validation capture tooling today; possible runtime upgrade later |
+| Polymarket market WS | WebSocket       | Optional low-latency trade stream and validation capture |
 | Alchemy RPC        | JSON-RPC          | Wallet age, tx count, contract detection, funding traces |
-| Dune / other history providers | REST  | Future backfill/bootstrap work                     |
+| Dune / other history providers | REST  | Historical backfill and calibration                |
 
 > **Funding trace scope**: Traces USDC *and* ETH/MATIC transfers. Insiders may fund via
 > ETH, swap to USDC on-chain, then bet. The swap shows up in Polygon tx history.
@@ -275,7 +270,7 @@ sustained throughput is needed, upgrade to a paid tier or add fallback infrastru
 
 | Concern           | Choice                  | Rationale                                          |
 | ----------------- | ----------------------- | -------------------------------------------------- |
-| Renderer          | Raw ANSI string renderer | Matches the current `src/tui/render.ts` implementation |
+| Renderer          | Raw ANSI string renderer | Minimal dependency surface, direct terminal control |
 | Input handling    | `node:readline` keypress events | Minimal dependency surface, direct TTY control |
 | Presentation mode | TUI or structured JSON logs | Same runtime can run interactively or headless     |
 
@@ -283,78 +278,52 @@ sustained throughput is needed, upgrade to a paid tier or add fallback infrastru
 
 | Concern           | Choice                  | Rationale                                          |
 | ----------------- | ----------------------- | -------------------------------------------------- |
-| Status            | Phase 3+ roadmap        | ACP is part of product direction, not current code |
+| Status            | Phase 3 introduction    | ACP is a product surface layered on top of the detector |
 | SDK/runtime choice | Intentionally not locked yet | Pin the concrete SDK when ACP work starts, not earlier |
 
 ### Quality & Tooling
 
 | Concern           | Choice                  | Rationale                                          |
 | ----------------- | ----------------------- | -------------------------------------------------- |
-| Testing           | Vitest                  | Current unit/integration suite                     |
+| Testing           | Vitest                  | Fast TypeScript-native unit and integration testing |
 | Schema validation | Zod                     | Runtime validation for config and external payloads |
 | Logging           | pino                    | Structured JSON with low overhead                  |
 | Config            | TOML + env overlays     | Versioned tuning with secrets in env               |
-| Static checks     | `tsc --noEmit`          | Current typecheck contract                         |
+| Static checks     | `tsc --noEmit`          | Compile-time contract enforcement                  |
 
 ---
 
-## 4. Project Structure
+## 4. Module Structure
 
 ```
 omen-bot/
 ├── src/
-│   ├── cli.ts                          # CLI entrypoint
-│   ├── config/
-│   │   ├── index.ts                    # TOML + env loader
-│   │   ├── schema.ts                   # Zod config schemas
-│   │   └── constants.ts                # Scoring version and shared constants
-│   ├── engine/                         # Main runtime loop: ingest, replay, health
-│   ├── hot-worker/                     # Worker-thread client + runtime
-│   ├── cold-path/                      # BullMQ queue, worker runtime, supervisor
-│   ├── ingestion/
-│   │   └── polymarket-client.ts        # Live fill ingest source
-│   ├── phase0/                         # Validation capture/analyze tooling
-│   ├── profiling/                      # Wallet chain profiling against Alchemy
-│   ├── markets/                        # Active market catalog cache
-│   ├── signals/                        # Current live signal implementations + scoring
-│   ├── clusters/                       # Funding-graph and clustering helpers
-│   ├── persistence/
-│   │   ├── db.ts                       # pg pool creation
-│   │   ├── schema.ts                   # Runtime DDL
-│   │   ├── redis.ts
-│   │   └── queries/
-│   │       ├── fills.ts
-│   │       ├── wallets.ts
-│   │       ├── alerts.ts
-│   │       ├── signal-events.ts
-│   │       └── funding-edges.ts
-│   ├── alerts/                         # Promotion, dispatch, Telegram, Discord, dedup
-│   ├── resilience/                     # Health reporting
-│   ├── tui/                            # Terminal dashboard renderer
-│   ├── logging/
-│   ├── evm/
-│   └── types/                          # Shared runtime types
-│
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── fixtures/
-├── docs/
-│   └── adr/
-├── tsconfig.json
-├── package.json
-├── .env.example
-├── omen.config.toml
-├── docker-compose.yml
-└── README.md
+│   ├── cli/                            # operator commands and entrypoints
+│   ├── config/                         # typed config loading and defaults
+│   ├── engine/                         # main loop: ingest, replay, alerting, health
+│   ├── hot-worker/                     # real-time scoring thread
+│   ├── cold-path/                      # durable background jobs
+│   ├── ingestion/                      # Polymarket, Gamma, and optional WS clients
+│   ├── validation/                     # Phase 0 capture/analyze tooling
+│   ├── profiling/                      # chain lookups and wallet history
+│   ├── markets/                        # market catalog and metadata
+│   ├── signals/                        # signal definitions and scoring
+│   ├── clusters/                       # funding graph and cluster analysis
+│   ├── persistence/                    # Postgres and Redis access
+│   ├── alerts/                         # promotion, dedup, and dispatch
+│   ├── resilience/                     # health checks and supervision
+│   ├── tui/                            # operator dashboard
+│   ├── acp/                            # Phase 3 commerce layer
+│   ├── ontology/                       # Phase 5 entity graph
+│   └── types/                          # shared types
 ```
 
-Future directories such as `src/acp/` and `src/ontology/` belong to the roadmap in
-later phases; they are intentionally not part of the current repo contract.
+The exact file layout can evolve. The important part is the boundary between the hot
+path, cold path, persistence, alerting, ACP, and ontology layers.
 
 ### 4.1 CLI Commands
 
-Current CLI surface:
+Phase 1 core commands:
 
 ```bash
 omen [--env-file .env] start [--tui]
@@ -369,7 +338,7 @@ omen [--env-file .env.server] validate-fills analyze \
   --input .phase0-data/run-001
 ```
 
-Behavioral notes:
+What each command does:
 
 - `start` runs the live detector and supervises the cold worker.
 - `start --tui` enables the terminal dashboard; headless `start` emits structured logs.
@@ -379,16 +348,15 @@ Behavioral notes:
 - `cold-worker` can be run standalone for debugging or separate process management.
 - `validate-fills capture/analyze` is Phase 0 tooling for fill-ledger validation.
 
-Future command families for ACP or ontology work should be added only when those features
-exist in the repo; the spec should not treat roadmap commands as current CLI contract.
+Later phases can add dedicated ACP and ontology command families. Those should be thin
+operator surfaces over capabilities that already exist in the architecture.
 
 ---
 
-## 5. Domain Types
+## 5. Core Domain Types
 
-This section describes the **current runtime contract**. Later phases can extend these
-types, but should not silently blur the distinction between current detector types and
-future roadmap shapes.
+This section defines the base types the detector is built around. Later phases can
+extend them, but the meaning of the base fields should stay stable.
 
 ### 5.1 Wallet Profile
 
@@ -424,9 +392,8 @@ export interface WalletChainProfile {
 }
 ```
 
-Planned later phases may add richer retrospective metrics, category statistics,
-resolution-derived performance, and funding-cluster context. Those fields are **future
-extensions**, not part of the current runtime type contract.
+Phase 2 extends wallet profiles with retrospective performance fields, category and
+timing metrics, funding-cluster context, and richer operator annotations.
 
 ### 5.2 Detection Signals
 
@@ -439,6 +406,12 @@ export type AlertTier = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'CLEAN';
 export enum SignalId {
   FRESH_WALLET_LARGE_POSITION = 'FRESH_WALLET_LARGE_POSITION',
   OUTSIZED_POSITION = 'OUTSIZED_POSITION',
+  SYBIL_CLUSTER = 'SYBIL_CLUSTER',
+  CONVICTION_SIZE_MISMATCH = 'CONVICTION_SIZE_MISMATCH',
+  LUMP_ENTRY = 'LUMP_ENTRY',
+  NICHE_MARKET_ENTRY = 'NICHE_MARKET_ENTRY',
+  PRE_RESOLUTION_TIMING = 'PRE_RESOLUTION_TIMING',
+  STATISTICAL_IMPROBABILITY = 'STATISTICAL_IMPROBABILITY',
 }
 
 export interface SignalEvidence {
@@ -458,9 +431,9 @@ export interface TriggeredSignal {
 }
 ```
 
-The broader signal matrix in later sections is the **planned detector roadmap**, not the
-current enum or hot-path contract. New signals should land behind explicit versioning so
-analytics history remains interpretable.
+Phase 1 centers on fresh-wallet and outsized-position signals. Phase 2 adds cluster,
+conviction, and retrospective signals. New signals should always land behind explicit
+versioning so analytics history stays interpretable.
 
 ### 5.3 Fill & Market Types
 
@@ -541,44 +514,48 @@ export type HotWorkerToMainMessage =
     };
 ```
 
-The hot-path contract is intentionally narrow: enqueue fills, observe worker health, and
-receive persisted signal previews. Market scans, wallet profile RPCs, and ontology
-queries do **not** belong on this boundary today.
+Keep the hot-path boundary narrow: enqueue fills, observe worker health, and receive
+signal previews. Market scans, deep profile builds, and ontology queries belong
+elsewhere.
 
 ---
 
 ## 6. Detection Engine
 
-### 6.1 Current Scoring Model
+### 6.1 Live and Retrospective Scoring
 
-The current runtime computes **one live score** per wallet from LIVE hot-path signals.
-That score is clamped to `[0, 100]` and mapped to `CRITICAL | HIGH | MEDIUM | LOW | CLEAN`
-using operator-configured thresholds.
+Phase 1 computes **one live score** per wallet from LIVE signals. Phase 2 adds a
+separate **retrospective score** built from resolved outcomes. Keep those two scores
+separate so real-time alerts never benefit from look-ahead data.
 
-Future phases may add a separate retrospective score derived from market outcomes, but
-that should remain a second score rather than silently contaminating the live one with
-look-ahead data.
-
-Current gating rules:
+Base gating rules:
 
 - Whitelisted wallets are excluded from live signal evaluation.
-- Contract wallets are excluded from fresh-wallet scoring until controller attribution
-  exists.
-- If wallet activity age cannot be established reliably, `FRESH_WALLET_LARGE_POSITION`
-  does not fire.
+- Fresh-wallet logic uses controller attribution for contract wallets. If attribution is
+  missing, suppress the signal rather than guessing.
+- If wallet activity age cannot be established reliably,
+  `FRESH_WALLET_LARGE_POSITION` does not fire.
 
-### 6.2 Current Score Constants and Thresholds
+### 6.2 Signal Weights and Thresholds
 
 ```typescript
-export const CURRENT_SIGNAL_SCORES = {
-  FRESH_WALLET_LARGE_POSITION: {
-    critical: 30,
-    elevated: 18,
-  },
+export const SIGNAL_WEIGHTS = {
+  // Phase 1 live signals
+  FRESH_WALLET_LARGE_POSITION: 30,
   OUTSIZED_POSITION: 12,
+
+  // Phase 2 live signals
+  SYBIL_CLUSTER: 25,
+  CONVICTION_SIZE_MISMATCH: 14,
+  LUMP_ENTRY: 8,
+  NICHE_MARKET_ENTRY: 7,
+
+  // Phase 2 retrospective signals
+  PRE_RESOLUTION_TIMING: 25,
+  STATISTICAL_IMPROBABILITY: 30,
 } as const;
 
-export const CURRENT_TIER_THRESHOLDS = {
+export const TIER_THRESHOLDS = {
   CRITICAL: 80,
   HIGH: 60,
   MEDIUM: 40,
@@ -593,11 +570,11 @@ Operator-tunable thresholds live in `omen.config.toml`. Signal additions or scor
 changes must advance `SCORING_VERSION` deliberately so persisted analytics remain
 comparable across releases.
 
-### 6.3 Current Signal Implementations
+### 6.3 Key Signal Implementations
 
 **FRESH_WALLET_LARGE_POSITION**
 
-This is the current high-confidence live signal. It fires only when all of the following
+This is the highest-confidence Phase 1 live signal. It fires when all of the following
 are true:
 
 - `wallet.activityAgeKnown === true`
@@ -611,18 +588,18 @@ Severity is two-tiered:
 - `< criticalAgeHours` → score `30`, confidence `0.95`
 - `< elevatedAgeHours` → score `18`, confidence `0.80`
 
-Conservative contract-wallet behavior matters here: the current runtime simply skips this
-signal for contract wallets because controller attribution is not yet implemented.
+For contract wallets, use the controller wallet’s age. If controller attribution is
+missing, suppress this signal.
 
 **OUTSIZED_POSITION**
 
-This is the current context signal for market-relative notional size. It fires when:
+This is the base context signal for market-relative size. It fires when:
 
 ```text
 fill.sizeUsd >= max(largePositionMinUsd, market.dailyVolumeUsd * largePositionVolumePct)
 ```
 
-Current output is fixed:
+Base output:
 
 - score `12`
 - confidence `0.80`
@@ -630,11 +607,51 @@ Current output is fixed:
 It has no freshness requirement and no niche-market cap. It is meant to surface unusually
 large single entries even from older wallets.
 
-**Cold-path enrichment**
+**SYBIL_CLUSTER** — Phase 2 live signal
 
-The current cold path builds funding graphs and cluster assignments, but those results do
-not yet produce a dedicated live `SYBIL_CLUSTER` signal in the runtime. That remains a
-Phase 2 detector expansion, not a current hot-path contract.
+This signal detects coordinated wallets that share funding ancestry and enter the same
+market close together.
+
+Suggested shape:
+
+1. Use the funding graph cache for the target wallet.
+2. Rebuild stale graphs in the cold path.
+3. Limit fan-out and depth so graph work stays bounded.
+4. Score on shared upstream funders, cluster size, and tight timing.
+
+Trigger shape:
+
+```text
+IF cluster.size >= 3
+   AND sharedFundingSources >= 1
+   AND sameMarketEntriesWithinWindow >= 2
+THEN score = f(clusterSize, fundingOverlap, timingTightness) * weight
+```
+
+**CONVICTION_SIZE_MISMATCH** — Phase 2 live signal
+
+This catches small or inexperienced wallets making disproportionately large longshot
+bets.
+
+Trigger shape:
+
+```text
+IF wallet.totalVolumeUsd < $5,000
+   AND fill.sizeUsd > wallet.totalVolumeUsd * 0.50
+   AND fill.price < 0.30
+THEN score = f(sizeRatio, priceLevel, walletAge) * weight
+```
+
+**Retrospective signals** — Phase 2
+
+Phase 2 adds signals that only make sense after a market resolves:
+
+- `PRE_RESOLUTION_TIMING` for entries suspiciously close to resolution
+- `STATISTICAL_IMPROBABILITY` for wallets whose resolved edge distribution is too strong
+  to dismiss as noise
+
+Other candidates such as `POSITION_FLIP` belong to later calibration work once the base
+detector is proven.
 
 ### 6.4 Engine Operational Patterns
 
@@ -645,13 +662,13 @@ rest of the live profile in the hot worker.
 
 **Aggregate stats are derived from the fills ledger**
 
-Current wallet aggregates such as `totalFills`, `totalMarkets`, and `totalVolumeUsd` are
-derived from `fills`, not maintained as a separate source of truth.
+Wallet aggregates such as `totalFills`, `totalMarkets`, and `totalVolumeUsd` are derived
+from `fills`, not maintained as a separate source of truth.
 
 **Chain profiling is cache-first**
 
-Wallet age, transaction count, and contract detection come from the Alchemy-backed wallet
-profiler with an in-memory TTL cache in the hot worker.
+Wallet age, transaction count, and contract detection come from the Alchemy-backed
+wallet profiler with an in-memory TTL cache in the hot worker.
 
 **Market metadata is cached**
 
@@ -663,19 +680,18 @@ with `question`, `marketSlug`, `dailyVolumeUsd`, `volumeUsd`, and `liquidityUsd`
 `fills.analyzed` flips only after hot-path work completes. That flag means “the hot
 worker has finished this fill,” not “all future downstream analytics are complete.”
 
-**Future retrospective path**
+**Retrospective path (Phase 2)**
 
 Resolution-aware scoring, statistical tests on resolved outcomes, timing-to-resolution
-signals, and richer cluster/cross-market features remain part of the roadmap, not the
-current engine contract.
+signals, and richer cluster and cross-market features belong on the cold path.
 
 ---
 
 ## 7. Resilience
 
-### 7.1 Current Resilience Primitives
+### 7.1 Resilience Primitives
 
-The current runtime relies on a few explicit primitives rather than a generic
+Use a small number of explicit resilience mechanisms rather than a generic
 circuit-breaker framework:
 
 - replayable fill persistence before analysis
@@ -693,8 +709,8 @@ omen:dedup:{channel}:{marketId}:{walletAddress}:{signalId}
 ```
 
 This prevents Telegram and Discord from suppressing each other and prevents one market’s
-alert from suppressing another. The current implementation uses a fixed cooldown window;
-there is **no score-increase override** in the runtime today.
+alert from suppressing another. A fixed cooldown window is the base design. Score-based
+re-alert rules can be added later if alert fatigue demands them.
 
 ### 7.3 Backpressure
 
@@ -704,11 +720,11 @@ Hot-worker enqueue is bounded (default depth `100`, configurable). When full:
 - the fill remains `analyzed = false`
 - replay/backlog processing is expected to recover it later
 
-The system does **not** drop the oldest queued fill in the current implementation.
+Do not silently drop fills.
 
 ### 7.4 Health Checks
 
-`omen health` currently reports:
+`omen health` should report:
 
 - `postgres`
 - `redis`
@@ -723,11 +739,10 @@ alert count, and cold-path BullMQ queue stats.
 
 ---
 
-## 8. ACP Integration
+## 8. Phase 3 ACP Integration
 
-ACP remains a **Phase 3+ product direction**, not a current runtime surface. This
-section captures the intended design boundaries so later implementation stays compatible
-with the detector architecture.
+ACP enters in Phase 3 as a separate product layer on top of the detector. It should add
+commerce and buyer-facing workflows without contaminating the hot path.
 
 ### 8.1 Design Principles
 
@@ -736,7 +751,7 @@ with the detector architecture.
 - All buyer-facing responses must go through explicit DTOs rather than raw database rows.
 - Long-running ACP workflows such as watchlists need durable state and resumable delivery.
 - Pricing, packaging, and provider-specific SDK details are operational concerns and
-  should not be hard-coded into the core technical reference before implementation.
+  should stay separate from the core detector design.
 
 ### 8.2 Likely Offerings
 
@@ -747,19 +762,18 @@ The likely Phase 3 offering families remain:
 - one-shot cluster analysis
 - market watchlist / subscription monitoring
 
-Depth tiers such as `quick`, `standard`, and `deep` are still a sensible model, but the
-exact SLA and pricing schedule should live with the ACP implementation, not as frozen
-values in the pre-implementation spec.
+Depth tiers such as `quick`, `standard`, and `deep` are still a sensible model. Exact
+SLA and pricing belong with the ACP rollout, not the detector core.
 
 ### 8.3 Watchlist Lifecycle
 
-If/when watchlists are built, the lifecycle should remain explicit and durable:
+Watchlists should use an explicit and durable lifecycle:
 
 ```text
 FUNDED -> ACTIVE -> COMPLETED | CANCELLED | EXPIRED
 ```
 
-Terminal reports should include either the observed anomalies and evidence or an explicit
+Final reports should include either observed anomalies with evidence or a clear
 clean-result statement. “No anomalies found” is a valid successful delivery.
 
 ### 8.4 Tenant Boundary and Abuse Controls
@@ -799,10 +813,9 @@ Expected abuse controls include:
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-The current implementation is a raw terminal dashboard rendered from `src/tui/render.ts`.
-It ships with **alert feed + status bar + help overlay behavior**, not a multi-panel Ink
-application. The important product requirement is still the same: the operator should be
-able to see promoted alerts, runtime health, and dry-run state at a glance.
+Phase 1 uses a compact terminal dashboard with an alert feed, status bar, and help
+overlay. The important requirement is simple: the operator should see promoted alerts,
+runtime health, and dry-run state at a glance.
 
 ### 9.2 Visual Hierarchy
 
@@ -826,8 +839,7 @@ If everything is bright, nothing is. Let high-signal alerts punch through the no
 | `?`    | Help overlay                                 |
 | `q`    | Quit                                         |
 
-Additional investigation controls such as focused market/wallet inspection belong to a
-future TUI or web workflow rather than the current Phase 1 dashboard contract.
+Focused market and wallet inspection belongs to later TUI or web investigation flows.
 
 ### 9.4 Progressive Disclosure (Phase 2)
 
@@ -844,30 +856,26 @@ connection indicators rather than a blank screen.
 All money, price, share, and score-adjacent numeric fields should use `numeric(...)` or
 `double precision` as appropriate. `real` is not acceptable for financial data.
 
-### 10.1 Current Runtime Tables
+### 10.1 Detector Tables (Phases 1-2)
 
-The current runtime schema in `src/persistence/schema.ts` is:
+The detector uses these core tables:
 
 - **`fills`** — live fill ledger. `id` is application-generated; uniqueness is enforced on
   `(tx_hash, token_id)`. All market data fields are append-only; `analyzed` is mutable
   operational state for replay.
-- **`wallets`** — derived wallet state. The hot path actively uses age, activity-known,
-  tx count, contract/controller metadata, aggregate Polymarket stats, live score/tier,
-  funding-cluster metadata, and whitelist status. The schema also already carries
-  retrospective/operator fields (`wins`, `win_rate`, `total_pnl_usd`, `labels`, `notes`,
-  etc.) that are not yet part of the live detector contract.
+- **`wallets`** — derived wallet state: age, activity-known, tx count,
+  contract/controller metadata, aggregate Polymarket stats, live and retrospective
+  scores, funding-cluster metadata, whitelist status, and operator notes.
 - **`funding_edges`** — cold-path funding graph edges keyed to a root wallet.
-- **`signal_events`** — append-only persisted live signal firings, idempotent on
-  `(fill_id, signal_id)`. The schema also already includes a future-oriented fill-less
-  idempotency index for retrospective/post-resolution events.
+- **`signal_events`** — append-only history of signal firings. LIVE events are idempotent
+  on `(fill_id, signal_id)`. Retrospective events use a wallet/market/signal key.
 - **`alerts`** — promoted operator alerts, idempotent on `(fill_id, signal_id)`.
 - **`alert_deliveries`** — per-channel dispatch outcomes and retry history.
 - **`whale_whitelist`** — operator-maintained allowlist for legitimate large traders.
 
-### 10.2 Future Detector Tables
+### 10.2 Phase-Gated Detector Tables
 
-The following tables are still valid later-phase design targets, but they are **not**
-part of the current runtime schema contract today:
+These tables come in with the features that need them:
 
 - `markets`
 - `wallet_snapshots`
@@ -875,8 +883,7 @@ part of the current runtime schema contract today:
 - `audit_log`
 - `ingest_quarantine`
 
-Each should be added only alongside the feature that actually uses it. The spec should
-not present dormant tables as if they were already authoritative runtime state.
+Add each one with the surrounding feature rather than as empty scaffolding.
 
 ### 10.3 Ontology Tables (Phase 5+)
 
@@ -912,22 +919,15 @@ than overloading `sources` JSON arrays indefinitely.
 
 ### 10.4 Retention
 
-Retention windows should be introduced together with the cleanup jobs that enforce them.
-Do not pre-seed retention config for tables or workflows that do not yet exist.
+Introduce retention windows together with the cleanup jobs that enforce them.
 
 ---
 
 ## 11. Configuration
 
-> **Config management**: use **TOML** (`omen.config.toml`) for current tuning parameters
-> and environment variables for secrets / deployment-specific values. The current repo
-> does **not** expose `omen config show` / `omen config validate` commands yet; the
-> authoritative contract today is the loader in `src/config/index.ts` plus the Zod
-> schemas in `src/config/schema.ts`.
->
-> The checked-in TOML currently seeds only the knobs being actively tuned. The schema
-> supplies defaults for additional reserved detector settings, so the repo's supported
-> config surface is slightly broader than the literal sample file.
+> Use **TOML** (`omen.config.toml`) for versioned tuning and environment variables for
+> secrets and deployment-specific values. Add phase-specific knobs when the feature lands;
+> do not fill the config surface with speculative settings.
 
 ```bash
 # .env.example — deployment-specific values and secrets.
@@ -959,8 +959,8 @@ POLY_PRIVATE_KEY=0xYOUR_PRIVATE_KEY
 ```
 
 ```toml
-# omen.config.toml — current checked-in versioned tuning values.
-# Override supported values via env vars where implemented.
+# omen.config.toml — versioned tuning values.
+# Override operationally sensitive values via env when needed.
 
 [ingestion]
 poll_interval_ms = 15_000
@@ -975,6 +975,26 @@ max_txns = 10
 niche_max_volume = 100_000
 large_position_min_usd = 1_000
 large_position_volume_pct = 0.02
+
+[detection.niche_market_entry]
+max_market_volume_usd = 100_000
+min_fill_usd = 1_000
+
+[detection.conviction_size_mismatch]
+max_wallet_total_volume_usd = 5_000
+min_fill_to_wallet_volume_ratio = 0.5
+longshot_max_price = 0.3
+min_fill_usd = 250
+
+[detection.lump_entry]
+min_fill_usd = 500
+min_lump_ratio = 0.8
+
+[detection.cluster]
+min_size = 3
+funding_max_depth = 4
+fanout_limit = 5
+max_rpc_calls = 200
 
 [alerts]
 critical_min_score = 80
@@ -995,20 +1015,15 @@ rebuild_failure_cooldown_ms = 900000
 shutdown_timeout_ms = 30000
 ```
 
-Current config nuances:
+Config notes:
 
 - `OMEN_POSTGRES_PORT` and `OMEN_REDIS_PORT` are local compose/dev convenience values, not
-  keys consumed directly by the app config loader.
-- `detection.cluster` is already part of the schema defaults and affects cold-path
-  funding-graph rebuild behavior even when omitted from the checked-in TOML.
-- `detection.niche_market_entry`, `detection.conviction_size_mismatch`, and
-  `detection.lump_entry` already exist in the schema as reserved knobs, but they are not
-  consumed by the current live detector.
-- Env overrides currently exist only for ingestion, dry-run, backpressure, and cold-path
-  settings; detection thresholds remain TOML-backed today.
-
-Future knobs for ACP, ontology, retention, or additional signal families should be added
-only when the corresponding feature exists or is genuinely wired into the runtime.
+  detector settings.
+- Phase 1 mainly uses `fresh_wallet`, `market`, `alerts`, `backpressure`, and `cold_path`.
+- Phase 2 adds `cluster`, `niche_market_entry`, `conviction_size_mismatch`, and
+  `lump_entry`.
+- ACP, ontology, and retention settings should appear only when those features are
+  introduced.
 
 ---
 
@@ -1024,7 +1039,7 @@ only when the corresponding feature exists or is genuinely wired into the runtim
 - **Side effects isolated** to runtime entrypoints and resource-owning classes/functions
 - **Thread boundary explicit**: typed MessagePort, no shared mutable state
 - **Tests must prove replay/idempotency behavior** where persistence is the correctness boundary
-- **Spec examples must distinguish current contract vs roadmap** instead of collapsing them together
+- **Spec examples should make phase boundaries clear** instead of blending early-phase and later-phase behavior
 
 ---
 
@@ -1039,14 +1054,14 @@ Purpose: lock the fill-ledger semantics before higher-level analytics depend on 
 - Keep the capture/analyze tooling healthy so schema assumptions can be re-proven
 - Maintain the ADR trail for ledger-shaping decisions
 
-Current reference decision: the fills natural key is `(tx_hash, token_id)` per ADR 0001.
+Reference decision: the fills natural key is `(tx_hash, token_id)` per ADR 0001.
 
 ### Phase 1 — Thin-Slice Detector
 
 Purpose: real-time Polymarket monitoring with a minimal but correct operational surface.
 
 - REST ingest, replay-safe `fills` ledger, and hot-worker scoring
-- Current live wallet profiling via Alchemy
+- wallet profiling via Alchemy
 - Promoted operator alerts with Telegram/Discord dispatch
 - Terminal dashboard plus structured headless logs
 - Funding-graph rebuilds in a separate cold-path process
@@ -1165,19 +1180,16 @@ Purpose: connect suspicious market activity to real-world context.
 ## 15. Platform Evolution: Entity Ontology
 
 This section describes the long-term architecture that transforms Omen from a prediction
-market tool into a personal intelligence platform. **Nothing in this section changes the
-current implementation plan (Phases 0-4).** The ontology is introduced in Phase 5, after
-the prediction market module is proven and monetized.
+market tool into a personal intelligence platform. The ontology enters in Phase 5, after
+the prediction-market detector semantics are stable.
 
 ### 15.1 Core Principle
 
 Borrowed from Palantir: **the ontology is the long-term product surface.** Connectors
 bring in evidence; views and queries turn that evidence into operator understanding.
 
-In Omen, this is a **direction**, not a claim that the current detector already runs on
-ontology entities. The present system is intentionally domain-table-first. The ontology
-exists to compound value across domains later without dragging that complexity into the
-hot path.
+The prediction-market detector stays domain-table-first. The ontology compounds value
+across domains without dragging graph complexity into the hot path.
 
 ### 15.2 Dual-Layer Architecture
 
@@ -1274,8 +1286,8 @@ a stable identity key in addition to display data. The `domain_ref`/`domain_type
 link back to module-specific tables when applicable.
 
 **`relationships`** — typed edges between entities. Each relationship is an aggregated
-assertion with confidence and provenance. The row should answer “what do we currently
-believe about this edge and why?”, not merely “did we see one raw observation once?”.
+assertion with confidence and provenance. The row should answer “what does the system
+believe about this edge, and why?”, not merely “did we see one raw observation once?”.
 
 **`raw_events`** — immutable provenance trail. Every external source connector writes raw
 events before mapping to entities, preserving the exact data received for audit and
@@ -1295,10 +1307,10 @@ changing existing data. The investment compounds:
 Each new source creates multiplicative cross-domain connections. The graph gets
 exponentially more valuable with each connector, not linearly.
 
-### 15.7 Architecture Awareness in Current Implementation
+### 15.7 Architecture Awareness for Earlier Phases
 
-While building Phases 0-4, keep these design decisions in mind. They don't require
-extra code now, but they make the Phase 5 ontology migration smooth:
+While building Phases 0-4, keep these design decisions in mind so Phase 5 is a clean
+extension instead of a rewrite:
 
 1. **Omen's wallet profiles are future entities.** The `wallets` table maps cleanly to
    `entities` with `type: 'wallet'`. Keep the wallet profile clean and self-contained.
@@ -1309,9 +1321,9 @@ extra code now, but they make the Phase 5 ontology migration smooth:
 3. **Not every integration is the same connector shape.** Some are source connectors,
    some are projectors from detector tables, and some are seed-entity enrichers.
 
-4. **Signal events are entity-adjacent, not yet ontology-native.** They reference
-   `walletAddress` + `marketId`; later ontology work should map those consistently
-   without forcing the hot path to adopt ontology IDs.
+4. **Signal events are entity-adjacent.** They reference `walletAddress` + `marketId`;
+   ontology work should map those consistently without forcing the hot path to adopt
+   ontology IDs.
 
 No premature abstraction. Build the prediction market module. Feel the real pain points.
 Abstract into the ontology when a second domain (identity, events) justifies it.
@@ -1323,11 +1335,11 @@ Abstract into the ontology when a second domain (identity, events) justifies it.
 | Version | Date | Changes |
 |---------|------|---------|
 | **v2.0** | 2026-04-01 | **Platform evolution.** Omen is reframed from a single-module insider detector to a personal intelligence platform with prediction markets as the first concrete module. |
-| | | **Reference alignment**: Core runtime, CLI, config, persistence, type, TUI, and resilience sections were rewritten to match the current repo instead of an end-state architecture. |
-| | | **Ontology tightened**: The entity graph remains the Phase 5+ direction, but now has explicit identity/dedup guardrails (`entity_key` / connector-scoped raw-event keys) and a clearer split between source connectors, projectors, and enrichers. |
+| | | **Normative rewrite**: Core runtime, CLI, config, persistence, type, TUI, and resilience sections were rewritten as stable architectural intent and phase sequencing, not as changing implementation status. |
+| | | **Ontology tightened**: The entity graph remains the Phase 5+ direction, but now has explicit identity and dedup guardrails (`entity_key` / connector-scoped raw-event keys) and a clearer split between source connectors, projectors, and enrichers. |
 | | | **Identity claims made conservative**: ENS/social/profile lookups are framed as confidence-scored candidate associations with provenance, not automatic hard real-world identity claims. |
-| | | **ACP made roadmap-scoped**: ACP stays in the spec as a product direction, but concrete SDK/runtime and pricing details are no longer treated as current implementation facts. |
-| | | **Phases/Open Questions updated**: The roadmap now reflects the current thin-slice detector, the Phase 0 ADR decision, and the real unresolved questions around attribution, ontology semantics, provider choice, and commercialization gates. |
+| | | **ACP kept phase-gated**: ACP remains a product layer introduced in Phase 3, with technical boundaries defined but rollout details left to the ACP buildout. |
+| | | **Phases/Open Questions updated**: The roadmap now centers on stable detector behavior, ontology semantics, provider choice, attribution quality, and commercialization gates. |
 | **v1.8** | 2026-03-27 | ACP prices raised ($25/$50/$75, watchlist $50-$200). CLI process ownership clarified. `omen config show` redacts secrets. `scoring_version` removed from TOML. `audit_log` + `ingest_quarantine` tables. |
 | **v1.7** | 2026-03-27 | CLI commands. TOML config (secrets-only `.env`). `fills.analyzed` clarification. Idempotency integration test requirement. |
 | **v1.6** | 2026-03-27 | Phase 0 validation spike. Time estimates removed. Phase 1 cut order + observability. Idempotency split (LIVE vs POST_RESOLUTION keys). Normalized edge as parallel experiment. Kalshi Phase 2 tightened. |
