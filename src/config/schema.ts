@@ -162,7 +162,14 @@ export const fileConfigSchema = z
       rebuild_failure_cooldown_ms: value.cold_path?.rebuild_failure_cooldown_ms ?? 15 * 60_000,
       shutdown_timeout_ms: value.cold_path?.shutdown_timeout_ms ?? 30_000,
     },
-  }));
+  }))
+  .refine(
+    (cfg) => cfg.detection.cluster.elevatedFillUsd > cfg.detection.cluster.min_fill_usd,
+    {
+      message: 'elevated_fill_usd must be greater than min_fill_usd',
+      path: ['detection', 'cluster', 'elevated_fill_usd'],
+    },
+  );
 
 export const envConfigSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
