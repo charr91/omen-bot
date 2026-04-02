@@ -1,6 +1,6 @@
 # Quick Start
 
-This is the fastest path from clone to a running Omen Phase 1 instance.
+This is the fastest path from clone to a running Omen detector instance.
 
 ## Requirements
 
@@ -64,6 +64,13 @@ Interactive TUI:
 pnpm exec tsx src/cli.ts start --tui
 ```
 
+Managed screen session:
+
+```bash
+pnpm run omen:screen:start
+pnpm run omen:screen:attach
+```
+
 Use headless mode when you want raw JSON logs.
 
 Use the TUI when you want:
@@ -89,7 +96,7 @@ Headless mode emits:
 Important distinction:
 - `signal-preview` is every persisted LIVE signal event
 - operator alerts are only promoted LOW+ outcomes
-- the TUI shows promoted alerts only, not every `signal-preview`
+- the TUI prefers promoted alerts and otherwise falls back to recent signal previews
 
 ## 5. Recovery And Verification
 
@@ -119,11 +126,21 @@ Inspect recent signal events:
 docker compose exec postgres psql -U omen -d omen -c "select signal_id, wallet_address, market_id, score, confidence, created_at from signal_events order by created_at desc limit 20;"
 ```
 
+Optional admin commands:
+
+```bash
+pnpm exec tsx src/cli.ts whitelist list
+pnpm exec tsx src/cli.ts proxy-override list
+pnpm exec tsx src/cli.ts quarantine list --limit 20
+```
+
 ## 6. Current Practical Expectations
 
 - The first run may backfill hundreds of fills
 - `OUTSIZED_POSITION` should fire on live traffic now
-- `FRESH_WALLET_LARGE_POSITION` is still limited by missing controller/proxy attribution for contract wallets
+- `FRESH_WALLET_LARGE_POSITION` uses controller attribution for contract wallets when it can be resolved; otherwise it suppresses conservatively
+- The TUI may show recent previews before any LOW+ alert promotes
+- Dust fills are filtered out of `SYBIL_CLUSTER` alert promotion
 - Telegram and Discord alerts only send when a promoted alert reaches LOW+ and the channel is configured
 
 For screenshots and the longer operational reference, see [README.md](README.md).

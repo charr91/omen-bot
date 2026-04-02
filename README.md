@@ -1,6 +1,6 @@
 # Omen Bot
 
-Thin-slice Phase 1 Polymarket ingest and live-signal bot.
+Polymarket ingest, live-signal, and operator-alert bot.
 
 ## Current State
 
@@ -8,24 +8,33 @@ Thin-slice Phase 1 Polymarket ingest and live-signal bot.
 - Dedupes fills on `(tx_hash, token_id)`
 - Replays persisted `analyzed = false` fills through a hot worker
 - Profiles wallets on the hot path with Alchemy-backed Polygon RPC calls
+- Resolves controller attribution for contract wallets, with manual proxy overrides and conservative suppression when attribution is unavailable
 - Falls back conservatively when Alchemy profiling is degraded so fills still complete without false fresh-wallet alerts
 - Rebuilds wallet funding graphs through a BullMQ-backed cold worker when the live cache is missing or stale
-- Persists LIVE `signal_events`
+- Persists LIVE `signal_events`, promoted alerts, alert deliveries, `audit_log`, and `ingest_quarantine`
 - Emits `signal-preview` diagnostics during `start` and `replay`
 - Promotes LOW+ composite scores into operator alerts
 - Supports Telegram and Discord dispatch with per-channel market-scoped dedup
 - Supports a Phase 1 terminal dashboard via `start --tui`
-- Exposes `start`, `replay`, `health`, `cold-worker`, `test-telegram`, and Phase 0 validation commands
+- Exposes runtime, admin, and validation commands including `start`, `replay`, `health`, `cold-worker`, `test-telegram`, `whitelist`, `proxy-override`, and `quarantine`
+- Ships `omen:screen:*` and `omen:launchd:*` helpers for screen-managed local operation
 
 Current LIVE signals:
 - `FRESH_WALLET_LARGE_POSITION`
 - `OUTSIZED_POSITION`
+- `NICHE_MARKET_ENTRY`
+- `CONVICTION_SIZE_MISMATCH`
+- `LUMP_ENTRY`
+- `SYBIL_CLUSTER`
 
-Not built yet:
-- Controller/proxy attribution for contract wallets
-- Post-resolution scoring
+The current runtime ships the broader recovered live-signal set. `OMEN-SPEC-v2.0` is still the forward-looking architecture reference, while `OMEN-SPEC-v1.8` remains the more detailed detector checklist.
+
+Still deferred:
+- Post-resolution scoring and retrospective analytics
+- Richer investigation surfaces and backtesting/calibration work
 
 Specs:
+- [specs/OMEN-SPEC-v2.0.md](specs/OMEN-SPEC-v2.0.md)
 - [specs/OMEN-SPEC-v1.8.md](specs/OMEN-SPEC-v1.8.md)
 - [specs/OMEN-SPEC-v1.3-Legacy.md](specs/OMEN-SPEC-v1.3-Legacy.md)
 
@@ -75,7 +84,7 @@ Default local ports:
 `start --tui`
 - Runs the same ingest and hot-worker path
 - Replaces the headless JSON stream with the terminal dashboard
-- Shows promoted LOW+ alerts only, not every `signal-preview`
+- Prefers promoted LOW+ alerts and falls back to recent LIVE signal previews when no alert has promoted yet
 
 `replay`
 - Reprocesses already-persisted fills where `analyzed = false`
@@ -96,6 +105,25 @@ Default local ports:
 - Uses the same Telegram formatter as production alerts
 - Requires only `TELEGRAM_BOT_TOKEN` and at least one Telegram chat ID
 - Does not require Postgres, Redis, or the hot worker
+
+`whitelist`
+- Lists or edits manual whale whitelist entries
+- `add` requires `--address`, `--label`, and `--reason`
+- `remove` requires `--address` and `--reason`
+
+`proxy-override`
+- Lists or edits manual controller overrides for contract wallets
+- `set` requires `--address`, `--controller`, and `--reason`
+- `clear` requires `--address` and `--reason`
+
+`quarantine`
+- Lists or inspects malformed Polymarket payloads captured in `ingest_quarantine`
+- `list` accepts `--limit`
+- `show` requires `--id`
+
+Package helpers:
+- `pnpm run omen:screen:start`, `omen:screen:attach`, `omen:screen:status`, `omen:screen:stop`
+- `pnpm run omen:launchd:install`, `omen:launchd:status`, `omen:launchd:uninstall`
 
 ## What To Expect
 
@@ -118,13 +146,15 @@ Interpretation:
 
 Important distinction:
 - `signal-preview` is a diagnostic stream for every persisted LIVE signal event, including `CLEAN` outcomes
-- Telegram, Discord, and the TUI alert feed only show promoted operator alerts where the wallet live tier is `LOW` or above
+- Telegram and Discord only show promoted operator alerts where the wallet live tier is `LOW` or above
+- The TUI alert feed prefers promoted operator alerts and otherwise falls back to recent LIVE signal previews
 - `OUTSIZED_POSITION` by itself often stays diagnostic-only under the default score thresholds, which is expected
 
 Practical expectations:
 - The first run may backfill hundreds of fills
 - `OUTSIZED_POSITION` should fire on real traffic now
-- `FRESH_WALLET_LARGE_POSITION` may remain sparse because many live `proxyWallet` addresses are contracts and controller attribution is not implemented yet
+- `FRESH_WALLET_LARGE_POSITION` now uses controller attribution for contract wallets when resolution succeeds; ambiguous contracts are suppressed conservatively
+- `SYBIL_CLUSTER` uses a minimum fill gate so dust fills do not promote LOW alerts
 
 ## External Alerts
 
