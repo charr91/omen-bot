@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AlertDispatcher } from '../../../src/alerts/dispatcher.js';
 import { DiscordDispatcher, formatDiscordAlertMessage } from '../../../src/alerts/discord.js';
-import type { PromotedAlert } from '../../../src/types/alert.js';
+import type { PromotedAlert, PromotedAlertTier } from '../../../src/types/alert.js';
 import { SignalId } from '../../../src/types/signal.js';
 
 function makeAlert(): PromotedAlert {
@@ -40,6 +40,16 @@ function makeAlert(): PromotedAlert {
   };
 }
 
+const TIER_CASES: Array<{
+  tier: PromotedAlertTier;
+  emoji: string;
+}> = [
+  { tier: 'CRITICAL', emoji: '🚨' },
+  { tier: 'HIGH', emoji: '⚠️' },
+  { tier: 'MEDIUM', emoji: '🔵' },
+  { tier: 'LOW', emoji: '⚪' },
+];
+
 describe('Discord alert delivery', () => {
   it('formats Discord-safe content and suppresses mentions', () => {
     const message = formatDiscordAlertMessage(makeAlert());
@@ -49,6 +59,15 @@ describe('Discord alert delivery', () => {
     expect(message).toContain('**Action**: Bought YES @ 0.62');
     expect(message).toContain('**Fill**: $1,234');
     expect(message).toContain('**Quick links**: Market <https://polymarket.com/event/election-2026/test-market> | Wallet <https://polygonscan.com/address/0xabc>');
+  });
+
+  it.each(TIER_CASES)('renders the tier emoji in Discord headlines for $tier', ({ tier, emoji }) => {
+    const message = formatDiscordAlertMessage({
+      ...makeAlert(),
+      walletLiveTier: tier,
+      deliveryTier: tier,
+    });
+    expect(message).toContain(`**${emoji} ${tier} \\| OUTSIZED\\_POSITION**`);
   });
 
   it('dispatches through the configured webhook with disabled mentions', async () => {
