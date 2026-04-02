@@ -34,6 +34,7 @@ function makeConfig(): Pick<AppConfig, 'detection'> {
       },
       cluster: {
         minSize: 3,
+        minFillUsd: 25,
         fundingMaxDepth: 4,
         fanoutLimit: 5,
         maxRpcCalls: 200,

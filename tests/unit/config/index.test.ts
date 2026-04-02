@@ -61,6 +61,7 @@ dedup_score_increase = 12
 dry_run = true
 
 [detection.cluster]
+min_fill_usd = 35
 same_market_same_side_window_ms = 1800000
 
 [backpressure]
@@ -97,6 +98,7 @@ shutdown_timeout_ms = 45000
     expect(config.alerts.dedupCooldownMs).toBe(60_000);
     expect(config.alerts.dedupScoreIncrease).toBe(12);
     expect(config.operational.dryRun).toBe(true);
+    expect(config.detection.cluster.minFillUsd).toBe(35);
     expect(config.detection.cluster.sameMarketSameSideWindowMs).toBe(1_800_000);
     expect(config.backpressure.hotWorkerQueueDepth).toBe(55);
     expect(config.coldPath.concurrency).toBe(2);
@@ -202,6 +204,7 @@ shutdown_timeout_ms = 30000
     expect(config.operational.dryRun).toBe(false);
     expect(config.backpressure.hotWorkerQueueDepth).toBe(100);
     expect(config.alerts.dedupScoreIncrease).toBe(10);
+    expect(config.detection.cluster.minFillUsd).toBe(25);
     expect(config.detection.cluster.sameMarketSameSideWindowMs).toBe(3_600_000);
     expect(config.coldPath.concurrency).toBe(1);
     expect(config.coldPath.rebuildFailureCooldownMs).toBe(900_000);

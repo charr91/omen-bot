@@ -91,6 +91,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       },
       cluster: {
         minSize: fileConfig.detection.cluster.min_size,
+        minFillUsd: fileConfig.detection.cluster.min_fill_usd,
         fundingMaxDepth: fileConfig.detection.cluster.funding_max_depth,
         fanoutLimit: fileConfig.detection.cluster.fanout_limit,
         maxRpcCalls: fileConfig.detection.cluster.max_rpc_calls,

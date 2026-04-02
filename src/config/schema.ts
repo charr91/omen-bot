@@ -62,6 +62,7 @@ export const fileConfigSchema = z
         cluster: z
           .object({
             min_size: z.number().int().positive().optional(),
+            min_fill_usd: z.number().positive().optional(),
             funding_max_depth: z.number().int().positive().optional(),
             fanout_limit: z.number().int().positive().optional(),
             max_rpc_calls: z.number().int().positive().optional(),
@@ -132,6 +133,7 @@ export const fileConfigSchema = z
       },
       cluster: {
         min_size: value.detection?.cluster?.min_size ?? 3,
+        min_fill_usd: value.detection?.cluster?.min_fill_usd ?? 25,
         funding_max_depth: value.detection?.cluster?.funding_max_depth ?? 4,
         fanout_limit: value.detection?.cluster?.fanout_limit ?? 5,
         max_rpc_calls: value.detection?.cluster?.max_rpc_calls ?? 200,
@@ -230,6 +232,7 @@ export interface AppConfig {
     };
     cluster: {
       minSize: number;
+      minFillUsd: number;
       fundingMaxDepth: number;
       fanoutLimit: number;
       maxRpcCalls: number;

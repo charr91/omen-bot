@@ -96,6 +96,8 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   const fillStore = createFillStore(pool);
   const quarantineStore = createIngestQuarantineStore(pool);
   const marketCatalog = new ActiveMarketCatalog();
+  const alertDispatcher = new AlertDispatcher(config, redis);
+  let dashboard: TerminalDashboard | null = null;
   const fillSource = createPolymarketFillSource(config.ingestion.maxPagesPerPoll, {
     onInvalidTrade: async (observation) => {
       try {
@@ -105,20 +107,21 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
           failureReason: observation.failureReason,
         });
       } catch (error) {
-        logger.error({
-          type: 'ingest-quarantine',
-          status: 'persist-failed',
-          source: observation.source,
-          failureReason: observation.failureReason,
-          error: formatError(error),
+        reportOperatorError({
+          message: `[ingest-quarantine] failed to persist malformed ${observation.source} trade: ${formatError(error)}`,
+          dashboard,
+          logger,
         });
         return;
       }
-      emitStructuredLog(logger, {
-        type: 'ingest-quarantine',
-        source: observation.source,
-        failureReason: observation.failureReason,
-      });
+
+      if (dashboard === null) {
+        emitStructuredLog(logger, {
+          type: 'ingest-quarantine',
+          source: observation.source,
+          failureReason: observation.failureReason,
+        });
+      }
     },
   });
   const runtimeStatsCollector = new RuntimeStatsCollector();
@@ -134,8 +137,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
     dashboard?.beginShutdown('Shutting down...');
   };
 
-  const alertDispatcher = new AlertDispatcher(config, redis);
-  const dashboard =
+  dashboard =
     options.tui === true
       ? new TerminalDashboard({
           dryRun: alertDispatcher.isDryRun(),

@@ -22,6 +22,14 @@ export function evaluateSybilCluster(context: SybilClusterSignalContext): Trigge
     return null;
   }
 
+  const fillSizeUsd = Number(context.fill.sizeUsd);
+  if (
+    !Number.isFinite(fillSizeUsd) ||
+    fillSizeUsd < context.config.detection.cluster.minFillUsd
+  ) {
+    return null;
+  }
+
   if (context.cluster.clusterSize < context.config.detection.cluster.minSize) {
     return null;
   }
@@ -47,6 +55,12 @@ export function evaluateSybilCluster(context: SybilClusterSignalContext): Trigge
         value: context.cluster.clusterSize,
         threshold: `>= ${context.config.detection.cluster.minSize}`,
         description: 'Cluster membership meets the minimum size threshold.',
+      },
+      {
+        field: 'fill_size_usd',
+        value: Number(fillSizeUsd.toFixed(2)),
+        threshold: `>= ${context.config.detection.cluster.minFillUsd}`,
+        description: 'Tiny dust fills are suppressed even when the cluster pattern exists.',
       },
       {
         field: 'same_market_same_side_entries',

@@ -32,6 +32,7 @@ function makeConfig(): Pick<AppConfig, 'detection'> {
       },
       cluster: {
         minSize: 3,
+        minFillUsd: 25,
         fundingMaxDepth: 4,
         fanoutLimit: 5,
         maxRpcCalls: 200,
@@ -83,6 +84,20 @@ describe('evaluateSybilCluster', () => {
         fundingClusterId: 'fc:abc',
         clusterSize: 3,
         sameMarketSameSideEntries: 1,
+      },
+      config: makeConfig(),
+    });
+
+    expect(signal).toBeNull();
+  });
+
+  it('does not trigger for dust fills even when the cluster pattern exists', () => {
+    const signal = evaluateSybilCluster({
+      fill: makeFill({ sizeUsd: '10.000000' }),
+      cluster: {
+        fundingClusterId: 'fc:abc',
+        clusterSize: 470,
+        sameMarketSameSideEntries: 2,
       },
       config: makeConfig(),
     });
