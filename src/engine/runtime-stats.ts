@@ -1,4 +1,5 @@
 import type { SignalId } from '../types/signal.js';
+import type { ColdPathRuntimeSnapshot } from '../cold-path/queue.js';
 
 const DEFAULT_WINDOW_SECONDS = 60;
 
@@ -45,6 +46,17 @@ export interface RuntimeStatsLog {
   signals: {
     previewCountsBySignalId: Partial<Record<SignalId, number>>;
   };
+  coldPath:
+    | {
+        waitingCount: number;
+        activeCount: number;
+        failedCount: number;
+        delayedCount: number;
+        lastHeartbeatAt: string | null;
+        lastCompletedAt: string | null;
+        lastFailedAt: string | null;
+      }
+    | null;
 }
 
 export class RuntimeStatsCollector {
@@ -64,6 +76,7 @@ export class RuntimeStatsCollector {
     hotWorkerSnapshot: HotWorkerRuntimeSnapshot,
     hotWorkerMetrics: HotWorkerMetrics,
     collectedAt = new Date(),
+    coldPathSnapshot: ColdPathRuntimeSnapshot | null = null,
   ): RuntimeStatsLog {
     const collectedAtIso = collectedAt.toISOString();
     const lastProcessedAt = hotWorkerSnapshot.lastProcessedAt;
@@ -96,6 +109,18 @@ export class RuntimeStatsCollector {
       signals: {
         previewCountsBySignalId: { ...hotWorkerMetrics.signalPreviewCountsBySignalId },
       },
+      coldPath:
+        coldPathSnapshot === null
+          ? null
+          : {
+              waitingCount: coldPathSnapshot.waitingCount,
+              activeCount: coldPathSnapshot.activeCount,
+              failedCount: coldPathSnapshot.failedCount,
+              delayedCount: coldPathSnapshot.delayedCount,
+              lastHeartbeatAt: coldPathSnapshot.at,
+              lastCompletedAt: coldPathSnapshot.lastCompletedAt,
+              lastFailedAt: coldPathSnapshot.lastFailedAt,
+            },
     };
 
     this.cycles = 0;

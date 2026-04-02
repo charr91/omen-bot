@@ -35,6 +35,11 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
     OMEN_INGESTION_MAX_PAGES_PER_POLL: readOptionalEnv(process.env.OMEN_INGESTION_MAX_PAGES_PER_POLL),
     OMEN_OPERATIONAL_DRY_RUN: readOptionalEnv(process.env.OMEN_OPERATIONAL_DRY_RUN),
     OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH: readOptionalEnv(process.env.OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH),
+    OMEN_COLD_PATH_CONCURRENCY: readOptionalEnv(process.env.OMEN_COLD_PATH_CONCURRENCY),
+    OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS: readOptionalEnv(
+      process.env.OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS,
+    ),
+    OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS: readOptionalEnv(process.env.OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS),
   });
 
   return {
@@ -68,6 +73,28 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
         largePositionMinUsd: fileConfig.detection.market.large_position_min_usd,
         largePositionVolumePct: fileConfig.detection.market.large_position_volume_pct,
       },
+      nicheMarketEntry: {
+        maxMarketVolumeUsd: fileConfig.detection.niche_market_entry.max_market_volume_usd,
+        minFillUsd: fileConfig.detection.niche_market_entry.min_fill_usd,
+      },
+      convictionSizeMismatch: {
+        maxWalletTotalVolumeUsd:
+          fileConfig.detection.conviction_size_mismatch.max_wallet_total_volume_usd,
+        minFillToWalletVolumeRatio:
+          fileConfig.detection.conviction_size_mismatch.min_fill_to_wallet_volume_ratio,
+        longshotMaxPrice: fileConfig.detection.conviction_size_mismatch.longshot_max_price,
+        minFillUsd: fileConfig.detection.conviction_size_mismatch.min_fill_usd,
+      },
+      lumpEntry: {
+        minFillUsd: fileConfig.detection.lump_entry.min_fill_usd,
+        minLumpRatio: fileConfig.detection.lump_entry.min_lump_ratio,
+      },
+      cluster: {
+        minSize: fileConfig.detection.cluster.min_size,
+        fundingMaxDepth: fileConfig.detection.cluster.funding_max_depth,
+        fanoutLimit: fileConfig.detection.cluster.fanout_limit,
+        maxRpcCalls: fileConfig.detection.cluster.max_rpc_calls,
+      },
     },
     alerts: {
       criticalMinScore: fileConfig.alerts.critical_min_score,
@@ -83,6 +110,14 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       hotWorkerQueueDepth:
         envConfig.OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH ??
         fileConfig.backpressure.hot_worker_queue_depth,
+    },
+    coldPath: {
+      concurrency: envConfig.OMEN_COLD_PATH_CONCURRENCY ?? fileConfig.cold_path.concurrency,
+      rebuildFailureCooldownMs:
+        envConfig.OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS ??
+        fileConfig.cold_path.rebuild_failure_cooldown_ms,
+      shutdownTimeoutMs:
+        envConfig.OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS ?? fileConfig.cold_path.shutdown_timeout_ms,
     },
   };
 }

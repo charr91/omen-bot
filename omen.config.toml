@@ -27,3 +27,8 @@ dry_run = false
 
 [backpressure]
 hot_worker_queue_depth = 100
+
+[cold_path]
+concurrency = 1
+rebuild_failure_cooldown_ms = 900000
+shutdown_timeout_ms = 30000

@@ -228,6 +228,55 @@ export class AlchemyWalletProfiler {
   }
 }
 
+export async function pingAlchemyRpc(
+  apiKey: string,
+  options: Pick<WalletProfilerOptions, 'fetchImpl' | 'rpcTimeoutMs'> = {},
+): Promise<void> {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const rpcTimeoutMs = options.rpcTimeoutMs ?? DEFAULT_RPC_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, rpcTimeoutMs);
+
+  try {
+    const response = await fetchImpl(`https://polygon-mainnet.g.alchemy.com/v2/${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_blockNumber',
+        params: [],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Alchemy RPC request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const payload = (await response.json()) as RpcResponse<string>;
+    if (payload.error) {
+      throw new Error(`Alchemy RPC request failed: ${payload.error.message}`);
+    }
+
+    if (typeof payload.result !== 'string' || !payload.result.startsWith('0x')) {
+      throw new Error('Alchemy RPC request returned an invalid block number');
+    }
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error(`Alchemy RPC request timed out after ${rpcTimeoutMs}ms`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function isAbortError(error: unknown): boolean {
   return (
     (error instanceof DOMException && error.name === 'AbortError') ||

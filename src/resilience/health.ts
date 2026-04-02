@@ -1,10 +1,13 @@
 import type { AppConfig } from '../config/schema.js';
+import { createFundingGraphRebuildJobQueue } from '../cold-path/queue.js';
+import { COLD_WORKER_HEARTBEAT_KEY, COLD_WORKER_HEARTBEAT_TTL_MS } from '../cold-path/constants.js';
 import { HOT_WORKER_HEARTBEAT_KEY, HOT_WORKER_HEARTBEAT_TTL_MS } from '../hot-worker/constants.js';
 import { fetchPublicTrades } from '../phase0/public-api.js';
 import { createDbPool, pingDatabase } from '../persistence/db.js';
 import { createAlertStore } from '../persistence/queries/alerts.js';
 import { createFillStore } from '../persistence/queries/fills.js';
 import { createSignalEventStore } from '../persistence/queries/signal-events.js';
+import { pingAlchemyRpc } from '../profiling/wallet-profiler.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 
 const RECENT_SIGNAL_EVENTS_WINDOW_MINUTES = 60;
@@ -28,6 +31,13 @@ export interface RuntimeHealthSummary {
   recentSignalEventsWindowMinutes: number;
   recentAlertCount: number | null;
   recentAlertsWindowMinutes: number;
+  coldWorkerLastHeartbeatAt: string | null;
+  coldPathWaitingCount: number | null;
+  coldPathActiveCount: number | null;
+  coldPathFailedCount: number | null;
+  coldPathDelayedCount: number | null;
+  coldPathLastCompletedAt: string | null;
+  coldPathLastFailedAt: string | null;
 }
 
 export interface HealthReport {
@@ -37,7 +47,9 @@ export interface HealthReport {
     postgres: HealthCheckResult;
     redis: HealthCheckResult;
     polymarketRest: HealthCheckResult;
+    alchemyRpc: HealthCheckResult;
     hotWorker: HealthCheckResult;
+    coldWorker: HealthCheckResult;
   };
   runtime: RuntimeHealthSummary;
 }
@@ -65,6 +77,14 @@ export async function collectHealthReport(config: AppConfig): Promise<HealthRepo
     await fetchPublicTrades(0);
   });
 
+  const alchemyRpc = await measureHealth(async () => {
+    if (!config.alchemyApiKey) {
+      throw new Error('ALCHEMY_API_KEY is not configured');
+    }
+
+    await pingAlchemyRpc(config.alchemyApiKey);
+  });
+
   const hotWorker = await measureHealth(async () => {
     const client = createRedisClient(config);
     try {
@@ -90,7 +110,34 @@ export async function collectHealthReport(config: AppConfig): Promise<HealthRepo
     }
   });
 
-  const status = [postgres, redis, polymarketRest, hotWorker].every((service) => service.status === 'ok')
+  const coldWorker = await measureHealth(async () => {
+    const client = createRedisClient(config);
+    try {
+      await pingRedis(client);
+      const raw = await client.get(COLD_WORKER_HEARTBEAT_KEY);
+      if (!raw) {
+        throw new Error('No recent cold-worker heartbeat found');
+      }
+
+      const parsed = JSON.parse(raw) as {
+        at?: string;
+      };
+      const heartbeatAt = parsed.at ? Date.parse(parsed.at) : Number.NaN;
+      if (!Number.isFinite(heartbeatAt)) {
+        throw new Error('Cold-worker heartbeat payload is invalid');
+      }
+
+      if (Date.now() - heartbeatAt > COLD_WORKER_HEARTBEAT_TTL_MS) {
+        throw new Error('Cold-worker heartbeat is stale');
+      }
+    } finally {
+      client.disconnect(false);
+    }
+  });
+
+  const status = [postgres, redis, polymarketRest, alchemyRpc, hotWorker, coldWorker].every(
+    (service) => service.status === 'ok',
+  )
     ? 'ok'
     : 'degraded';
   const runtime = await collectRuntimeSummary(config);
@@ -102,7 +149,9 @@ export async function collectHealthReport(config: AppConfig): Promise<HealthRepo
       postgres,
       redis,
       polymarketRest,
+      alchemyRpc,
       hotWorker,
+      coldWorker,
     },
     runtime,
   };
@@ -114,16 +163,25 @@ async function collectRuntimeSummary(config: AppConfig): Promise<RuntimeHealthSu
   const alertStore = createAlertStore(pool);
   const signalEventStore = createSignalEventStore(pool);
   const redis = createRedisClient(config);
+  const coldPathQueue = createFundingGraphRebuildJobQueue(config);
 
   try {
-    const [fillSummary, recentAlertCount, recentSignalEventCount, heartbeatRaw] = await Promise.all([
-      fillStore.getRuntimeSummary(),
-      alertStore.countRecentPromotedAlerts(new Date(Date.now() - RECENT_ALERTS_WINDOW_MINUTES * 60_000)),
-      signalEventStore.countRecentLiveSignalEvents(
-        new Date(Date.now() - RECENT_SIGNAL_EVENTS_WINDOW_MINUTES * 60_000),
-      ),
-      redis.get(HOT_WORKER_HEARTBEAT_KEY),
-    ]);
+    const [
+      fillSummary,
+      recentAlertCount,
+      recentSignalEventCount,
+      heartbeatRaw,
+      coldPathSnapshot,
+    ] =
+      await Promise.all([
+        fillStore.getRuntimeSummary(),
+        alertStore.countRecentPromotedAlerts(new Date(Date.now() - RECENT_ALERTS_WINDOW_MINUTES * 60_000)),
+        signalEventStore.countRecentLiveSignalEvents(
+          new Date(Date.now() - RECENT_SIGNAL_EVENTS_WINDOW_MINUTES * 60_000),
+        ),
+        redis.get(HOT_WORKER_HEARTBEAT_KEY),
+        coldPathQueue.getRuntimeSnapshot(),
+      ]);
 
     const heartbeat = parseHeartbeatPayload(heartbeatRaw);
     const lastProcessedAtMs = heartbeat.lastProcessedAt ? Date.parse(heartbeat.lastProcessedAt) : Number.NaN;
@@ -140,6 +198,13 @@ async function collectRuntimeSummary(config: AppConfig): Promise<RuntimeHealthSu
       recentSignalEventsWindowMinutes: RECENT_SIGNAL_EVENTS_WINDOW_MINUTES,
       recentAlertCount,
       recentAlertsWindowMinutes: RECENT_ALERTS_WINDOW_MINUTES,
+      coldWorkerLastHeartbeatAt: coldPathSnapshot.at,
+      coldPathWaitingCount: coldPathSnapshot.waitingCount,
+      coldPathActiveCount: coldPathSnapshot.activeCount,
+      coldPathFailedCount: coldPathSnapshot.failedCount,
+      coldPathDelayedCount: coldPathSnapshot.delayedCount,
+      coldPathLastCompletedAt: coldPathSnapshot.lastCompletedAt,
+      coldPathLastFailedAt: coldPathSnapshot.lastFailedAt,
     };
   } catch {
     return {
@@ -154,8 +219,16 @@ async function collectRuntimeSummary(config: AppConfig): Promise<RuntimeHealthSu
       recentSignalEventsWindowMinutes: RECENT_SIGNAL_EVENTS_WINDOW_MINUTES,
       recentAlertCount: null,
       recentAlertsWindowMinutes: RECENT_ALERTS_WINDOW_MINUTES,
+      coldWorkerLastHeartbeatAt: null,
+      coldPathWaitingCount: null,
+      coldPathActiveCount: null,
+      coldPathFailedCount: null,
+      coldPathDelayedCount: null,
+      coldPathLastCompletedAt: null,
+      coldPathLastFailedAt: null,
     };
   } finally {
+    await coldPathQueue.close();
     redis.disconnect(false);
     await pool.end();
   }

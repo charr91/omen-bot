@@ -31,6 +31,7 @@ export class TerminalDashboard {
   private marketCount: number | null = null;
   private walletCount: number | null = null;
   private runtimeStats: RuntimeStatsLog | null = null;
+  private shuttingDown = false;
   private started = false;
 
   constructor(options: TerminalDashboardOptions) {
@@ -51,6 +52,7 @@ export class TerminalDashboard {
     }
 
     this.started = true;
+    this.shuttingDown = false;
     emitKeypressEvents(this.stdin);
     this.stdin.setRawMode(true);
     this.stdin.resume();
@@ -100,6 +102,12 @@ export class TerminalDashboard {
   }
 
   notify(message: string): void {
+    this.lastStatusMessage = message;
+    this.render();
+  }
+
+  beginShutdown(message = 'Shutting down...'): void {
+    this.shuttingDown = true;
     this.lastStatusMessage = message;
     this.render();
   }
@@ -160,6 +168,7 @@ export class TerminalDashboard {
       marketCount: this.marketCount,
       walletCount: this.walletCount,
       runtimeStats: this.runtimeStats,
+      shuttingDown: this.shuttingDown,
     });
 
     this.stdout.write(`\x1b[2J\x1b[H${output}`);

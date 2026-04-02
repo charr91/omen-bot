@@ -1,11 +1,16 @@
+import type { Logger } from 'pino';
 import type { Pool } from 'pg';
+import type { AlertDispatchResult } from '../alerts/channel.js';
 import { AlertDispatcher } from '../alerts/dispatcher.js';
 import { promoteSignalPreview } from '../alerts/promote.js';
+import { createFundingGraphRebuildJobQueue } from '../cold-path/queue.js';
+import { ColdWorkerSupervisor } from '../cold-path/supervisor.js';
 import { loadAppConfig } from '../config/index.js';
-import { RuntimeStatsCollector } from './runtime-stats.js';
 import { HotWorkerClient } from '../hot-worker/client.js';
 import { createPolymarketFillSource, type FillSource } from '../ingestion/polymarket-client.js';
+import { createAppLogger, emitStructuredLog } from '../logging/logger.js';
 import { sleep } from '../phase0/io.js';
+import { RuntimeStatsCollector } from './runtime-stats.js';
 import { createDbPool } from '../persistence/db.js';
 import { createAlertStore, type AlertStore } from '../persistence/queries/alerts.js';
 import { createFillStore, type FillStore } from '../persistence/queries/fills.js';
@@ -16,7 +21,6 @@ import { TerminalDashboard } from '../tui/dashboard.js';
 import type { PromotedAlert, SignalPreview, StoredAlert } from '../types/alert.js';
 import type { FillRecord } from '../types/fill.js';
 import type { EnqueueFillResult, HotWorkerToMainMessage } from '../types/thread-messages.js';
-import type { AlertDispatchResult } from '../alerts/channel.js';
 
 export interface FillAnalysisQueue {
   enqueue(fill: FillRecord): Promise<EnqueueFillResult>;
@@ -79,6 +83,9 @@ export async function runIngestionCycle(options: IngestionCycleOptions): Promise
 
 export async function runStartCommand(options: StartCommandOptions = {}): Promise<void> {
   const config = await loadAppConfig();
+  const logger = createAppLogger(config, {
+    component: 'engine',
+  });
   const pool = createDbPool(config);
   const redis = createRedisClient(config);
   const alertStore = createAlertStore(pool);
@@ -89,7 +96,12 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   let stopping = false;
 
   const stop = (): void => {
+    if (stopping) {
+      return;
+    }
+
     stopping = true;
+    dashboard?.beginShutdown('Shutting down...');
   };
 
   const alertDispatcher = new AlertDispatcher(config, redis);
@@ -103,15 +115,33 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
           onQuit: stop,
         })
       : null;
+  const coldPathQueue = createFundingGraphRebuildJobQueue(config);
+  const coldWorkerSupervisor = new ColdWorkerSupervisor(config, {
+    onError: (message) => {
+      reportOperatorError({
+        message,
+        dashboard,
+        logger,
+      });
+    },
+    onInfo: (message) => {
+      reportOperatorInfo({
+        message,
+        dashboard,
+        logger,
+      });
+    },
+  });
   const hotWorker = new HotWorkerClient(config, {
     onSignalPreview: (message) => {
-      trackSignalPreviewTask(
+      trackPendingTask(
         signalPreviewTasks,
         handleSignalPreview({
           preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
           alertStore,
           alertDispatcher,
           dashboard,
+          logger,
         }),
       );
     },
@@ -119,6 +149,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
       reportOperatorError({
         message: `[hot-worker] ${message}`,
         dashboard,
+        logger,
       });
     },
   });
@@ -129,16 +160,19 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   try {
     await pingRedis(redis);
     await ensurePersistenceSchema(pool);
+    coldWorkerSupervisor.start();
     dashboard?.start();
     await dispatchPendingAlerts({
       alertStore,
       alertDispatcher,
       dashboard,
+      logger,
     });
     await refreshDashboardCounts(pool, dashboard).catch((error) => {
       reportOperatorError({
         message: `[tui] ${formatError(error)}`,
         dashboard,
+        logger,
       });
     });
 
@@ -147,22 +181,39 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
         return;
       }
 
-      const runtimeStats = runtimeStatsCollector.buildLog(
-        hotWorker.getRuntimeSnapshot(),
-        hotWorker.drainMetrics(),
-      );
-      if (dashboard) {
-        dashboard.updateRuntimeStats(runtimeStats);
-        void refreshDashboardCounts(pool, dashboard).catch((error) => {
+      const hotWorkerSnapshot = hotWorker.getRuntimeSnapshot();
+      const hotWorkerMetrics = hotWorker.drainMetrics();
+      void coldPathQueue
+        .getRuntimeSnapshot()
+        .catch((error) => {
           reportOperatorError({
-            message: `[tui] ${formatError(error)}`,
+            message: `[cold-path] ${formatError(error)}`,
             dashboard,
+            logger,
           });
-        });
-        return;
-      }
+          return null;
+        })
+        .then((coldPathSnapshot) => {
+          const runtimeStats = runtimeStatsCollector.buildLog(
+            hotWorkerSnapshot,
+            hotWorkerMetrics,
+            new Date(),
+            coldPathSnapshot,
+          );
+          if (dashboard) {
+            dashboard.updateRuntimeStats(runtimeStats);
+            void refreshDashboardCounts(pool, dashboard).catch((error) => {
+              reportOperatorError({
+                message: `[tui] ${formatError(error)}`,
+                dashboard,
+                logger,
+              });
+            });
+            return;
+          }
 
-      process.stdout.write(`${JSON.stringify(runtimeStats)}\n`);
+          emitStructuredLog(logger, runtimeStats);
+        });
     }, RUNTIME_STATS_INTERVAL_MS);
 
     if (typeof runtimeStatsTimer.unref === 'function') {
@@ -171,24 +222,36 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
 
     try {
       while (!stopping) {
-        const result = await runIngestionCycle({
-          fillSource,
-          fillStore,
-          analysisQueue: hotWorker,
-        });
-        runtimeStatsCollector.recordIngestionCycle(result);
-        if (dashboard) {
-          dashboard.recordIngestionCycle(result);
-          if (result.inserted > 0 || result.replayed > 0) {
-            void refreshDashboardCounts(pool, dashboard).catch((error) => {
-              reportOperatorError({
-                message: `[tui] ${formatError(error)}`,
-                dashboard,
+        try {
+          const result = await runIngestionCycle({
+            fillSource,
+            fillStore,
+            analysisQueue: hotWorker,
+          });
+          runtimeStatsCollector.recordIngestionCycle(result);
+          if (dashboard) {
+            dashboard.recordIngestionCycle(result);
+            if (result.inserted > 0 || result.replayed > 0) {
+              void refreshDashboardCounts(pool, dashboard).catch((error) => {
+                reportOperatorError({
+                  message: `[tui] ${formatError(error)}`,
+                  dashboard,
+                  logger,
+                });
               });
+            }
+          } else {
+            emitStructuredLog(logger, {
+              type: 'ingest-cycle',
+              ...result,
             });
           }
-        } else {
-          process.stdout.write(`${JSON.stringify({ type: 'ingest-cycle', ...result })}\n`);
+        } catch (error) {
+          reportOperatorError({
+            message: `[ingest] ${formatError(error)}`,
+            dashboard,
+            logger,
+          });
         }
 
         if (stopping) {
@@ -204,7 +267,9 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
     process.off('SIGINT', stop);
     process.off('SIGTERM', stop);
     await hotWorker.stop();
-    await waitForSignalPreviewTasks(signalPreviewTasks);
+    await coldWorkerSupervisor.stop();
+    await waitForPendingTasks(signalPreviewTasks);
+    await coldPathQueue.close();
     dashboard?.stop();
     redis.disconnect(false);
     await pool.end();
@@ -213,6 +278,9 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
 
 export async function runReplayCommand(): Promise<number> {
   const config = await loadAppConfig();
+  const logger = createAppLogger(config, {
+    component: 'replay',
+  });
   const pool = createDbPool(config);
   const redis = createRedisClient(config);
   const alertStore = createAlertStore(pool);
@@ -221,18 +289,23 @@ export async function runReplayCommand(): Promise<number> {
   const signalPreviewTasks = new Set<Promise<void>>();
   const hotWorker = new HotWorkerClient(config, {
     onSignalPreview: (message) => {
-      trackSignalPreviewTask(
+      trackPendingTask(
         signalPreviewTasks,
         handleSignalPreview({
           preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
           alertStore,
           alertDispatcher,
           dashboard: null,
+          logger,
         }),
       );
     },
     onWorkerError: (message) => {
-      process.stderr.write(`[hot-worker] ${message}\n`);
+      reportOperatorError({
+        message: `[hot-worker] ${message}`,
+        dashboard: null,
+        logger,
+      });
     },
   });
   let replayed = 0;
@@ -244,14 +317,17 @@ export async function runReplayCommand(): Promise<number> {
       alertStore,
       alertDispatcher,
       dashboard: null,
+      logger,
     });
     replayed = await replayPendingFills(fillStore, hotWorker, DEFAULT_REPLAY_LIMIT);
-
-    process.stdout.write(`${JSON.stringify({ type: 'replay', replayed })}\n`);
+    emitStructuredLog(logger, {
+      type: 'replay',
+      replayed,
+    });
     return replayed;
   } finally {
     await hotWorker.stop();
-    await waitForSignalPreviewTasks(signalPreviewTasks);
+    await waitForPendingTasks(signalPreviewTasks);
     redis.disconnect(false);
     await pool.end();
   }
@@ -328,10 +404,14 @@ async function handleSignalPreview(options: {
   alertStore: AlertStore;
   alertDispatcher: AlertDispatcher;
   dashboard: TerminalDashboard | null;
+  logger: Logger;
 }): Promise<void> {
-  const { preview, alertStore, alertDispatcher, dashboard } = options;
+  const { preview, alertStore, alertDispatcher, dashboard, logger } = options;
   if (dashboard === null) {
-    process.stdout.write(`${JSON.stringify({ type: 'signal-preview', ...preview })}\n`);
+    emitStructuredLog(logger, {
+      type: 'signal-preview',
+      ...preview,
+    });
   }
 
   const promotedAlert = promoteSignalPreview(preview);
@@ -346,12 +426,13 @@ async function handleSignalPreview(options: {
     const result = await alertDispatcher.dispatch(promotedAlert);
     await alertStore.recordDispatchResult(storedAlert.id, result);
     if (dashboard === null) {
-      process.stdout.write(`${JSON.stringify(buildAlertDispatchLog(storedAlert, result, preview.dryRun))}\n`);
+      emitStructuredLog(logger, buildAlertDispatchLog(storedAlert, result, preview.dryRun));
     }
     if (result.failedChannels.length > 0) {
       reportOperatorError({
         message: `[alerts] failed to dispatch on channel(s): ${result.failedChannels.join(', ')}`,
         dashboard,
+        logger,
       });
     }
     if (dashboard && result.status === 'suppressed-dry-run') {
@@ -361,6 +442,7 @@ async function handleSignalPreview(options: {
     reportOperatorError({
       message: `[alerts] ${formatError(error)}`,
       dashboard,
+      logger,
     });
   }
 }
@@ -398,19 +480,39 @@ async function refreshDashboardCounts(
 function reportOperatorError(options: {
   message: string;
   dashboard: TerminalDashboard | null;
+  logger: Logger;
 }): void {
   if (options.dashboard) {
     options.dashboard.notify(options.message);
     return;
   }
 
-  process.stderr.write(`${options.message}\n`);
+  options.logger.error({
+    type: 'operator-log',
+    level: 'error',
+    message: options.message,
+  });
 }
 
+function reportOperatorInfo(options: {
+  message: string;
+  dashboard: TerminalDashboard | null;
+  logger: Logger;
+}): void {
+  if (options.dashboard) {
+    options.dashboard.notify(options.message);
+    return;
+  }
+
+  options.logger.info({
+    type: 'operator-log',
+    level: 'info',
+    message: options.message,
+  });
+}
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
-
 function buildAlertDispatchLog(
   alert: StoredAlert,
   result: AlertDispatchResult,
@@ -445,14 +547,14 @@ function buildAlertDispatchLog(
   };
 }
 
-function trackSignalPreviewTask(pending: Set<Promise<void>>, task: Promise<void>): void {
+function trackPendingTask(pending: Set<Promise<void>>, task: Promise<void>): void {
   pending.add(task);
   task.finally(() => {
     pending.delete(task);
   });
 }
 
-async function waitForSignalPreviewTasks(pending: Set<Promise<void>>): Promise<void> {
+async function waitForPendingTasks(pending: Set<Promise<void>>): Promise<void> {
   if (pending.size === 0) {
     return;
   }
@@ -464,6 +566,7 @@ async function dispatchPendingAlerts(options: {
   alertStore: AlertStore;
   alertDispatcher: AlertDispatcher;
   dashboard: TerminalDashboard | null;
+  logger: Logger;
 }): Promise<void> {
   while (true) {
     const pendingAlerts = await options.alertStore.listPendingDispatchAlerts(DEFAULT_PENDING_ALERT_BATCH_LIMIT);
@@ -498,18 +601,20 @@ async function dispatchPendingAlerts(options: {
           madeTerminalProgress = true;
         }
         if (options.dashboard === null) {
-          process.stdout.write(`${JSON.stringify(buildAlertDispatchLog(alert, result, alert.dryRun))}\n`);
+          emitStructuredLog(options.logger, buildAlertDispatchLog(alert, result, alert.dryRun));
         }
         if (result.failedChannels.length > 0) {
           reportOperatorError({
             message: `[alerts] failed to dispatch on channel(s): ${result.failedChannels.join(', ')}`,
             dashboard: options.dashboard,
+            logger: options.logger,
           });
         }
       } catch (error) {
         reportOperatorError({
           message: `[alerts] ${formatError(error)}`,
           dashboard: options.dashboard,
+          logger: options.logger,
         });
       }
     }

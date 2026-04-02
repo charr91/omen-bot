@@ -79,6 +79,29 @@ const CREATE_WALLETS_SUPPORTING_INDEXES_SQL = [
   'create index if not exists idx_wallets_cluster on wallets (funding_cluster_id);',
 ];
 
+const CREATE_FUNDING_EDGES_TABLE_SQL = `
+  create table if not exists funding_edges (
+    id text primary key,
+    root_wallet text not null,
+    from_address text not null,
+    to_address text not null,
+    amount_usd numeric(20, 6) not null,
+    asset text not null,
+    tx_hash text not null,
+    timestamp timestamptz not null,
+    depth integer not null,
+    created_at timestamptz not null default now()
+  );
+`;
+
+const CREATE_FUNDING_EDGES_SUPPORTING_INDEXES_SQL = [
+  'create index if not exists idx_funding_edges_root on funding_edges (root_wallet);',
+  'create index if not exists idx_funding_edges_root_canonical on funding_edges ((lower(root_wallet)));',
+  'create index if not exists idx_funding_edges_ancestor on funding_edges (from_address);',
+  'create index if not exists idx_funding_edges_ancestor_canonical on funding_edges ((lower(from_address)));',
+  'create index if not exists idx_funding_edges_tx_hash on funding_edges (tx_hash);',
+];
+
 const CREATE_SIGNAL_EVENTS_TABLE_SQL = `
   create table if not exists signal_events (
     id text primary key,
@@ -184,6 +207,11 @@ export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promis
   await pool.query(CREATE_WALLETS_TABLE_SQL);
   await pool.query("alter table wallets add column if not exists activity_age_known boolean not null default true;");
   for (const statement of CREATE_WALLETS_SUPPORTING_INDEXES_SQL) {
+    await pool.query(statement);
+  }
+
+  await pool.query(CREATE_FUNDING_EDGES_TABLE_SQL);
+  for (const statement of CREATE_FUNDING_EDGES_SUPPORTING_INDEXES_SQL) {
     await pool.query(statement);
   }
 

@@ -14,11 +14,27 @@ export interface WalletAggregateStats {
   totalVolumeUsd: string;
 }
 
+export interface WalletSignalContext {
+  isWhitelisted: boolean;
+  fundingClusterId: string | null;
+  fundingGraphBuiltAt: Date | null;
+  controllerAddress: string | null;
+}
+
+export interface FundingClusterAssignment {
+  address: string;
+  fundingClusterId: string | null;
+}
+
 export interface WalletStore {
   upsertWalletStub(address: string, seenAt: Date): Promise<void>;
   getAggregateStats(address: string): Promise<WalletAggregateStats>;
+  getSignalContext(address: string): Promise<WalletSignalContext>;
   isWhitelisted(address: string): Promise<boolean>;
   upsertLiveProfile(profile: WalletProfile): Promise<void>;
+  updateFundingGraphBuiltAt(address: string, builtAt: Date): Promise<void>;
+  listFundingClusterMembers(clusterId: string): Promise<string[]>;
+  setFundingClusterAssignments(assignments: FundingClusterAssignment[]): Promise<void>;
 }
 
 export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
@@ -81,6 +97,35 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
       return result.rows[0]?.exists ?? false;
     },
 
+    async getSignalContext(address: string): Promise<WalletSignalContext> {
+      const canonicalAddress = canonicalizeEvmAddress(address);
+      const result = await pool.query<{
+        is_whitelisted: boolean;
+        funding_cluster_id: string | null;
+        funding_graph_built_at: Date | null;
+        controller_address: string | null;
+      }>(
+        `
+          select
+            is_whitelisted,
+            funding_cluster_id,
+            funding_graph_built_at,
+            controller_address
+          from wallets
+          where lower(address) = $1
+        `,
+        [canonicalAddress],
+      );
+
+      const row = result.rows[0];
+      return {
+        isWhitelisted: row?.is_whitelisted ?? false,
+        fundingClusterId: row?.funding_cluster_id ?? null,
+        fundingGraphBuiltAt: row?.funding_graph_built_at ?? null,
+        controllerAddress: canonicalizeOptionalEvmAddress(row?.controller_address ?? null),
+      };
+    },
+
     async upsertLiveProfile(profile: WalletProfile): Promise<void> {
       const canonicalAddress = canonicalizeEvmAddress(profile.address);
       const controllerAddress = canonicalizeOptionalEvmAddress(profile.controllerAddress);
@@ -141,6 +186,49 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
           profile.isWhitelisted,
         ],
       );
+    },
+
+    async updateFundingGraphBuiltAt(address: string, builtAt: Date): Promise<void> {
+      const canonicalAddress = canonicalizeEvmAddress(address);
+      await pool.query(
+        `
+          update wallets
+          set
+            funding_graph_built_at = $2,
+            updated_at = now()
+          where lower(address) = $1
+        `,
+        [canonicalAddress, builtAt],
+      );
+    },
+
+    async listFundingClusterMembers(clusterId: string): Promise<string[]> {
+      const result = await pool.query<{ address: string }>(
+        `
+          select address
+          from wallets
+          where funding_cluster_id = $1
+          order by address asc
+        `,
+        [clusterId],
+      );
+
+      return result.rows.map((row) => canonicalizeEvmAddress(row.address));
+    },
+
+    async setFundingClusterAssignments(assignments: FundingClusterAssignment[]): Promise<void> {
+      for (const assignment of assignments) {
+        await pool.query(
+          `
+            update wallets
+            set
+              funding_cluster_id = $2,
+              updated_at = now()
+            where lower(address) = $1
+          `,
+          [canonicalizeEvmAddress(assignment.address), assignment.fundingClusterId],
+        );
+      }
     },
   };
 }

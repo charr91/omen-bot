@@ -46,5 +46,6 @@ describe('RuntimeStatsCollector', () => {
     expect(log.hotWorker.enqueueFull).toBe(2);
     expect(log.hotWorker.lastProcessedAgeMs).toBe(30_000);
     expect(log.signals.previewCountsBySignalId.OUTSIZED_POSITION).toBe(2);
+    expect(log.coldPath).toBeNull();
   });
 });

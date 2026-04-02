@@ -39,6 +39,34 @@ export const fileConfigSchema = z
             large_position_volume_pct: z.number().positive().optional(),
           })
           .optional(),
+        niche_market_entry: z
+          .object({
+            max_market_volume_usd: z.number().positive().optional(),
+            min_fill_usd: z.number().positive().optional(),
+          })
+          .optional(),
+        conviction_size_mismatch: z
+          .object({
+            max_wallet_total_volume_usd: z.number().positive().optional(),
+            min_fill_to_wallet_volume_ratio: z.number().positive().optional(),
+            longshot_max_price: z.number().positive().optional(),
+            min_fill_usd: z.number().positive().optional(),
+          })
+          .optional(),
+        lump_entry: z
+          .object({
+            min_fill_usd: z.number().positive().optional(),
+            min_lump_ratio: z.number().positive().optional(),
+          })
+          .optional(),
+        cluster: z
+          .object({
+            min_size: z.number().int().positive().optional(),
+            funding_max_depth: z.number().int().positive().optional(),
+            fanout_limit: z.number().int().positive().optional(),
+            max_rpc_calls: z.number().int().positive().optional(),
+          })
+          .optional(),
       })
       .optional(),
     alerts: z
@@ -60,6 +88,13 @@ export const fileConfigSchema = z
         hot_worker_queue_depth: z.number().int().positive().optional(),
       })
       .optional(),
+    cold_path: z
+      .object({
+        concurrency: z.number().int().positive().optional(),
+        rebuild_failure_cooldown_ms: z.number().int().positive().optional(),
+        shutdown_timeout_ms: z.number().int().positive().optional(),
+      })
+      .optional(),
   })
   .transform((value) => ({
     ingestion: {
@@ -77,6 +112,28 @@ export const fileConfigSchema = z
         large_position_min_usd: value.detection?.market?.large_position_min_usd ?? 1_000,
         large_position_volume_pct: value.detection?.market?.large_position_volume_pct ?? 0.02,
       },
+      niche_market_entry: {
+        max_market_volume_usd: value.detection?.niche_market_entry?.max_market_volume_usd ?? 100_000,
+        min_fill_usd: value.detection?.niche_market_entry?.min_fill_usd ?? 1_000,
+      },
+      conviction_size_mismatch: {
+        max_wallet_total_volume_usd:
+          value.detection?.conviction_size_mismatch?.max_wallet_total_volume_usd ?? 5_000,
+        min_fill_to_wallet_volume_ratio:
+          value.detection?.conviction_size_mismatch?.min_fill_to_wallet_volume_ratio ?? 0.5,
+        longshot_max_price: value.detection?.conviction_size_mismatch?.longshot_max_price ?? 0.3,
+        min_fill_usd: value.detection?.conviction_size_mismatch?.min_fill_usd ?? 250,
+      },
+      lump_entry: {
+        min_fill_usd: value.detection?.lump_entry?.min_fill_usd ?? 500,
+        min_lump_ratio: value.detection?.lump_entry?.min_lump_ratio ?? 0.8,
+      },
+      cluster: {
+        min_size: value.detection?.cluster?.min_size ?? 3,
+        funding_max_depth: value.detection?.cluster?.funding_max_depth ?? 4,
+        fanout_limit: value.detection?.cluster?.fanout_limit ?? 5,
+        max_rpc_calls: value.detection?.cluster?.max_rpc_calls ?? 200,
+      },
     },
     alerts: {
       critical_min_score: value.alerts?.critical_min_score ?? 80,
@@ -90,6 +147,11 @@ export const fileConfigSchema = z
     },
     backpressure: {
       hot_worker_queue_depth: value.backpressure?.hot_worker_queue_depth ?? 100,
+    },
+    cold_path: {
+      concurrency: value.cold_path?.concurrency ?? 1,
+      rebuild_failure_cooldown_ms: value.cold_path?.rebuild_failure_cooldown_ms ?? 15 * 60_000,
+      shutdown_timeout_ms: value.cold_path?.shutdown_timeout_ms ?? 30_000,
     },
   }));
 
@@ -108,6 +170,9 @@ export const envConfigSchema = z.object({
   OMEN_INGESTION_MAX_PAGES_PER_POLL: positiveIntegerStringSchema.optional(),
   OMEN_OPERATIONAL_DRY_RUN: booleanStringSchema.optional(),
   OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH: positiveIntegerStringSchema.optional(),
+  OMEN_COLD_PATH_CONCURRENCY: positiveIntegerStringSchema.optional(),
+  OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS: positiveIntegerStringSchema.optional(),
+  OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS: positiveIntegerStringSchema.optional(),
 });
 
 export type FileConfig = z.infer<typeof fileConfigSchema>;
@@ -144,6 +209,26 @@ export interface AppConfig {
       largePositionMinUsd: number;
       largePositionVolumePct: number;
     };
+    nicheMarketEntry: {
+      maxMarketVolumeUsd: number;
+      minFillUsd: number;
+    };
+    convictionSizeMismatch: {
+      maxWalletTotalVolumeUsd: number;
+      minFillToWalletVolumeRatio: number;
+      longshotMaxPrice: number;
+      minFillUsd: number;
+    };
+    lumpEntry: {
+      minFillUsd: number;
+      minLumpRatio: number;
+    };
+    cluster: {
+      minSize: number;
+      fundingMaxDepth: number;
+      fanoutLimit: number;
+      maxRpcCalls: number;
+    };
   };
   alerts: {
     criticalMinScore: number;
@@ -157,5 +242,10 @@ export interface AppConfig {
   };
   backpressure: {
     hotWorkerQueueDepth: number;
+  };
+  coldPath: {
+    concurrency: number;
+    rebuildFailureCooldownMs: number;
+    shutdownTimeoutMs: number;
   };
 }

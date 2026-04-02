@@ -15,6 +15,7 @@ export interface DashboardRenderState {
   marketCount: number | null;
   walletCount: number | null;
   runtimeStats: RuntimeStatsLog | null;
+  shuttingDown?: boolean;
 }
 
 const DASHBOARD_MIN_WIDTH = 80;
@@ -28,7 +29,7 @@ export function renderDashboard(state: DashboardRenderState): string {
     return renderHelp(width, state.dryRun, state.tierFilter);
   }
 
-  const alerts = state.alerts.filter((alert) => {
+  const filteredAlerts = state.alerts.filter((alert) => {
     if (state.tierFilter === 'ALL') {
       return true;
     }
@@ -45,10 +46,15 @@ export function renderDashboard(state: DashboardRenderState): string {
   );
   const divider = '-'.repeat(width);
   const footer = padRight(buildStatusLine(state), width);
-  const controls = padRight('[q]Quit [?]Help [t]TierFilter [d]DryRun [Esc]Reset', width);
+  const controls = padRight(
+    state.shuttingDown
+      ? 'Stopping... waiting for ingest, hot worker, and cold worker to exit'
+      : '[q]Quit [?]Help [t]TierFilter [d]DryRun [Esc]Reset',
+    width,
+  );
   const availableFeedLines = Math.max(height - 5, 4);
-  const feedLines = renderAlertFeed(alerts, width, availableFeedLines);
-  const statusMessage = padRight(state.lastStatusMessage ?? '', width);
+  const feedLines = renderFeed(filteredAlerts, state.alerts.length, width, availableFeedLines);
+  const statusMessage = padRight(state.shuttingDown ? 'Shutting down...' : state.lastStatusMessage ?? '', width);
 
   return [header, meta, divider, ...feedLines, divider, footer, statusMessage, controls]
     .slice(0, height)
@@ -71,14 +77,30 @@ function renderHelp(width: number, dryRun: boolean, tierFilter: AlertFeedFilter)
   ].join('\n');
 }
 
-function renderAlertFeed(alerts: PromotedAlert[], width: number, maxLines: number): string[] {
-  if (alerts.length === 0) {
+function renderFeed(
+  alerts: PromotedAlert[],
+  totalAlertCount: number,
+  width: number,
+  maxLines: number,
+): string[] {
+  if (alerts.length > 0) {
+    return renderAlertFeed(alerts, width, maxLines);
+  }
+
+  if (totalAlertCount > 0) {
     return [
-      padRight('Listening to Polymarket...', width),
-      padRight('No promoted alerts yet. CLEAN signal events stay out of the alert feed.', width),
+      padRight('Promoted alerts exist, but none match the current tier filter.', width),
+      padRight('Press `t` to cycle the filter or `Esc` to reset it to ALL.', width),
     ];
   }
 
+  return [
+    padRight('Listening to Polymarket...', width),
+    padRight('No promoted alerts yet. CLEAN signal events stay out of the alert feed.', width),
+  ];
+}
+
+function renderAlertFeed(alerts: PromotedAlert[], width: number, maxLines: number): string[] {
   const lines: string[] = [];
   for (const alert of alerts) {
     const fillSize = alert.signal.evidence.find((entry) => entry.field === 'fill_size_usd')?.value;
@@ -103,16 +125,22 @@ function renderAlertFeed(alerts: PromotedAlert[], width: number, maxLines: numbe
 
 function buildStatusLine(state: DashboardRenderState): string {
   const hotWorker = state.runtimeStats?.hotWorker ?? null;
+  const coldPath = state.runtimeStats?.coldPath ?? null;
   const restState = state.lastCheckpoint ? 'UP' : 'WAIT';
   const hotState = hotWorker === null ? 'WAIT' : hotWorker.processing || hotWorker.queueDepth > 0 ? 'BUSY' : 'IDLE';
+  const coldState =
+    coldPath === null ? 'WAIT' : coldPath.activeCount > 0 || coldPath.waitingCount > 0 ? 'BUSY' : 'IDLE';
 
   return [
+    `State:${state.shuttingDown ? 'STOPPING' : 'RUNNING'}`,
     `REST:${restState}`,
     `Hot:${hotState}`,
+    `Cold:${coldState}`,
     `Mkts:${formatNullableCount(state.marketCount)}`,
     `Wallets:${formatNullableCount(state.walletCount)}`,
     `Alerts:${state.alerts.length}`,
     `Queue:${hotWorker?.queueDepth ?? 'n/a'}`,
+    `ColdQ:${coldPath?.waitingCount ?? 'n/a'}`,
     `Pending:${hotWorker?.pendingFillCount ?? 'n/a'}`,
     `Checkpoint:${state.lastCheckpoint ?? 'n/a'}`,
   ].join(' | ');

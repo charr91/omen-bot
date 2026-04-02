@@ -6,6 +6,8 @@ import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { sendTestTelegramAlert } from './alerts/test-telegram.js';
+import { runColdWorkerCommand } from './cold-path/runtime.js';
 import { runHealthCommand, runReplayCommand, runStartCommand } from './engine/index.js';
 import { loadEnvironment } from './env.js';
 import { runPhase0Analysis } from './phase0/analyze.js';
@@ -34,6 +36,8 @@ Usage:
   omen [--env-file .env] start [--tui]
   omen [--env-file .env] replay
   omen [--env-file .env] health
+  omen [--env-file .env] test-telegram
+  omen [--env-file .env] cold-worker
   omen [--env-file .env.server] validate-fills capture --hours 24 --out .phase0-data/run-001 [--use-auth] [--detach]
   omen [--env-file .env.server] validate-fills analyze --input .phase0-data/run-001
 
@@ -63,6 +67,23 @@ async function main(): Promise<void> {
 
   if (scope === 'health' && rest.length === 0) {
     await runHealthCommand();
+    return;
+  }
+
+  if (scope === 'test-telegram' && rest.length === 0) {
+    const alert = await sendTestTelegramAlert({
+      telegram: {
+        botToken: readOptionalEnv(process.env.TELEGRAM_BOT_TOKEN),
+        criticalChatId: readOptionalEnv(process.env.TELEGRAM_CHAT_ID_CRITICAL),
+        mediumChatId: readOptionalEnv(process.env.TELEGRAM_CHAT_ID_MEDIUM),
+      },
+    });
+    process.stdout.write(`${alert.promotedAt}\n`);
+    return;
+  }
+
+  if (scope === 'cold-worker' && rest.length === 0) {
+    await runColdWorkerCommand();
     return;
   }
 
@@ -260,6 +281,15 @@ function parseAnalyzeOptions(args: string[]): AnalyzeCliOptions {
   return {
     input: parsed.values.input,
   };
+}
+
+function readOptionalEnv(value: string | undefined): string | null {
+  if (value === undefined) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 void main().catch((error: unknown) => {

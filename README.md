@@ -8,12 +8,14 @@ Thin-slice Phase 1 Polymarket ingest and live-signal bot.
 - Dedupes fills on `(tx_hash, token_id)`
 - Replays persisted `analyzed = false` fills through a hot worker
 - Profiles wallets on the hot path with Alchemy-backed Polygon RPC calls
+- Falls back conservatively when Alchemy profiling is degraded so fills still complete without false fresh-wallet alerts
+- Rebuilds wallet funding graphs through a BullMQ-backed cold worker when the live cache is missing or stale
 - Persists LIVE `signal_events`
 - Emits `signal-preview` diagnostics during `start` and `replay`
 - Promotes LOW+ composite scores into operator alerts
 - Supports Telegram and Discord dispatch with per-channel market-scoped dedup
 - Supports a Phase 1 terminal dashboard via `start --tui`
-- Exposes `start`, `replay`, `health`, and Phase 0 validation commands
+- Exposes `start`, `replay`, `health`, `cold-worker`, `test-telegram`, and Phase 0 validation commands
 
 Current LIVE signals:
 - `FRESH_WALLET_LARGE_POSITION`
@@ -21,7 +23,7 @@ Current LIVE signals:
 
 Not built yet:
 - Controller/proxy attribution for contract wallets
-- Cold-path cluster and post-resolution scoring
+- Post-resolution scoring
 
 Specs:
 - [specs/OMEN-SPEC-v1.8.md](specs/OMEN-SPEC-v1.8.md)
@@ -82,8 +84,18 @@ Default local ports:
 - `{"type":"replay","replayed":0}` means there was no pending hot-path backlog
 
 `health`
-- Checks Postgres, Redis, Polymarket REST, and the hot-worker heartbeat
+- Checks Postgres, Redis, Polymarket REST, Alchemy RPC, and the hot/cold worker heartbeats
 - Reports runtime state such as queue depth, pending fill count, newest fill timestamp, and recent signal count
+
+`cold-worker`
+- Runs the BullMQ funding-graph rebuild worker as a standalone process
+- Useful for debugging or operating the background rebuild path separately from `start`
+
+`test-telegram`
+- Sends a synthetic HIGH-tier Telegram alert through the configured Telegram bot/chat
+- Uses the same Telegram formatter as production alerts
+- Requires only `TELEGRAM_BOT_TOKEN` and at least one Telegram chat ID
+- Does not require Postgres, Redis, or the hot worker
 
 ## What To Expect
 

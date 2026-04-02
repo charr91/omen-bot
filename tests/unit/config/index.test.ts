@@ -19,6 +19,9 @@ const ENV_KEYS = [
   'OMEN_INGESTION_MAX_PAGES_PER_POLL',
   'OMEN_OPERATIONAL_DRY_RUN',
   'OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH',
+  'OMEN_COLD_PATH_CONCURRENCY',
+  'OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS',
+  'OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS',
 ] as const;
 
 describe('loadAppConfig', () => {
@@ -58,6 +61,11 @@ dry_run = true
 
 [backpressure]
 hot_worker_queue_depth = 55
+
+[cold_path]
+concurrency = 2
+rebuild_failure_cooldown_ms = 120000
+shutdown_timeout_ms = 45000
 `.trimStart(),
       'utf8',
     );
@@ -85,6 +93,9 @@ hot_worker_queue_depth = 55
     expect(config.alerts.dedupCooldownMs).toBe(60_000);
     expect(config.operational.dryRun).toBe(true);
     expect(config.backpressure.hotWorkerQueueDepth).toBe(55);
+    expect(config.coldPath.concurrency).toBe(2);
+    expect(config.coldPath.rebuildFailureCooldownMs).toBe(120_000);
+    expect(config.coldPath.shutdownTimeoutMs).toBe(45_000);
     expect(config.alchemyApiKey).toBe('alchemy-key');
     expect(config.telegram.botToken).toBe('telegram-token');
     expect(config.telegram.criticalChatId).toBe('critical-chat');
@@ -106,6 +117,11 @@ max_pages_per_poll = 20
 
 [backpressure]
 hot_worker_queue_depth = 100
+
+[cold_path]
+concurrency = 1
+rebuild_failure_cooldown_ms = 900000
+shutdown_timeout_ms = 30000
 `.trimStart(),
       'utf8',
     );
@@ -119,6 +135,9 @@ hot_worker_queue_depth = 100
     process.env.OMEN_INGESTION_MAX_PAGES_PER_POLL = '3';
     process.env.OMEN_OPERATIONAL_DRY_RUN = 'true';
     process.env.OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH = '25';
+    process.env.OMEN_COLD_PATH_CONCURRENCY = '4';
+    process.env.OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS = '15000';
+    process.env.OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS = '20000';
 
     const config = await loadAppConfig({ cwd });
 
@@ -126,6 +145,9 @@ hot_worker_queue_depth = 100
     expect(config.ingestion.maxPagesPerPoll).toBe(3);
     expect(config.backpressure.hotWorkerQueueDepth).toBe(25);
     expect(config.operational.dryRun).toBe(true);
+    expect(config.coldPath.concurrency).toBe(4);
+    expect(config.coldPath.rebuildFailureCooldownMs).toBe(15_000);
+    expect(config.coldPath.shutdownTimeoutMs).toBe(20_000);
     expect(config.logLevel).toBe('debug');
     expect(config.logPretty).toBe(false);
   });
@@ -157,6 +179,9 @@ hot_worker_queue_depth = 100
     process.env.OMEN_INGESTION_MAX_PAGES_PER_POLL = '';
     process.env.OMEN_OPERATIONAL_DRY_RUN = '';
     process.env.OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH = '';
+    process.env.OMEN_COLD_PATH_CONCURRENCY = '';
+    process.env.OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS = '';
+    process.env.OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS = '';
 
     const config = await loadAppConfig({ cwd });
 
@@ -170,5 +195,8 @@ hot_worker_queue_depth = 100
     expect(config.ingestion.maxPagesPerPoll).toBe(20);
     expect(config.operational.dryRun).toBe(false);
     expect(config.backpressure.hotWorkerQueueDepth).toBe(100);
+    expect(config.coldPath.concurrency).toBe(1);
+    expect(config.coldPath.rebuildFailureCooldownMs).toBe(900_000);
+    expect(config.coldPath.shutdownTimeoutMs).toBe(30_000);
   });
 });
