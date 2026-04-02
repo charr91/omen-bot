@@ -43,7 +43,7 @@ function makeAlert(): PromotedAlert {
 describe('Discord alert delivery', () => {
   it('formats Discord-safe content and suppresses mentions', () => {
     const message = formatDiscordAlertMessage(makeAlert());
-    expect(message).toContain('**HIGH \\| OUTSIZED\\_POSITION**');
+    expect(message).toContain('**⚠️ HIGH \\| OUTSIZED\\_POSITION**');
     expect(message).toContain('Will @\u200beveryone and <\u200b@&123\\> \\*really\\* \\`move\\`?');
     expect(message).toContain('*This trade is unusually large for this market: $1,234 against a threshold of $1,000.*');
     expect(message).toContain('**Action**: Bought YES @ 0.62');

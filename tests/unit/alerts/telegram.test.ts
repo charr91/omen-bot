@@ -43,7 +43,7 @@ function makeAlert(): PromotedAlert {
 describe('Telegram alert delivery', () => {
   it('formats escaped HTML messages', () => {
     const message = formatTelegramAlertMessage(makeAlert());
-    expect(message).toContain('<b>HIGH | OUTSIZED_POSITION</b>');
+    expect(message).toContain('<b>⚠️ HIGH | OUTSIZED_POSITION</b>');
     expect(message).toContain(
       '<a href="https://polymarket.com/event/election-2026/will-x-y-happen">Will &quot;&lt;X&gt;&quot; &amp; Y happen?</a>',
     );

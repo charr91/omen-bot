@@ -10,21 +10,25 @@ import { SignalId } from '../types/signal.js';
 const ALERT_TIER_META = {
   CRITICAL: {
     color: 0xe74c3c,
+    emoji: '🚨',
     ansiCodes: ['1', '37', '41'],
   },
   HIGH: {
     color: 0xf39c12,
+    emoji: '⚠️',
     ansiCodes: ['1', '30', '43'],
   },
   MEDIUM: {
     color: 0x3498db,
+    emoji: '🔵',
     ansiCodes: ['1', '37', '44'],
   },
   LOW: {
     color: 0x7f8c8d,
+    emoji: '⚪',
     ansiCodes: ['2', '37', '100'],
   },
-} satisfies Record<PromotedAlertTier, { color: number; ansiCodes: string[] }>;
+} satisfies Record<PromotedAlertTier, { color: number; emoji: string; ansiCodes: string[] }>;
 
 const USD_FORMATTER = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 0,
@@ -40,6 +44,10 @@ export function getAlertTierColor(tier: PromotedAlertTier): number {
   return ALERT_TIER_META[tier].color;
 }
 
+export function getAlertTierEmoji(tier: PromotedAlertTier): string {
+  return ALERT_TIER_META[tier].emoji;
+}
+
 export function getAlertTierAnsiCodes(tier: PromotedAlertTier): string[] {
   return ALERT_TIER_META[tier].ansiCodes;
 }
@@ -48,7 +56,9 @@ export function formatAlertHeadline(
   tier: PromotedAlertTier,
   signalId?: PromotedAlert['signal']['signalId'],
 ): string {
-  return signalId ? `${tier} | ${signalId}` : `${tier} OMEN ALERT`;
+  const emoji = getAlertTierEmoji(tier);
+  const prefix = `${emoji ? `${emoji} ` : ''}${tier}`;
+  return signalId ? `${prefix} | ${signalId}` : `${prefix} OMEN ALERT`;
 }
 
 export function formatAlertTradeAction(
