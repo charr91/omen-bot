@@ -59,16 +59,33 @@ screen_list_output() {
   run_screen -list 2>/dev/null || true
 }
 
-session_line() {
+session_lines() {
   local screen_output
   screen_output="$(screen_list_output)"
-  grep -E "[[:space:]][0-9]+\.${SESSION_NAME}[[:space:]]" <<<"$screen_output" | grep -Fv '(Dead ???)' | head -n 1
+  grep -E "[[:space:]][0-9]+\.${SESSION_NAME}[[:space:]]" <<<"$screen_output" | grep -Fv '(Dead ???)' || true
+}
+
+session_line() {
+  session_lines | head -n 1
 }
 
 session_id() {
-  local line
-  line="$(session_line)"
-  sed -E 's/^[[:space:]]*([0-9]+\.[^[:space:]]+).*/\1/' <<<"$line"
+  session_ids | head -n 1
+}
+
+session_ids() {
+  sed -E 's/^[[:space:]]*([0-9]+\.[^[:space:]]+).*/\1/' <<<"$(session_lines)"
+}
+
+session_count() {
+  local ids
+  ids="$(session_ids)"
+  if [[ -z "$ids" ]]; then
+    printf '0'
+    return
+  fi
+
+  awk 'NF { count += 1 } END { print count + 0 }' <<<"$ids"
 }
 
 has_screen_ancestor() {
@@ -100,8 +117,8 @@ start_session() {
   require_command zsh
 
   if session_exists; then
-    printf 'screen session "%s" is already running\n' "$SESSION_NAME"
-    printf 'attach with: screen -r %s\n' "$SESSION_NAME"
+    printf 'screen session "%s" is already running (%s session%s)\n' "$SESSION_NAME" "$(session_count)" "$(plural_suffix "$(session_count)")"
+    printf 'attach with: screen -r %s\n' "$(session_id)"
     return
   fi
 
@@ -116,7 +133,7 @@ start_session() {
   run_screen -dmS "$SESSION_NAME" zsh -lc "$run_command"
 
   printf 'started omen in screen session "%s"\n' "$SESSION_NAME"
-  printf 'attach with: screen -r %s\n' "$SESSION_NAME"
+  printf 'attach with: screen -r %s\n' "$(session_id)"
   printf 'detach with: Ctrl-a d\n'
 }
 
@@ -145,13 +162,13 @@ attach_session() {
   fi
 
   if [[ "$verbose" == "--verbose" ]]; then
-    printf 'attaching to screen session "%s"\n' "$SESSION_NAME"
+    printf 'attaching to screen session "%s" (%s)\n' "$SESSION_NAME" "$active_session_id"
     if [[ -n "$current_sty" ]]; then
       printf 'note: ignoring inherited screen environment (%s) before reattach\n' "$current_sty"
     fi
   fi
 
-  exec env -u STY -u WINDOW -u TERMCAP TERM="$(screen_outer_term)" screen -D -R "$SESSION_NAME"
+  exec env -u STY -u WINDOW -u TERMCAP TERM="$(screen_outer_term)" screen -D -R "$active_session_id"
 }
 
 is_running_session() {
@@ -172,7 +189,13 @@ stop_session() {
     return
   fi
 
-  run_screen -S "$SESSION_NAME" -X stuff $'q'
+  local active_session_ids
+  active_session_ids="$(session_ids)"
+  while IFS= read -r active_session_id; do
+    [[ -z "$active_session_id" ]] && continue
+    run_screen -S "$active_session_id" -X stuff $'q'
+  done <<<"$active_session_ids"
+
   local waited_seconds=0
   while session_exists && (( waited_seconds < STOP_TIMEOUT_SECONDS )); do
     sleep 1
@@ -180,8 +203,15 @@ stop_session() {
   done
 
   if session_exists; then
-    printf 'screen session "%s" did not stop within %ss; forcing quit\n' "$SESSION_NAME" "$STOP_TIMEOUT_SECONDS"
-    run_screen -S "$SESSION_NAME" -X quit
+    printf 'screen session "%s" did not stop within %ss; forcing quit on %s session%s\n' \
+      "$SESSION_NAME" \
+      "$STOP_TIMEOUT_SECONDS" \
+      "$(session_count)" \
+      "$(plural_suffix "$(session_count)")"
+    while IFS= read -r active_session_id; do
+      [[ -z "$active_session_id" ]] && continue
+      run_screen -S "$active_session_id" -X quit
+    done <<<"$(session_ids)"
   fi
 
   printf 'stopped screen session "%s"\n' "$SESSION_NAME"
@@ -208,7 +238,11 @@ status_session() {
       return
     fi
 
-    printf 'running: screen session "%s" (%s)\n' "$SESSION_NAME" "${state:-unknown}"
+    printf 'running: screen session "%s" (%s, %s session%s)\n' \
+      "$SESSION_NAME" \
+      "${state:-unknown}" \
+      "$(session_count)" \
+      "$(plural_suffix "$(session_count)")"
     if has_screen_ancestor && [[ -n "${STY:-}" ]]; then
       printf 'current shell:    inside screen (%s)\n' "$STY"
     elif [[ -n "${STY:-}" ]]; then
@@ -216,6 +250,9 @@ status_session() {
     fi
     printf 'attach:           pnpm run omen:screen:attach\n'
     printf 'detach:           Ctrl-a d\n'
+    if (( "$(session_count)" > 1 )); then
+      printf 'active sessions:  %s\n' "$(tr '\n' ' ' <<<"$(session_ids)" | xargs)"
+    fi
     if grep -Fq '(Dead ???)' <<<"$screen_output"; then
       printf 'cleanup:          screen -wipe\n'
     fi
@@ -223,6 +260,16 @@ status_session() {
   fi
 
   printf 'not running: screen session "%s"\n' "$SESSION_NAME"
+}
+
+plural_suffix() {
+  local count="$1"
+  if [[ "$count" == "1" ]]; then
+    printf ''
+    return
+  fi
+
+  printf 's'
 }
 
 main() {
