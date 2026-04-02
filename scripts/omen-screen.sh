@@ -7,6 +7,7 @@ export PATH="/opt/homebrew/bin:/Users/bot/.local/bin:/usr/local/bin:/usr/bin:/bi
 SESSION_NAME="${OMEN_SCREEN_SESSION:-omen}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STOP_TIMEOUT_SECONDS="${OMEN_SCREEN_STOP_TIMEOUT_SECONDS:-30}"
+RUNTIME_START_COMMAND="pnpm exec tsx src/cli.ts start --tui"
 
 usage() {
   cat <<'EOF'
@@ -110,6 +111,83 @@ session_exists() {
   [[ -n "$(session_line)" ]]
 }
 
+collect_descendant_pids() {
+  local parent_pid="$1"
+  local child_pid
+  while IFS= read -r child_pid; do
+    [[ -z "$child_pid" ]] && continue
+    printf '%s\n' "$child_pid"
+    collect_descendant_pids "$child_pid"
+  done < <(pgrep -P "$parent_pid" || true)
+}
+
+signal_process_tree() {
+  local root_pid="$1"
+  local signal_name="$2"
+  local descendant_pids
+  descendant_pids="$(collect_descendant_pids "$root_pid")"
+  if [[ -z "$descendant_pids" ]]; then
+    return
+  fi
+
+  while IFS= read -r descendant_pid; do
+    [[ -z "$descendant_pid" ]] && continue
+    kill "-$signal_name" "$descendant_pid" >/dev/null 2>&1 || true
+  done <<<"$descendant_pids"
+}
+
+unique_pid_list() {
+  awk 'NF && !seen[$0]++ { print $0 }'
+}
+
+any_pid_alive() {
+  local pid
+  while IFS= read -r pid; do
+    [[ -z "$pid" ]] && continue
+    if kill -0 "$pid" >/dev/null 2>&1; then
+      return 0
+    fi
+  done <<<"$1"
+
+  return 1
+}
+
+stale_runtime_root_pids() {
+  ps -axo pid=,ppid=,command= | awk -v repo_root="$REPO_ROOT" -v start_command="$RUNTIME_START_COMMAND" '
+    $2 == 1 && $0 ~ /login -pflq/ && index($0, repo_root) && index($0, start_command) {
+      print $1
+    }
+  '
+}
+
+cleanup_stale_runtime_processes() {
+  local stale_root_pids
+  stale_root_pids="$(stale_runtime_root_pids)"
+  if [[ -z "$stale_root_pids" ]]; then
+    return
+  fi
+
+  printf 'cleaning up stale omen runtime process%s: %s\n' \
+    "$(plural_suffix "$(awk 'NF { count += 1 } END { print count + 0 }' <<<"$stale_root_pids")")" \
+    "$(tr '\n' ' ' <<<"$stale_root_pids" | xargs)"
+
+  while IFS= read -r stale_root_pid; do
+    [[ -z "$stale_root_pid" ]] && continue
+    signal_process_tree "$stale_root_pid" TERM
+    kill -TERM "$stale_root_pid" >/dev/null 2>&1 || true
+  done <<<"$stale_root_pids"
+
+  sleep 2
+
+  while IFS= read -r stale_root_pid; do
+    [[ -z "$stale_root_pid" ]] && continue
+    if kill -0 "$stale_root_pid" >/dev/null 2>&1; then
+      signal_process_tree "$stale_root_pid" KILL
+      kill -KILL "$stale_root_pid" >/dev/null 2>&1 || true
+    fi
+  done <<<"$stale_root_pids"
+}
+
 start_session() {
   require_command screen
   require_command docker
@@ -121,6 +199,8 @@ start_session() {
     printf 'attach with: screen -r %s\n' "$(session_id)"
     return
   fi
+
+  cleanup_stale_runtime_processes
 
   (
     cd "$REPO_ROOT"
@@ -185,34 +265,61 @@ stop_session() {
   require_command screen
 
   if ! session_exists; then
+    local stale_root_pids
+    stale_root_pids="$(stale_runtime_root_pids)"
+    if [[ -n "$stale_root_pids" ]]; then
+      printf 'screen session "%s" is not running; cleaning up stale omen runtime process%s\n' \
+        "$SESSION_NAME" \
+        "$(plural_suffix "$(awk 'NF { count += 1 } END { print count + 0 }' <<<"$stale_root_pids")")"
+      cleanup_stale_runtime_processes
+      printf 'stopped screen session "%s"\n' "$SESSION_NAME"
+      return
+    fi
+
     printf 'screen session "%s" is not running\n' "$SESSION_NAME"
     return
   fi
 
   local active_session_ids
   active_session_ids="$(session_ids)"
+  local tracked_pids=''
   while IFS= read -r active_session_id; do
     [[ -z "$active_session_id" ]] && continue
-    run_screen -S "$active_session_id" -X stuff $'q'
+    local screen_pid
+    screen_pid="${active_session_id%%.*}"
+    tracked_pids+="${screen_pid}"$'\n'
+    tracked_pids+="$(collect_descendant_pids "$screen_pid")"$'\n'
+    signal_process_tree "$screen_pid" TERM
   done <<<"$active_session_ids"
+  tracked_pids="$(unique_pid_list <<<"$tracked_pids")"
 
   local waited_seconds=0
-  while session_exists && (( waited_seconds < STOP_TIMEOUT_SECONDS )); do
+  while (( waited_seconds < STOP_TIMEOUT_SECONDS )); do
+    if ! session_exists && ! any_pid_alive "$tracked_pids"; then
+      break
+    fi
     sleep 1
     waited_seconds=$((waited_seconds + 1))
   done
 
-  if session_exists; then
+  if session_exists || any_pid_alive "$tracked_pids"; then
     printf 'screen session "%s" did not stop within %ss; forcing quit on %s session%s\n' \
       "$SESSION_NAME" \
       "$STOP_TIMEOUT_SECONDS" \
       "$(session_count)" \
       "$(plural_suffix "$(session_count)")"
+    while IFS= read -r tracked_pid; do
+      [[ -z "$tracked_pid" ]] && continue
+      kill -KILL "$tracked_pid" >/dev/null 2>&1 || true
+    done <<<"$tracked_pids"
     while IFS= read -r active_session_id; do
       [[ -z "$active_session_id" ]] && continue
+      signal_process_tree "${active_session_id%%.*}" KILL
       run_screen -S "$active_session_id" -X quit
     done <<<"$(session_ids)"
   fi
+
+  cleanup_stale_runtime_processes
 
   printf 'stopped screen session "%s"\n' "$SESSION_NAME"
 }
