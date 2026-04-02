@@ -121,7 +121,7 @@ describe('Telegram alert delivery', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('sends HIGH alerts to the critical chat and marks dedup on success', async () => {
+  it('sends HIGH alerts to both critical and medium chats and marks dedup on success', async () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ ok: true }),
@@ -169,10 +169,9 @@ describe('Telegram alert delivery', () => {
         },
       ],
     });
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
-      method: 'POST',
-    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body)).chat_id).toBe('critical-chat');
+    expect(JSON.parse(String(fetchImpl.mock.calls[1]?.[1]?.body)).chat_id).toBe('medium-chat');
     expect(redis.set).toHaveBeenCalledTimes(1);
   });
 
@@ -295,7 +294,8 @@ describe('Telegram alert delivery', () => {
         },
       ],
     });
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    // HIGH alert resolves to both critical and medium chats → 2 sends
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it('falls back to the medium chat when a high-severity chat is missing', async () => {
@@ -317,5 +317,55 @@ describe('Telegram alert delivery', () => {
     await dispatcher.dispatch(makeAlert());
     const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body));
     expect(body.chat_id).toBe('medium-chat');
+  });
+
+  const MEDIUM_PLUS_TIERS: PromotedAlertTier[] = ['CRITICAL', 'HIGH', 'MEDIUM'];
+
+  it.each(MEDIUM_PLUS_TIERS)(
+    'sends %s alerts to both critical and medium chats',
+    async (tier) => {
+      const fetchImpl = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+      });
+      const dispatcher = new TelegramDispatcher(
+        {
+          telegram: {
+            botToken: 'bot-token',
+            criticalChatId: 'critical-chat',
+            mediumChatId: 'medium-chat',
+          },
+        },
+        { fetchImpl },
+      );
+
+      await dispatcher.dispatch({ ...makeAlert(), deliveryTier: tier, walletLiveTier: tier });
+
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+      expect(JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body)).chat_id).toBe('critical-chat');
+      expect(JSON.parse(String(fetchImpl.mock.calls[1]?.[1]?.body)).chat_id).toBe('medium-chat');
+    },
+  );
+
+  it('sends LOW alerts to the medium chat only', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+    const dispatcher = new TelegramDispatcher(
+      {
+        telegram: {
+          botToken: 'bot-token',
+          criticalChatId: 'critical-chat',
+          mediumChatId: 'medium-chat',
+        },
+      },
+      { fetchImpl },
+    );
+
+    await dispatcher.dispatch({ ...makeAlert(), deliveryTier: 'LOW', walletLiveTier: 'LOW' });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body)).chat_id).toBe('medium-chat');
   });
 });

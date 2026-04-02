@@ -79,40 +79,45 @@ export class TelegramDispatcher implements AlertDeliveryChannel {
       throw new Error('Telegram bot token is not configured');
     }
 
-    const chatId = this.resolveChatId(alert.deliveryTier);
-    if (!chatId) {
+    const chatIds = this.resolveChatIds(alert.deliveryTier);
+    if (chatIds.length === 0) {
       throw new Error(`No Telegram chat is configured for ${alert.deliveryTier} alerts`);
     }
 
-    const response = await this.circuitBreaker.execute(async () =>
-      this.fetchImpl(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: chatId,
-          parse_mode: 'HTML',
-          disable_web_page_preview: true,
-          text: formatTelegramAlertMessage(alert),
-          reply_markup: buildTelegramInlineKeyboard(alert),
+    for (const chatId of chatIds) {
+      const response = await this.circuitBreaker.execute(async () =>
+        this.fetchImpl(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: chatId,
+            parse_mode: 'HTML',
+            disable_web_page_preview: true,
+            text: formatTelegramAlertMessage(alert),
+            reply_markup: buildTelegramInlineKeyboard(alert),
+          }),
         }),
-      }),
-    );
+      );
 
-    const payload = (await response.json().catch(() => null)) as TelegramSendResponse | null;
-    if (!response.ok || payload?.ok !== true) {
-      const description = payload?.description ?? response.statusText;
-      throw new Error(`Telegram sendMessage failed: ${description}`);
+      const payload = (await response.json().catch(() => null)) as TelegramSendResponse | null;
+      if (!response.ok || payload?.ok !== true) {
+        const description = payload?.description ?? response.statusText;
+        throw new Error(`Telegram sendMessage failed: ${description}`);
+      }
     }
   }
 
-  private resolveChatId(tier: PromotedAlertTier): string | null {
-    if (tier === 'CRITICAL' || tier === 'HIGH') {
-      return this.criticalChatId ?? this.mediumChatId;
+  private resolveChatIds(tier: PromotedAlertTier): string[] {
+    if (tier === 'CRITICAL' || tier === 'HIGH' || tier === 'MEDIUM') {
+      // Medium-and-above alerts go to both channels so the prime channel sees them too
+      return [this.criticalChatId, this.mediumChatId].filter((id): id is string => id !== null);
     }
 
-    return this.mediumChatId ?? this.criticalChatId;
+    // LOW alerts go to the medium channel only, falling back to critical if unset
+    const chatId = this.mediumChatId ?? this.criticalChatId;
+    return chatId !== null ? [chatId] : [];
   }
 }
 
