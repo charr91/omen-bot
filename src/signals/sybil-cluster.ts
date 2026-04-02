@@ -14,8 +14,10 @@ interface SybilClusterSignalContext {
   config: Pick<AppConfig, 'detection'>;
 }
 
-const SYBIL_CLUSTER_SCORE = 25;
-const SYBIL_CLUSTER_CONFIDENCE = 0.85;
+const SYBIL_CLUSTER_BASE_SCORE = 15;
+const SYBIL_CLUSTER_BASE_CONFIDENCE = 0.8;
+const SYBIL_CLUSTER_ELEVATED_SCORE = 30;
+const SYBIL_CLUSTER_ELEVATED_CONFIDENCE = 0.9;
 
 export function evaluateSybilCluster(context: SybilClusterSignalContext): TriggeredSignal | null {
   if (context.cluster === null) {
@@ -38,11 +40,15 @@ export function evaluateSybilCluster(context: SybilClusterSignalContext): Trigge
     return null;
   }
 
+  const isElevated = fillSizeUsd >= context.config.detection.cluster.elevatedFillUsd;
+  const score = isElevated ? SYBIL_CLUSTER_ELEVATED_SCORE : SYBIL_CLUSTER_BASE_SCORE;
+  const confidence = isElevated ? SYBIL_CLUSTER_ELEVATED_CONFIDENCE : SYBIL_CLUSTER_BASE_CONFIDENCE;
+
   return {
     signalId: SignalId.SYBIL_CLUSTER,
     availability: 'LIVE',
-    score: SYBIL_CLUSTER_SCORE,
-    confidence: SYBIL_CLUSTER_CONFIDENCE,
+    score,
+    confidence,
     evidence: [
       {
         field: 'funding_cluster_id',

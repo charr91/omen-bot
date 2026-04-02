@@ -204,7 +204,8 @@ shutdown_timeout_ms = 30000
     expect(config.operational.dryRun).toBe(false);
     expect(config.backpressure.hotWorkerQueueDepth).toBe(100);
     expect(config.alerts.dedupScoreIncrease).toBe(10);
-    expect(config.detection.cluster.minFillUsd).toBe(25);
+    expect(config.detection.cluster.minFillUsd).toBe(200);
+    expect(config.detection.cluster.elevatedFillUsd).toBe(500);
     expect(config.detection.cluster.sameMarketSameSideWindowMs).toBe(3_600_000);
     expect(config.coldPath.concurrency).toBe(1);
     expect(config.coldPath.rebuildFailureCooldownMs).toBe(900_000);

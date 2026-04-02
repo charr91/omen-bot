@@ -31,7 +31,8 @@ min_lump_ratio = 0.80
 
 [detection.cluster]
 min_size = 3
-min_fill_usd = 25
+min_fill_usd = 200
+elevated_fill_usd = 500
 funding_max_depth = 4
 fanout_limit = 5
 max_rpc_calls = 200
