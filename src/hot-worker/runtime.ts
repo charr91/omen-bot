@@ -1,17 +1,23 @@
 import { promoteSignalPreview } from '../alerts/promote.js';
+import { buildPolymarketMarketUrl } from '../alerts/links.js';
 import { isDiscordEnabledForTier } from '../alerts/discord.js';
 import { isTelegramEnabledForTier } from '../alerts/telegram.js';
 import { parentPort, workerData } from 'node:worker_threads';
+import { createFundingGraphRebuildJobQueue } from '../cold-path/queue.js';
 import type { AppConfig } from '../config/schema.js';
+import { resolveWalletChainProfile } from './chain-profile.js';
 import { ActiveMarketCatalog } from '../markets/catalog.js';
 import { createDbPool } from '../persistence/db.js';
+import { createAuditLogStore } from '../persistence/queries/audit-log.js';
 import { createAlertStore } from '../persistence/queries/alerts.js';
 import { createFillStore } from '../persistence/queries/fills.js';
+import { createProxyOverrideStore } from '../persistence/queries/proxy-overrides.js';
 import { createSignalEventStore } from '../persistence/queries/signal-events.js';
-import { createWalletStore } from '../persistence/queries/wallets.js';
+import { createWalletStore, type WalletSignalContext } from '../persistence/queries/wallets.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { AlchemyWalletProfiler } from '../profiling/wallet-profiler.js';
 import { computeCompositeLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
+import type { LiveClusterSignalContext } from '../signals/sybil-cluster.js';
 import { deriveAlertTier } from '../signals/scoring.js';
 import type { FillRecord } from '../types/fill.js';
 import type { HotWorkerToMainMessage, MainToHotWorkerMessage } from '../types/thread-messages.js';
@@ -37,10 +43,13 @@ const pool = createDbPool(config);
 const alertStore = createAlertStore(pool);
 const fillStore = createFillStore(pool);
 const walletStore = createWalletStore(pool);
+const auditLogStore = createAuditLogStore(pool);
+const proxyOverrideStore = createProxyOverrideStore(pool);
 const signalEventStore = createSignalEventStore(pool);
 const redis = createRedisClient(config);
 const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey);
 const marketCatalog = new ActiveMarketCatalog();
+const coldPathQueue = createFundingGraphRebuildJobQueue(config);
 const queue: FillRecord[] = [];
 const queuedFillIds = new Set<string>();
 
@@ -162,26 +171,45 @@ async function processQueue(): Promise<void> {
 async function processFill(fill: FillRecord): Promise<void> {
   await walletStore.upsertWalletStub(fill.walletAddress, fill.timestamp);
 
-  const [aggregateStats, isWhitelisted, chainProfile] = await Promise.all([
-    walletStore.getAggregateStats(fill.walletAddress),
+  const [aggregateStats, signalContext, isWhitelisted, resolvedChainProfile] = await Promise.all([
+    walletStore.getAggregateStats(fill.walletAddress, { fillId: fill.id, fillTimestamp: fill.timestamp }),
+    walletStore.getSignalContext(fill.walletAddress),
     walletStore.isWhitelisted(fill.walletAddress),
-    walletProfiler.profileWallet(fill.walletAddress),
+    resolveWalletChainProfile({
+      walletAddress: fill.walletAddress,
+      profiler: walletProfiler,
+    }),
   ]);
+  const chainProfile = resolvedChainProfile.profile;
+
+  if (resolvedChainProfile.degraded) {
+    postMessage({
+      type: 'ERROR',
+      fillId: fill.id,
+      error: `[alchemy] profile degraded for ${fill.walletAddress}; using conservative fallback: ${resolvedChainProfile.error}`,
+    });
+  }
 
   const market = await marketCatalog.getMarket(fill.marketId);
+  const effectiveChainProfile = await buildEffectiveChainProfile(fill.walletAddress, chainProfile);
+  const cluster = await buildFundingClusterContext(fill, signalContext);
 
   const baseWallet: WalletProfile = {
     address: fill.walletAddress,
-    ageSeconds: chainProfile.ageSeconds,
-    activityAgeKnown: chainProfile.activityAgeKnown,
-    totalTransactions: chainProfile.totalTransactions,
-    isContract: chainProfile.isContract,
-    controllerAddress: chainProfile.controllerAddress,
-    firstSeenAt: chainProfile.firstActivityAt ?? fill.timestamp,
+    ageSeconds: effectiveChainProfile.ageSeconds,
+    activityAgeKnown: effectiveChainProfile.activityAgeKnown,
+    totalTransactions: effectiveChainProfile.totalTransactions,
+    isContract: effectiveChainProfile.isContract,
+    controllerAddress: effectiveChainProfile.controllerAddress,
+    freshnessAgeSeconds: effectiveChainProfile.freshnessAgeSeconds,
+    freshnessActivityAgeKnown: effectiveChainProfile.freshnessActivityAgeKnown,
+    freshnessTotalTransactions: effectiveChainProfile.freshnessTotalTransactions,
+    firstSeenAt: effectiveChainProfile.firstActivityAt ?? fill.timestamp,
     lastActiveAt: fill.timestamp,
     totalMarkets: aggregateStats.totalMarkets,
     totalFills: aggregateStats.totalFills,
     totalVolumeUsd: aggregateStats.totalVolumeUsd,
+    fundingClusterId: signalContext.fundingClusterId,
     liveSuspicionScore: 0,
     liveTier: 'CLEAN',
     isWhitelisted,
@@ -192,6 +220,7 @@ async function processFill(fill: FillRecord): Promise<void> {
     wallet: baseWallet,
     market,
     config,
+    cluster,
   });
 
   const liveScore = computeCompositeLiveScore(triggeredSignals);
@@ -203,6 +232,7 @@ async function processFill(fill: FillRecord): Promise<void> {
   };
 
   await walletStore.upsertLiveProfile(walletProfile);
+  await maybeRecordControllerAttribution(fill.walletAddress, signalContext.controllerAddress, effectiveChainProfile);
 
   if (market !== null) {
     for (const signal of triggeredSignals) {
@@ -219,6 +249,12 @@ async function processFill(fill: FillRecord): Promise<void> {
           walletAddress: fill.walletAddress,
           marketId: fill.marketId,
           marketQuestion: market.question,
+          marketUrl: buildPolymarketMarketUrl(market.eventSlug, market.marketSlug),
+          fillSide: fill.side,
+          fillOutcome: fill.outcome,
+          fillPrice: fill.price,
+          fillSizeUsd: fill.sizeUsd,
+          fillTimestamp: fill.timestamp.toISOString(),
           walletLiveScore: walletProfile.liveSuspicionScore,
           walletLiveTier: walletProfile.liveTier,
           signal,
@@ -299,6 +335,7 @@ async function shutdown(): Promise<void> {
     // Ignore final heartbeat failures during shutdown.
   }
 
+  await coldPathQueue.close();
   redis.disconnect(false);
   await pool.end();
   workerPort.close();
@@ -324,4 +361,139 @@ function isAlertDispatchEligible(
     isTelegramEnabledForTier({ telegram: appConfig.telegram }, tier) ||
     isDiscordEnabledForTier({ discord: appConfig.discord }, tier)
   );
+}
+
+async function buildEffectiveChainProfile(
+  walletAddress: string,
+  chainProfile: Awaited<ReturnType<AlchemyWalletProfiler['profileWallet']>>,
+): Promise<Awaited<ReturnType<AlchemyWalletProfiler['profileWallet']>>> {
+  if (!chainProfile.isContract) {
+    return chainProfile;
+  }
+
+  let manualOverride: Awaited<ReturnType<typeof proxyOverrideStore.getOverride>>;
+  let controllerAddress: string | null;
+  try {
+    manualOverride = await proxyOverrideStore.getOverride(walletAddress);
+    controllerAddress =
+      manualOverride?.controllerAddress ?? (await walletProfiler.resolveControllerAddress(walletAddress));
+  } catch (error) {
+    postMessage({
+      type: 'ERROR',
+      fillId: null,
+      error: `[proxy] failed to resolve controller for ${walletAddress}: ${formatError(error)}`,
+    });
+    return {
+      ...chainProfile,
+      ageSeconds: 0,
+      activityAgeKnown: false,
+      controllerAddress: null,
+      freshnessAgeSeconds: 0,
+      freshnessActivityAgeKnown: false,
+      freshnessTotalTransactions: 0,
+      firstActivityAt: null,
+    };
+  }
+
+  if (!controllerAddress) {
+    return {
+      ...chainProfile,
+      ageSeconds: 0,
+      activityAgeKnown: false,
+      controllerAddress: null,
+      freshnessAgeSeconds: 0,
+      freshnessActivityAgeKnown: false,
+      freshnessTotalTransactions: 0,
+      firstActivityAt: null,
+    };
+  }
+
+  const resolvedControllerProfile = await resolveWalletChainProfile({
+    walletAddress: controllerAddress,
+    profiler: walletProfiler,
+  });
+  const controllerProfile = resolvedControllerProfile.profile;
+  return {
+    ...controllerProfile,
+    isContract: true,
+    controllerAddress,
+    freshnessAgeSeconds: controllerProfile.freshnessAgeSeconds,
+    freshnessActivityAgeKnown: controllerProfile.freshnessActivityAgeKnown,
+    freshnessTotalTransactions: controllerProfile.freshnessTotalTransactions,
+  };
+}
+
+async function buildFundingClusterContext(
+  fill: FillRecord,
+  signalContext: WalletSignalContext,
+): Promise<LiveClusterSignalContext | null> {
+  const fundingGraphBuiltAt = signalContext.fundingGraphBuiltAt;
+  const graphFresh =
+    fundingGraphBuiltAt !== null && fill.timestamp.getTime() - fundingGraphBuiltAt.getTime() < 24 * 60 * 60_000;
+
+  if (!graphFresh) {
+    try {
+      await coldPathQueue.requestRebuild(fill.walletAddress);
+    } catch (error) {
+      postMessage({
+        type: 'ERROR',
+        error: `failed to enqueue funding-graph rebuild: ${formatError(error)}`,
+        fillId: fill.id,
+      });
+    }
+  }
+
+  if (signalContext.fundingClusterId === null) {
+    return null;
+  }
+
+  const clusterMembers = await walletStore.listFundingClusterMembers(signalContext.fundingClusterId);
+  if (clusterMembers.length === 0) {
+    return null;
+  }
+
+  const sameMarketSameSideEntries = await fillStore.countDistinctWalletsForMarketSideWindow(
+    fill.marketId,
+    fill.side,
+    clusterMembers,
+    new Date(fill.timestamp.getTime() - config.detection.cluster.sameMarketSameSideWindowMs),
+    fill.timestamp,
+  );
+
+  return {
+    fundingClusterId: signalContext.fundingClusterId,
+    clusterSize: clusterMembers.length,
+    sameMarketSameSideEntries,
+  };
+}
+
+async function maybeRecordControllerAttribution(
+  walletAddress: string,
+  previousControllerAddress: string | null,
+  chainProfile: Awaited<ReturnType<AlchemyWalletProfiler['profileWallet']>>,
+): Promise<void> {
+  if (!chainProfile.isContract || chainProfile.controllerAddress === null) {
+    return;
+  }
+
+  if (chainProfile.controllerAddress === previousControllerAddress) {
+    return;
+  }
+
+  const manualOverride = await proxyOverrideStore.getOverride(walletAddress);
+  await auditLogStore.append({
+    action: 'PROXY_ATTRIBUTE',
+    targetAddress: walletAddress,
+    actor: manualOverride ? 'manual' : 'auto',
+    oldValue:
+      previousControllerAddress === null
+        ? null
+        : {
+            controllerAddress: previousControllerAddress,
+          },
+    newValue: {
+      controllerAddress: chainProfile.controllerAddress,
+    },
+    reason: manualOverride ? manualOverride.reason : 'automatic proxy controller attribution',
+  });
 }

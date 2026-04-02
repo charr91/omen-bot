@@ -26,9 +26,14 @@ export interface FundingClusterAssignment {
   fundingClusterId: string | null;
 }
 
+export interface FillBoundary {
+  fillId: string;
+  fillTimestamp: Date;
+}
+
 export interface WalletStore {
   upsertWalletStub(address: string, seenAt: Date): Promise<void>;
-  getAggregateStats(address: string): Promise<WalletAggregateStats>;
+  getAggregateStats(address: string, boundary?: FillBoundary): Promise<WalletAggregateStats>;
   getSignalContext(address: string): Promise<WalletSignalContext>;
   isWhitelisted(address: string): Promise<boolean>;
   upsertLiveProfile(profile: WalletProfile): Promise<void>;
@@ -59,19 +64,35 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
       );
     },
 
-    async getAggregateStats(address: string): Promise<WalletAggregateStats> {
+    async getAggregateStats(address: string, boundary?: FillBoundary): Promise<WalletAggregateStats> {
       const canonicalAddress = canonicalizeEvmAddress(address);
-      const result = await pool.query<WalletAggregateRow>(
-        `
-          select
-            count(*)::text as total_fills,
-            count(distinct market_id)::text as total_markets,
-            coalesce(sum(size_usd), 0)::text as total_volume_usd
-          from fills
-          where lower(wallet_address) = $1
-        `,
-        [canonicalAddress],
-      );
+      const result = boundary
+        ? await pool.query<WalletAggregateRow>(
+            `
+              select
+                count(*)::text as total_fills,
+                count(distinct market_id)::text as total_markets,
+                coalesce(sum(size_usd), 0)::text as total_volume_usd
+              from fills
+              where lower(wallet_address) = $1
+                and (
+                  timestamp < $2
+                  or (timestamp = $2 and id <= $3)
+                )
+            `,
+            [canonicalAddress, boundary.fillTimestamp, boundary.fillId],
+          )
+        : await pool.query<WalletAggregateRow>(
+            `
+              select
+                count(*)::text as total_fills,
+                count(distinct market_id)::text as total_markets,
+                coalesce(sum(size_usd), 0)::text as total_volume_usd
+              from fills
+              where lower(wallet_address) = $1
+            `,
+            [canonicalAddress],
+          );
 
       const row = result.rows[0];
       return {
@@ -143,12 +164,13 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
             total_markets,
             total_fills,
             total_volume_usd,
+            funding_cluster_id,
             live_suspicion_score,
             live_tier,
             is_whitelisted,
             updated_at
           )
-          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, now())
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, now())
           on conflict (address) do update
           set
             age_seconds = excluded.age_seconds,
@@ -161,6 +183,7 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
             total_markets = excluded.total_markets,
             total_fills = excluded.total_fills,
             total_volume_usd = excluded.total_volume_usd,
+            funding_cluster_id = coalesce(excluded.funding_cluster_id, wallets.funding_cluster_id),
             live_suspicion_score = greatest(wallets.live_suspicion_score, excluded.live_suspicion_score),
             live_tier = case
               when excluded.live_suspicion_score >= wallets.live_suspicion_score then excluded.live_tier
@@ -181,6 +204,7 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
           profile.totalMarkets,
           profile.totalFills,
           profile.totalVolumeUsd,
+          profile.fundingClusterId,
           profile.liveSuspicionScore,
           profile.liveTier,
           profile.isWhitelisted,

@@ -1,6 +1,18 @@
 import type { AppConfig } from '../config/schema.js';
-import type { PromotedAlert, PromotedAlertTier } from '../types/alert.js';
+import { CircuitBreaker } from '../resilience/circuit-breaker.js';
+import { sanitizeText } from '../resilience/sanitizer.js';
+import type { PresentableAlert, PromotedAlertTier } from '../types/alert.js';
 import type { AlertDeliveryChannel } from './channel.js';
+import { buildPolygonscanAddressUrl } from './links.js';
+import {
+  formatAlertFillSize,
+  formatAlertHeadline,
+  formatAlertMeaning,
+  formatAlertScore,
+  formatAlertShortWallet,
+  formatAlertTradeAction,
+  formatLinkedTradeContextSummary,
+} from './presentation.js';
 
 interface DiscordDispatcherOptions {
   fetchImpl?: typeof fetch;
@@ -22,6 +34,7 @@ export class DiscordDispatcher implements AlertDeliveryChannel {
   private readonly criticalWebhookUrl: string | null;
   private readonly mediumWebhookUrl: string | null;
   private readonly fetchImpl: typeof fetch;
+  private readonly circuitBreaker = new CircuitBreaker('discord dispatch');
 
   constructor(config: Pick<AppConfig, 'discord'>, options: DiscordDispatcherOptions = {}) {
     this.criticalWebhookUrl = config.discord.criticalWebhookUrl;
@@ -41,24 +54,26 @@ export class DiscordDispatcher implements AlertDeliveryChannel {
     );
   }
 
-  async dispatch(alert: PromotedAlert): Promise<void> {
+  async dispatch(alert: PresentableAlert): Promise<void> {
     const webhookUrl = this.resolveWebhookUrl(alert.deliveryTier);
     if (!webhookUrl) {
       throw new Error(`No Discord webhook is configured for ${alert.deliveryTier} alerts`);
     }
 
-    const response = await this.fetchImpl(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: formatDiscordAlertMessage(alert),
-        allowed_mentions: {
-          parse: [],
+    const response = await this.circuitBreaker.execute(async () =>
+      this.fetchImpl(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
         },
+        body: JSON.stringify({
+          content: formatDiscordAlertMessage(alert),
+          allowed_mentions: {
+            parse: [],
+          },
+        }),
       }),
-    });
+    );
 
     if (!response.ok) {
       throw new Error(`Discord webhook failed: ${response.status} ${response.statusText}`);
@@ -74,21 +89,35 @@ export class DiscordDispatcher implements AlertDeliveryChannel {
   }
 }
 
-export function formatDiscordAlertMessage(alert: PromotedAlert): string {
-  const fillSize = alert.signal.evidence.find((entry) => entry.field === 'fill_size_usd')?.value ?? 'n/a';
+export function formatDiscordAlertMessage(alert: PresentableAlert): string {
+  const walletUrl = buildPolygonscanAddressUrl(alert.walletAddress);
+  const meaningLine = formatAlertMeaning(alert);
+  const links = alert.marketUrl
+    ? `Market <${alert.marketUrl}> | Wallet <${walletUrl}>`
+    : `Wallet <${walletUrl}>`;
 
   return [
-    `**${escapeDiscordMarkdown(alert.deliveryTier)} OMEN alert**`,
-    `**Signal**: \`${escapeDiscordCode(alert.signal.signalId)}\``,
+    `**${escapeDiscordMarkdown(formatAlertHeadline(alert.deliveryTier, alert.signal.signalId))}**`,
     `**Market**: ${escapeDiscordMarkdown(alert.marketQuestion)}`,
-    `**Wallet**: \`${escapeDiscordCode(alert.walletAddress)}\``,
-    `**Live score**: ${alert.walletLiveScore} (${escapeDiscordMarkdown(alert.walletLiveTier)})`,
-    `**Fill size**: $${escapeDiscordMarkdown(String(fillSize))}`,
+    ...(meaningLine ? [`*${escapeDiscordMarkdown(meaningLine)}*`] : []),
+    '',
+    `**Action**: ${escapeDiscordMarkdown(formatAlertTradeAction(alert))}`,
+    `**Fill**: $${escapeDiscordMarkdown(formatAlertFillSize(alert))}`,
+    `**Score**: ${escapeDiscordMarkdown(formatAlertScore(alert))}`,
+    `**Wallet**: \`${escapeDiscordCode(formatAlertShortWallet(alert.walletAddress))}\``,
+    `**Quick links**: ${links}`,
+    ...(alert.linkedTradeContext
+      ? ['', `**Context**: ${escapeDiscordMarkdown(formatLinkedTradeContextSummary(alert.linkedTradeContext))}`]
+      : []),
   ].join('\n');
 }
 
 function escapeDiscordMarkdown(value: string): string {
-  return suppressDiscordMentions(value)
+  return suppressDiscordMentions(
+    sanitizeText(value, {
+      preserveNewlines: false,
+    }),
+  )
     .replaceAll('\\', '\\\\')
     .replaceAll('*', '\\*')
     .replaceAll('_', '\\_')
@@ -99,7 +128,11 @@ function escapeDiscordMarkdown(value: string): string {
 }
 
 function escapeDiscordCode(value: string): string {
-  return suppressDiscordMentions(value).replaceAll('`', '\\`');
+  return suppressDiscordMentions(
+    sanitizeText(value, {
+      preserveNewlines: false,
+    }),
+  ).replaceAll('`', '\\`');
 }
 
 function suppressDiscordMentions(value: string): string {

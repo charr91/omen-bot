@@ -19,25 +19,58 @@ export class RedisAlertDeduper {
   constructor(
     private readonly store: RedisDedupStore,
     private readonly cooldownMs: number,
+    private readonly minScoreIncrease = 10,
   ) {}
 
   async hasRecentDispatch(
     channel: AlertDeliveryChannelName,
-    alert: Pick<PromotedAlert, 'marketId' | 'walletAddress' | 'signal'>,
+    alert: Pick<PromotedAlert, 'marketId' | 'walletAddress' | 'signal' | 'walletLiveScore'>,
   ): Promise<boolean> {
-    return (await this.store.get(buildAlertDedupKey(channel, alert))) !== null;
+    const raw = await this.store.get(buildAlertDedupKey(channel, alert));
+    if (raw === null) {
+      return false;
+    }
+
+    const previousDispatch = parseStoredDispatch(raw);
+    const previousScore = previousDispatch.walletLiveScore ?? 0;
+
+    return alert.walletLiveScore - previousScore <= this.minScoreIncrease;
   }
 
   async markDispatched(
     channel: AlertDeliveryChannelName,
-    alert: Pick<PromotedAlert, 'marketId' | 'walletAddress' | 'signal'>,
+    alert: Pick<PromotedAlert, 'marketId' | 'walletAddress' | 'signal' | 'walletLiveScore'>,
     dispatchedAt = new Date(),
   ): Promise<void> {
     await this.store.set(
       buildAlertDedupKey(channel, alert),
-      dispatchedAt.toISOString(),
+      JSON.stringify({
+        dispatchedAt: dispatchedAt.toISOString(),
+        walletLiveScore: alert.walletLiveScore,
+      }),
       'PX',
       this.cooldownMs,
     );
+  }
+}
+
+function parseStoredDispatch(raw: string): {
+  dispatchedAt: string;
+  walletLiveScore: number | null;
+} {
+  try {
+    const parsed = JSON.parse(raw) as {
+      dispatchedAt?: string;
+      walletLiveScore?: number;
+    };
+    return {
+      dispatchedAt: parsed.dispatchedAt ?? raw,
+      walletLiveScore: typeof parsed.walletLiveScore === 'number' ? parsed.walletLiveScore : null,
+    };
+  } catch {
+    return {
+      dispatchedAt: raw,
+      walletLiveScore: null,
+    };
   }
 }

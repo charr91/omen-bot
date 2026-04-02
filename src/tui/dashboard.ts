@@ -1,7 +1,7 @@
 import { emitKeypressEvents } from 'node:readline';
 import type { IngestionCycleResult } from '../engine/index.js';
 import type { RuntimeStatsLog } from '../engine/runtime-stats.js';
-import type { PromotedAlert } from '../types/alert.js';
+import type { PresentableAlert, SignalPreview } from '../types/alert.js';
 import { renderDashboard, type AlertFeedFilter } from './render.js';
 
 interface TerminalDashboardOptions {
@@ -22,7 +22,8 @@ export class TerminalDashboard {
   private readonly stdout: NodeJS.WriteStream;
   private readonly onDryRunToggle?: (dryRun: boolean) => void;
   private readonly onQuit?: () => void;
-  private readonly alerts: PromotedAlert[] = [];
+  private readonly alerts: PresentableAlert[] = [];
+  private readonly signalPreviews: SignalPreview[] = [];
   private dryRun: boolean;
   private tierFilter: AlertFeedFilter = 'ALL';
   private helpVisible = false;
@@ -32,6 +33,7 @@ export class TerminalDashboard {
   private walletCount: number | null = null;
   private runtimeStats: RuntimeStatsLog | null = null;
   private shuttingDown = false;
+  private shutdownMessage: string | null = null;
   private started = false;
 
   constructor(options: TerminalDashboardOptions) {
@@ -52,7 +54,6 @@ export class TerminalDashboard {
     }
 
     this.started = true;
-    this.shuttingDown = false;
     emitKeypressEvents(this.stdin);
     this.stdin.setRawMode(true);
     this.stdin.resume();
@@ -77,10 +78,18 @@ export class TerminalDashboard {
     this.stdout.write('\x1b[0m\x1b[?25h\n');
   }
 
-  addAlert(alert: PromotedAlert): void {
+  addAlert(alert: PresentableAlert): void {
     this.alerts.unshift(alert);
     if (this.alerts.length > 100) {
       this.alerts.length = 100;
+    }
+    this.render();
+  }
+
+  addSignalPreview(preview: SignalPreview): void {
+    this.signalPreviews.unshift(preview);
+    if (this.signalPreviews.length > 100) {
+      this.signalPreviews.length = 100;
     }
     this.render();
   }
@@ -108,18 +117,22 @@ export class TerminalDashboard {
 
   beginShutdown(message = 'Shutting down...'): void {
     this.shuttingDown = true;
-    this.lastStatusMessage = message;
+    this.shutdownMessage = message;
     this.render();
   }
 
   private readonly handleKeypress = (_value: string, key: { ctrl?: boolean; name?: string }): void => {
     if (key.ctrl && key.name === 'c') {
-      this.onQuit?.();
+      this.requestQuit();
       return;
     }
 
     if (key.name === 'q') {
-      this.onQuit?.();
+      this.requestQuit();
+      return;
+    }
+
+    if (this.shuttingDown) {
       return;
     }
 
@@ -160,6 +173,7 @@ export class TerminalDashboard {
       width: this.stdout.columns ?? 100,
       height: this.stdout.rows ?? 24,
       alerts: this.alerts,
+      signalPreviews: this.signalPreviews,
       tierFilter: this.tierFilter,
       dryRun: this.dryRun,
       helpVisible: this.helpVisible,
@@ -169,10 +183,20 @@ export class TerminalDashboard {
       walletCount: this.walletCount,
       runtimeStats: this.runtimeStats,
       shuttingDown: this.shuttingDown,
+      shutdownMessage: this.shutdownMessage,
     });
 
     this.stdout.write(`\x1b[2J\x1b[H${output}`);
   };
+
+  private requestQuit(): void {
+    if (this.shuttingDown) {
+      return;
+    }
+
+    this.beginShutdown();
+    this.onQuit?.();
+  }
 }
 
 function cycleTierFilter(current: AlertFeedFilter): AlertFeedFilter {

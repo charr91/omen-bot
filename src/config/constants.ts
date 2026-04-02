@@ -1,1 +1,1 @@
-export const SCORING_VERSION = 'phase1-v1';
+export const SCORING_VERSION = 'phase1-v2';

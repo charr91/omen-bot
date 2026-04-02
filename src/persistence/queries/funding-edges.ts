@@ -42,7 +42,8 @@ export function createFundingEdgeStore(pool: Pick<Pool, 'query'>): FundingEdgeSt
       const canonicalRootWallet = canonicalizeEvmAddress(rootWallet);
       await pool.query('delete from funding_edges where lower(root_wallet) = $1', [canonicalRootWallet]);
 
-      for (const edge of edges) {
+      const uniqueEdges = dedupeEdges(canonicalRootWallet, edges);
+      for (const edge of uniqueEdges) {
         await pool.query(
           `
             insert into funding_edges (
@@ -147,4 +148,23 @@ export function createFundingEdgeStore(pool: Pick<Pool, 'query'>): FundingEdgeSt
       }));
     },
   };
+}
+
+function dedupeEdges(rootWallet: string, edges: NewFundingEdge[]): NewFundingEdge[] {
+  const uniqueEdges = new Map<string, NewFundingEdge>();
+
+  for (const edge of edges) {
+    const key = [
+      rootWallet,
+      canonicalizeEvmAddress(edge.fromAddress),
+      canonicalizeEvmAddress(edge.toAddress),
+      edge.txHash,
+    ].join(':');
+
+    if (!uniqueEdges.has(key)) {
+      uniqueEdges.set(key, edge);
+    }
+  }
+
+  return [...uniqueEdges.values()];
 }

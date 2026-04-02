@@ -14,11 +14,18 @@ export async function sendTestTelegramAlert(
 }
 
 function buildTestTelegramAlert(): PromotedAlert {
+  const now = new Date();
   return {
     fillId: 'test-telegram-fill',
     walletAddress: '0x0000000000000000000000000000000000000001',
     marketId: 'test-telegram-market',
     marketQuestion: 'Test Telegram alert from Omen',
+    marketUrl: null,
+    fillSide: 'BUY',
+    fillOutcome: 'YES',
+    fillPrice: '0.99',
+    fillSizeUsd: '1234.560000',
+    fillTimestamp: now.toISOString(),
     walletLiveScore: 72,
     walletLiveTier: 'HIGH',
     deliveryTier: 'HIGH',
@@ -35,10 +42,10 @@ function buildTestTelegramAlert(): PromotedAlert {
           description: 'Synthetic test fill size',
         },
       ],
-      triggeredAt: new Date(),
+      triggeredAt: now,
     },
     promotedAlertId: null,
-    promotedAt: new Date().toISOString(),
+    promotedAt: now.toISOString(),
     dryRun: false,
   };
 }

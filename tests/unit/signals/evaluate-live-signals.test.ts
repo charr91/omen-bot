@@ -18,6 +18,26 @@ function makeConfig(): Pick<AppConfig, 'detection'> {
         largePositionMinUsd: 1_000,
         largePositionVolumePct: 0.02,
       },
+      nicheMarketEntry: {
+        maxMarketVolumeUsd: 100_000,
+        minFillUsd: 1_000,
+      },
+      convictionSizeMismatch: {
+        maxWalletTotalVolumeUsd: 5_000,
+        minFillToWalletVolumeRatio: 0.5,
+        longshotMaxPrice: 0.3,
+        minFillUsd: 250,
+      },
+      lumpEntry: {
+        minFillUsd: 500,
+        minLumpRatio: 0.8,
+      },
+      cluster: {
+        minSize: 3,
+        fundingMaxDepth: 4,
+        fanoutLimit: 5,
+        maxRpcCalls: 200,
+      },
     },
   };
 }
@@ -80,7 +100,26 @@ describe('evaluateLiveSignals', () => {
       fill: makeFill(),
       wallet: makeWallet(),
       market: makeMarket(),
-      config: makeConfig(),
+      config: {
+        detection: {
+          ...makeConfig().detection,
+          nicheMarketEntry: {
+            maxMarketVolumeUsd: 100_000,
+            minFillUsd: 2_000,
+          },
+          convictionSizeMismatch: {
+            maxWalletTotalVolumeUsd: 5_000,
+            minFillToWalletVolumeRatio: 0.5,
+            longshotMaxPrice: 0.3,
+            minFillUsd: 2_000,
+          },
+          lumpEntry: {
+            minFillUsd: 2_000,
+            minLumpRatio: 0.8,
+          },
+        },
+      },
+      cluster: null,
     });
 
     expect(signals.map((signal) => signal.signalId)).toEqual([
@@ -93,9 +132,28 @@ describe('evaluateLiveSignals', () => {
   it('returns only outsized-position for contract wallets', () => {
     const signals = evaluateLiveSignals({
       fill: makeFill(),
-      wallet: makeWallet({ isContract: true }),
+      wallet: makeWallet({ isContract: true, activityAgeKnown: false }),
       market: makeMarket(),
-      config: makeConfig(),
+      config: {
+        detection: {
+          ...makeConfig().detection,
+          nicheMarketEntry: {
+            maxMarketVolumeUsd: 100_000,
+            minFillUsd: 2_000,
+          },
+          convictionSizeMismatch: {
+            maxWalletTotalVolumeUsd: 5_000,
+            minFillToWalletVolumeRatio: 0.5,
+            longshotMaxPrice: 0.3,
+            minFillUsd: 2_000,
+          },
+          lumpEntry: {
+            minFillUsd: 2_000,
+            minLumpRatio: 0.8,
+          },
+        },
+      },
+      cluster: null,
     });
 
     expect(signals.map((signal) => signal.signalId)).toEqual(['OUTSIZED_POSITION']);
@@ -107,6 +165,7 @@ describe('evaluateLiveSignals', () => {
       wallet: makeWallet({ isWhitelisted: true }),
       market: makeMarket(),
       config: makeConfig(),
+      cluster: null,
     });
 
     expect(signals).toEqual([]);

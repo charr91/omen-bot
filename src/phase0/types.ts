@@ -18,6 +18,7 @@ export interface ActiveAsset {
 
 export interface ActiveMarket {
   conditionId: string;
+  eventSlug: string | null;
   marketSlug: string | null;
   question: string;
   dailyVolumeUsd: string;

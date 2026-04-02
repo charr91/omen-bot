@@ -223,4 +223,35 @@ describe('AlchemyWalletProfiler', () => {
       vi.useRealTimers();
     }
   });
+
+  it('resolves a controller address only when a contract has a single plausible inbound sender', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (_input, init) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        method: string;
+      };
+
+      switch (payload.method) {
+        case 'eth_getCode':
+          return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: '0x1234' }));
+        case 'alchemy_getAssetTransfers':
+          return new Response(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: 1,
+              result: {
+                transfers: [{ blockNum: '0x10', from: '0xController' }],
+              },
+            }),
+          );
+        default:
+          throw new Error(`Unexpected RPC method ${payload.method}`);
+      }
+    });
+
+    const profiler = new AlchemyWalletProfiler('alchemy-key', {
+      fetchImpl,
+    });
+
+    await expect(profiler.resolveControllerAddress('0xcontract')).resolves.toBe('0xcontroller');
+  });
 });

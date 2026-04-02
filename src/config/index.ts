@@ -94,6 +94,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
         fundingMaxDepth: fileConfig.detection.cluster.funding_max_depth,
         fanoutLimit: fileConfig.detection.cluster.fanout_limit,
         maxRpcCalls: fileConfig.detection.cluster.max_rpc_calls,
+        sameMarketSameSideWindowMs: fileConfig.detection.cluster.same_market_same_side_window_ms,
       },
     },
     alerts: {
@@ -102,6 +103,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       mediumMinScore: fileConfig.alerts.medium_min_score,
       lowMinScore: fileConfig.alerts.low_min_score,
       dedupCooldownMs: fileConfig.alerts.dedup_cooldown_ms,
+      dedupScoreIncrease: fileConfig.alerts.dedup_score_increase,
     },
     operational: {
       dryRun: envConfig.OMEN_OPERATIONAL_DRY_RUN ?? fileConfig.operational.dry_run,

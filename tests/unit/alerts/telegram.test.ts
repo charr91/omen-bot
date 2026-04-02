@@ -10,6 +10,12 @@ function makeAlert(): PromotedAlert {
     walletAddress: '0xabc',
     marketId: 'market-1',
     marketQuestion: 'Will "<X>" & Y happen?',
+    marketUrl: 'https://polymarket.com/event/election-2026/will-x-y-happen',
+    fillSide: 'BUY',
+    fillOutcome: 'YES',
+    fillPrice: '0.62',
+    fillSizeUsd: '1234',
+    fillTimestamp: '2026-03-31T02:00:00.000Z',
     walletLiveScore: 62,
     walletLiveTier: 'HIGH',
     deliveryTier: 'HIGH',
@@ -37,8 +43,16 @@ function makeAlert(): PromotedAlert {
 describe('Telegram alert delivery', () => {
   it('formats escaped HTML messages', () => {
     const message = formatTelegramAlertMessage(makeAlert());
-    expect(message).toContain('Will &quot;&lt;X&gt;&quot; &amp; Y happen?');
-    expect(message).toContain('<code>OUTSIZED_POSITION</code>');
+    expect(message).toContain('<b>HIGH | OUTSIZED_POSITION</b>');
+    expect(message).toContain(
+      '<a href="https://polymarket.com/event/election-2026/will-x-y-happen">Will &quot;&lt;X&gt;&quot; &amp; Y happen?</a>',
+    );
+    expect(message).toContain(
+      '<i>This trade is unusually large for this market: $1,234 against a threshold of $1,000.</i>',
+    );
+    expect(message).toContain('<b>Action</b>: Bought YES @ 0.62');
+    expect(message).toContain('<b>Fill</b>: $1,234');
+    expect(message).toContain('<b>Wallet</b>: <a href="https://polygonscan.com/address/0xabc">0xabc</a>');
   });
 
   it('suppresses Telegram sends in dry-run mode', async () => {
@@ -51,6 +65,7 @@ describe('Telegram alert delivery', () => {
           mediumMinScore: 40,
           lowMinScore: 20,
           dedupCooldownMs: 60_000,
+          dedupScoreIncrease: 10,
         },
         operational: {
           dryRun: true,
@@ -104,6 +119,7 @@ describe('Telegram alert delivery', () => {
           mediumMinScore: 40,
           lowMinScore: 20,
           dedupCooldownMs: 60_000,
+          dedupScoreIncrease: 10,
         },
         operational: {
           dryRun: false,
@@ -151,6 +167,7 @@ describe('Telegram alert delivery', () => {
           mediumMinScore: 40,
           lowMinScore: 20,
           dedupCooldownMs: 60_000,
+          dedupScoreIncrease: 10,
         },
         operational: {
           dryRun: false,
@@ -166,7 +183,9 @@ describe('Telegram alert delivery', () => {
         },
       },
       {
-        get: vi.fn().mockResolvedValue('2026-03-31T02:01:00.000Z'),
+        get: vi
+          .fn()
+          .mockResolvedValue('{"dispatchedAt":"2026-03-31T02:01:00.000Z","walletLiveScore":62}'),
         set: vi.fn().mockResolvedValue('OK'),
       },
       { fetchImpl },
@@ -201,6 +220,7 @@ describe('Telegram alert delivery', () => {
           mediumMinScore: 40,
           lowMinScore: 20,
           dedupCooldownMs: 60_000,
+          dedupScoreIncrease: 10,
         },
         operational: {
           dryRun: false,

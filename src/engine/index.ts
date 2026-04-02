@@ -1,7 +1,9 @@
 import type { Logger } from 'pino';
 import type { Pool } from 'pg';
+import { enrichAlertWithLinkedTradeContext } from '../alerts/context.js';
 import type { AlertDispatchResult } from '../alerts/channel.js';
 import { AlertDispatcher } from '../alerts/dispatcher.js';
+import { buildPolymarketMarketUrl } from '../alerts/links.js';
 import { promoteSignalPreview } from '../alerts/promote.js';
 import { createFundingGraphRebuildJobQueue } from '../cold-path/queue.js';
 import { ColdWorkerSupervisor } from '../cold-path/supervisor.js';
@@ -9,11 +11,13 @@ import { loadAppConfig } from '../config/index.js';
 import { HotWorkerClient } from '../hot-worker/client.js';
 import { createPolymarketFillSource, type FillSource } from '../ingestion/polymarket-client.js';
 import { createAppLogger, emitStructuredLog } from '../logging/logger.js';
+import { ActiveMarketCatalog } from '../markets/catalog.js';
 import { sleep } from '../phase0/io.js';
 import { RuntimeStatsCollector } from './runtime-stats.js';
 import { createDbPool } from '../persistence/db.js';
-import { createAlertStore, type AlertStore } from '../persistence/queries/alerts.js';
+import { createAlertStore, type AlertStore, type PendingStoredAlert } from '../persistence/queries/alerts.js';
 import { createFillStore, type FillStore } from '../persistence/queries/fills.js';
+import { createIngestQuarantineStore } from '../persistence/queries/ingest-quarantine.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { ensurePersistenceSchema } from '../persistence/schema.js';
 import { collectHealthReport } from '../resilience/health.js';
@@ -90,7 +94,33 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   const redis = createRedisClient(config);
   const alertStore = createAlertStore(pool);
   const fillStore = createFillStore(pool);
-  const fillSource = createPolymarketFillSource(config.ingestion.maxPagesPerPoll);
+  const quarantineStore = createIngestQuarantineStore(pool);
+  const marketCatalog = new ActiveMarketCatalog();
+  const fillSource = createPolymarketFillSource(config.ingestion.maxPagesPerPoll, {
+    onInvalidTrade: async (observation) => {
+      try {
+        await quarantineStore.recordFailure({
+          source: observation.source,
+          rawPayload: observation.rawPayload,
+          failureReason: observation.failureReason,
+        });
+      } catch (error) {
+        logger.error({
+          type: 'ingest-quarantine',
+          status: 'persist-failed',
+          source: observation.source,
+          failureReason: observation.failureReason,
+          error: formatError(error),
+        });
+        return;
+      }
+      emitStructuredLog(logger, {
+        type: 'ingest-quarantine',
+        source: observation.source,
+        failureReason: observation.failureReason,
+      });
+    },
+  });
   const runtimeStatsCollector = new RuntimeStatsCollector();
   const signalPreviewTasks = new Set<Promise<void>>();
   let stopping = false;
@@ -131,6 +161,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
         logger,
       });
     },
+    pipeOutput: options.tui === true,
   });
   const hotWorker = new HotWorkerClient(config, {
     onSignalPreview: (message) => {
@@ -139,6 +170,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
         handleSignalPreview({
           preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
           alertStore,
+          fillStore,
           alertDispatcher,
           dashboard,
           logger,
@@ -158,16 +190,24 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   process.on('SIGTERM', stop);
 
   try {
-    await pingRedis(redis);
-    await ensurePersistenceSchema(pool);
-    coldWorkerSupervisor.start();
     dashboard?.start();
+    dashboard?.notify('Initializing runtime...');
+
+    await pingRedis(redis);
+    dashboard?.notify('Redis ready. Checking persistence schema...');
+    await ensurePersistenceSchema(pool);
+    dashboard?.notify('Persistence ready. Starting cold worker...');
+    coldWorkerSupervisor.start();
+    dashboard?.notify('Cold worker started. Restoring pending alerts...');
     await dispatchPendingAlerts({
       alertStore,
+      fillStore,
       alertDispatcher,
+      marketCatalog,
       dashboard,
       logger,
     });
+    dashboard?.notify('Runtime ready.');
     await refreshDashboardCounts(pool, dashboard).catch((error) => {
       reportOperatorError({
         message: `[tui] ${formatError(error)}`,
@@ -286,6 +326,7 @@ export async function runReplayCommand(): Promise<number> {
   const alertStore = createAlertStore(pool);
   const fillStore = createFillStore(pool);
   const alertDispatcher = new AlertDispatcher(config, redis);
+  const marketCatalog = new ActiveMarketCatalog();
   const signalPreviewTasks = new Set<Promise<void>>();
   const hotWorker = new HotWorkerClient(config, {
     onSignalPreview: (message) => {
@@ -294,6 +335,7 @@ export async function runReplayCommand(): Promise<number> {
         handleSignalPreview({
           preview: withEffectiveDryRun(message, alertDispatcher.isDryRun()),
           alertStore,
+          fillStore,
           alertDispatcher,
           dashboard: null,
           logger,
@@ -315,7 +357,9 @@ export async function runReplayCommand(): Promise<number> {
     await ensurePersistenceSchema(pool);
     await dispatchPendingAlerts({
       alertStore,
+      fillStore,
       alertDispatcher,
+      marketCatalog,
       dashboard: null,
       logger,
     });
@@ -402,11 +446,12 @@ async function schedulePendingFills(
 async function handleSignalPreview(options: {
   preview: SignalPreview;
   alertStore: AlertStore;
+  fillStore: FillStore;
   alertDispatcher: AlertDispatcher;
   dashboard: TerminalDashboard | null;
   logger: Logger;
 }): Promise<void> {
-  const { preview, alertStore, alertDispatcher, dashboard, logger } = options;
+  const { preview, alertStore, fillStore, alertDispatcher, dashboard, logger } = options;
   if (dashboard === null) {
     emitStructuredLog(logger, {
       type: 'signal-preview',
@@ -416,14 +461,16 @@ async function handleSignalPreview(options: {
 
   const promotedAlert = promoteSignalPreview(preview);
   if (!promotedAlert) {
+    dashboard?.addSignalPreview(preview);
     return;
   }
 
-  dashboard?.addAlert(promotedAlert);
   const storedAlert = await resolveStoredAlert(promotedAlert, alertStore, alertDispatcher);
+  const presentableAlert = await enrichAlertWithLinkedTradeContext(storedAlert, fillStore);
+  dashboard?.addAlert(presentableAlert);
 
   try {
-    const result = await alertDispatcher.dispatch(promotedAlert);
+    const result = await alertDispatcher.dispatch(presentableAlert);
     await alertStore.recordDispatchResult(storedAlert.id, result);
     if (dashboard === null) {
       emitStructuredLog(logger, buildAlertDispatchLog(storedAlert, result, preview.dryRun));
@@ -564,7 +611,9 @@ async function waitForPendingTasks(pending: Set<Promise<void>>): Promise<void> {
 
 async function dispatchPendingAlerts(options: {
   alertStore: AlertStore;
+  fillStore: FillStore;
   alertDispatcher: AlertDispatcher;
+  marketCatalog: ActiveMarketCatalog;
   dashboard: TerminalDashboard | null;
   logger: Logger;
 }): Promise<void> {
@@ -585,13 +634,19 @@ async function dispatchPendingAlerts(options: {
 
     let madeTerminalProgress = false;
     for (const alert of candidates) {
-      options.dashboard?.addAlert(alert);
+      const alertWithFreshMarketUrl = await refreshAlertMarketUrl(
+        alert,
+        options.alertStore,
+        options.marketCatalog,
+      );
+      const presentableAlert = await enrichAlertWithLinkedTradeContext(alertWithFreshMarketUrl, options.fillStore);
+      options.dashboard?.addAlert(presentableAlert);
       const missingChannels = options.alertDispatcher
-        .getEnabledChannels(alert.deliveryTier)
-        .filter((channel) => !alert.deliveredChannels.includes(channel));
+        .getEnabledChannels(presentableAlert.deliveryTier)
+        .filter((channel) => !presentableAlert.deliveredChannels.includes(channel));
       try {
-        const result = await options.alertDispatcher.dispatch(alert, { channels: missingChannels });
-        await options.alertStore.recordDispatchResult(alert.id, result);
+        const result = await options.alertDispatcher.dispatch(presentableAlert, { channels: missingChannels });
+        await options.alertStore.recordDispatchResult(presentableAlert.id, result);
         if (
           result.channelResults.some(
             (channelResult) =>
@@ -601,7 +656,10 @@ async function dispatchPendingAlerts(options: {
           madeTerminalProgress = true;
         }
         if (options.dashboard === null) {
-          emitStructuredLog(options.logger, buildAlertDispatchLog(alert, result, alert.dryRun));
+          emitStructuredLog(
+            options.logger,
+            buildAlertDispatchLog(presentableAlert, result, presentableAlert.dryRun),
+          );
         }
         if (result.failedChannels.length > 0) {
           reportOperatorError({
@@ -630,8 +688,41 @@ async function resolveStoredAlert(
   alertStore: AlertStore,
   alertDispatcher: AlertDispatcher,
 ): Promise<StoredAlert> {
-  return alertStore.upsertPromotedAlert(
+  const storedAlert = await alertStore.upsertPromotedAlert(
     promotedAlert,
     !promotedAlert.dryRun && alertDispatcher.getEnabledChannels(promotedAlert.deliveryTier).length > 0,
   );
+
+  return {
+    ...storedAlert,
+    marketUrl: promotedAlert.marketUrl ?? storedAlert.marketUrl,
+    fillSide: storedAlert.fillSide,
+    fillOutcome: storedAlert.fillOutcome,
+    fillPrice: promotedAlert.fillPrice ?? storedAlert.fillPrice,
+    fillSizeUsd: promotedAlert.fillSizeUsd ?? storedAlert.fillSizeUsd,
+    fillTimestamp: promotedAlert.fillTimestamp ?? storedAlert.fillTimestamp,
+  };
+}
+
+async function refreshAlertMarketUrl(
+  alert: PendingStoredAlert,
+  alertStore: AlertStore,
+  marketCatalog: ActiveMarketCatalog,
+): Promise<PendingStoredAlert> {
+  const market = await marketCatalog.getMarket(alert.marketId);
+  if (market === null) {
+    return alert;
+  }
+
+  const marketUrl = buildPolymarketMarketUrl(market.eventSlug, market.marketSlug);
+  if (!marketUrl || marketUrl === alert.marketUrl) {
+    return alert;
+  }
+
+  await alertStore.updateMarketUrl(alert.id, marketUrl);
+
+  return {
+    ...alert,
+    marketUrl,
+  };
 }

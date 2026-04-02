@@ -1,5 +1,5 @@
 import type { AppConfig } from '../config/schema.js';
-import type { PromotedAlert } from '../types/alert.js';
+import type { PresentableAlert } from '../types/alert.js';
 import type {
   AlertChannelDispatchResult,
   AlertDeliveryChannel,
@@ -34,7 +34,11 @@ export class AlertDispatcher {
     redis: RedisDispatchStore,
     options: AlertDispatcherOptions = {},
   ) {
-    this.deduper = new RedisAlertDeduper(redis, config.alerts.dedupCooldownMs);
+    this.deduper = new RedisAlertDeduper(
+      redis,
+      config.alerts.dedupCooldownMs,
+      config.alerts.dedupScoreIncrease,
+    );
     this.channels = [new TelegramDispatcher(config, options), new DiscordDispatcher(config, options)];
     this.dryRun = config.operational.dryRun;
   }
@@ -47,13 +51,13 @@ export class AlertDispatcher {
     this.dryRun = dryRun;
   }
 
-  getEnabledChannels(tier: PromotedAlert['deliveryTier']): AlertDeliveryChannelName[] {
+  getEnabledChannels(tier: PresentableAlert['deliveryTier']): AlertDeliveryChannelName[] {
     return this.channels
       .filter((channel) => channel.isEnabledForTier(tier))
       .map((channel) => channel.name);
   }
 
-  async dispatch(alert: PromotedAlert, options: DispatchOptions = {}): Promise<AlertDispatchResult> {
+  async dispatch(alert: PresentableAlert, options: DispatchOptions = {}): Promise<AlertDispatchResult> {
     const requestedChannels = options.channels ?? null;
     const enabledChannels = this.channels.filter(
       (channel) =>

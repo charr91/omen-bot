@@ -65,6 +65,7 @@ export const fileConfigSchema = z
             funding_max_depth: z.number().int().positive().optional(),
             fanout_limit: z.number().int().positive().optional(),
             max_rpc_calls: z.number().int().positive().optional(),
+            same_market_same_side_window_ms: z.number().int().positive().optional(),
           })
           .optional(),
       })
@@ -76,6 +77,7 @@ export const fileConfigSchema = z
         medium_min_score: z.number().min(0).max(100).optional(),
         low_min_score: z.number().min(0).max(100).optional(),
         dedup_cooldown_ms: z.number().int().positive().optional(),
+        dedup_score_increase: z.number().nonnegative().optional(),
       })
       .optional(),
     operational: z
@@ -133,6 +135,8 @@ export const fileConfigSchema = z
         funding_max_depth: value.detection?.cluster?.funding_max_depth ?? 4,
         fanout_limit: value.detection?.cluster?.fanout_limit ?? 5,
         max_rpc_calls: value.detection?.cluster?.max_rpc_calls ?? 200,
+        same_market_same_side_window_ms:
+          value.detection?.cluster?.same_market_same_side_window_ms ?? 60 * 60_000,
       },
     },
     alerts: {
@@ -141,6 +145,7 @@ export const fileConfigSchema = z
       medium_min_score: value.alerts?.medium_min_score ?? 40,
       low_min_score: value.alerts?.low_min_score ?? 20,
       dedup_cooldown_ms: value.alerts?.dedup_cooldown_ms ?? 86_400_000,
+      dedup_score_increase: value.alerts?.dedup_score_increase ?? 10,
     },
     operational: {
       dry_run: value.operational?.dry_run ?? false,
@@ -228,6 +233,7 @@ export interface AppConfig {
       fundingMaxDepth: number;
       fanoutLimit: number;
       maxRpcCalls: number;
+      sameMarketSameSideWindowMs: number;
     };
   };
   alerts: {
@@ -236,6 +242,7 @@ export interface AppConfig {
     mediumMinScore: number;
     lowMinScore: number;
     dedupCooldownMs: number;
+    dedupScoreIncrease: number;
   };
   operational: {
     dryRun: boolean;

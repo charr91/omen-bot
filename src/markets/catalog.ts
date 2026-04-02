@@ -47,6 +47,7 @@ export class ActiveMarketCatalog {
       for (const market of result.markets) {
         this.markets.set(market.conditionId, {
           id: market.conditionId,
+          eventSlug: market.eventSlug,
           question: market.question,
           marketSlug: market.marketSlug,
           dailyVolumeUsd: market.dailyVolumeUsd,

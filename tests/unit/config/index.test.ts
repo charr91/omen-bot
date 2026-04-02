@@ -55,9 +55,13 @@ high_min_score = 70
 medium_min_score = 50
 low_min_score = 30
 dedup_cooldown_ms = 60000
+dedup_score_increase = 12
 
 [operational]
 dry_run = true
+
+[detection.cluster]
+same_market_same_side_window_ms = 1800000
 
 [backpressure]
 hot_worker_queue_depth = 55
@@ -91,7 +95,9 @@ shutdown_timeout_ms = 45000
     expect(config.detection.market.largePositionVolumePct).toBe(0.05);
     expect(config.alerts.highMinScore).toBe(70);
     expect(config.alerts.dedupCooldownMs).toBe(60_000);
+    expect(config.alerts.dedupScoreIncrease).toBe(12);
     expect(config.operational.dryRun).toBe(true);
+    expect(config.detection.cluster.sameMarketSameSideWindowMs).toBe(1_800_000);
     expect(config.backpressure.hotWorkerQueueDepth).toBe(55);
     expect(config.coldPath.concurrency).toBe(2);
     expect(config.coldPath.rebuildFailureCooldownMs).toBe(120_000);
@@ -195,6 +201,8 @@ shutdown_timeout_ms = 30000
     expect(config.ingestion.maxPagesPerPoll).toBe(20);
     expect(config.operational.dryRun).toBe(false);
     expect(config.backpressure.hotWorkerQueueDepth).toBe(100);
+    expect(config.alerts.dedupScoreIncrease).toBe(10);
+    expect(config.detection.cluster.sameMarketSameSideWindowMs).toBe(3_600_000);
     expect(config.coldPath.concurrency).toBe(1);
     expect(config.coldPath.rebuildFailureCooldownMs).toBe(900_000);
     expect(config.coldPath.shutdownTimeoutMs).toBe(30_000);

@@ -6,6 +6,7 @@ import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { runProxyOverrideCommand, runQuarantineCommand, runWhitelistCommand } from './admin/commands.js';
 import { sendTestTelegramAlert } from './alerts/test-telegram.js';
 import { runColdWorkerCommand } from './cold-path/runtime.js';
 import { runHealthCommand, runReplayCommand, runStartCommand } from './engine/index.js';
@@ -38,6 +39,9 @@ Usage:
   omen [--env-file .env] health
   omen [--env-file .env] test-telegram
   omen [--env-file .env] cold-worker
+  omen [--env-file .env] whitelist <list|add|remove> [...]
+  omen [--env-file .env] proxy-override <list|set|clear> [...]
+  omen [--env-file .env] quarantine <list|show> [...]
   omen [--env-file .env.server] validate-fills capture --hours 24 --out .phase0-data/run-001 [--use-auth] [--detach]
   omen [--env-file .env.server] validate-fills analyze --input .phase0-data/run-001
 
@@ -84,6 +88,21 @@ async function main(): Promise<void> {
 
   if (scope === 'cold-worker' && rest.length === 0) {
     await runColdWorkerCommand();
+    return;
+  }
+
+  if (scope === 'whitelist') {
+    await runWhitelistCommand(rest);
+    return;
+  }
+
+  if (scope === 'proxy-override') {
+    await runProxyOverrideCommand(rest);
+    return;
+  }
+
+  if (scope === 'quarantine') {
+    await runQuarantineCommand(rest);
     return;
   }
 

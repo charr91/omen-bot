@@ -1,5 +1,6 @@
 import pino, { type Logger, type LoggerOptions } from 'pino';
 import type { AppConfig } from '../config/schema.js';
+import { sanitizeForLogPayload } from '../resilience/sanitizer.js';
 
 export function createAppLogger(
   config: Pick<AppConfig, 'logLevel' | 'logPretty'>,
@@ -20,5 +21,5 @@ export function createAppLogger(
 }
 
 export function emitStructuredLog<T extends object>(logger: Logger, payload: T): void {
-  logger.info(payload);
+  logger.info(sanitizeForLogPayload(payload));
 }

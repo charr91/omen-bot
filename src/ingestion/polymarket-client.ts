@@ -11,19 +11,30 @@ export interface FillSource {
   listRecentFills(cursor: FillCursor | null): Promise<NewFill[]>;
 }
 
+export interface InvalidTradeObservation {
+  source: 'polymarket_rest';
+  rawPayload: JsonObject;
+  failureReason: string;
+}
+
 interface ListRecentFillsOptions {
   cursor: FillCursor | null;
   maxPagesPerPoll: number;
   fetchPage?: (offset: number) => Promise<JsonObject[]>;
+  onInvalidTrade?: (observation: InvalidTradeObservation) => Promise<void>;
 }
 
-export function createPolymarketFillSource(maxPagesPerPoll: number): FillSource {
+export function createPolymarketFillSource(
+  maxPagesPerPoll: number,
+  options: Pick<ListRecentFillsOptions, 'onInvalidTrade'> = {},
+): FillSource {
   return {
-    listRecentFills: (cursor) =>
-      listRecentFills({
-        cursor,
-        maxPagesPerPoll,
-      }),
+      listRecentFills: (cursor) =>
+        listRecentFills({
+          cursor,
+          maxPagesPerPoll,
+          onInvalidTrade: options.onInvalidTrade,
+        }),
   };
 }
 
@@ -62,10 +73,16 @@ export async function listRecentFills(options: ListRecentFillsOptions): Promise<
         pageAllOlderThanCursor = false;
       }
 
-      const fill = normalizeTradeToFill(trade);
-      if (!fill) {
+      const parsedTrade = parseTradeToFill(trade);
+      if (parsedTrade.kind === 'invalid') {
+        await options.onInvalidTrade?.({
+          source: 'polymarket_rest',
+          rawPayload: trade,
+          failureReason: parsedTrade.reason,
+        });
         continue;
       }
+      const fill = parsedTrade.fill;
 
       const fillTimestampMs = fill.timestamp.getTime();
       if (cursorTimestampMs !== null && fillTimestampMs < cursorTimestampMs) {
@@ -105,6 +122,13 @@ export async function listRecentFills(options: ListRecentFillsOptions): Promise<
 }
 
 export function normalizeTradeToFill(trade: JsonObject): NewFill | null {
+  const parsedTrade = parseTradeToFill(trade);
+  return parsedTrade.kind === 'ok' ? parsedTrade.fill : null;
+}
+
+export function parseTradeToFill(trade: JsonObject):
+  | { kind: 'ok'; fill: NewFill }
+  | { kind: 'invalid'; reason: string } {
   const tokenId = getString(trade, ['asset', 'asset_id']);
   const marketId = getString(trade, ['conditionId', 'condition_id', 'market']);
   const walletAddress = getString(trade, ['proxyWallet', 'proxy_wallet']);
@@ -128,23 +152,39 @@ export function normalizeTradeToFill(trade: JsonObject): NewFill | null {
     shares <= 0 ||
     timestampRaw === null
   ) {
-    return null;
+    return {
+      kind: 'invalid',
+      reason: buildInvalidTradeReason({
+        tokenId,
+        marketId,
+        walletAddress,
+        txHash,
+        outcome,
+        side,
+        price,
+        shares,
+        timestampRaw,
+      }),
+    };
   }
 
   const timestamp = new Date(parseTimestampMs(timestampRaw));
   return {
-    id: randomUUID(),
-    marketId,
-    tokenId,
-    walletAddress: canonicalizeEvmAddress(walletAddress),
-    side,
-    outcome,
-    price: formatNumeric(price),
-    shares: formatNumeric(shares),
-    sizeUsd: formatNumeric(price * shares),
-    txHash,
-    orderType: 'UNKNOWN',
-    timestamp,
+    kind: 'ok',
+    fill: {
+      id: randomUUID(),
+      marketId,
+      tokenId,
+      walletAddress: canonicalizeEvmAddress(walletAddress),
+      side,
+      outcome,
+      price: formatNumeric(price),
+      shares: formatNumeric(shares),
+      sizeUsd: formatNumeric(price * shares),
+      txHash,
+      orderType: 'UNKNOWN',
+      timestamp,
+    },
   };
 }
 
@@ -172,4 +212,46 @@ function getTradeTimestampMs(trade: JsonObject): number | null {
 
 function formatNumeric(value: number): string {
   return value.toFixed(6);
+}
+
+function buildInvalidTradeReason(input: {
+  tokenId: string | null;
+  marketId: string | null;
+  walletAddress: string | null;
+  txHash: string | null;
+  outcome: FillOutcome | null;
+  side: ReturnType<typeof normalizeSide>;
+  price: number | null;
+  shares: number | null;
+  timestampRaw: number | string | null;
+}): string {
+  if (!input.tokenId) {
+    return 'missing asset/token id';
+  }
+  if (!input.marketId) {
+    return 'missing market/condition id';
+  }
+  if (!input.walletAddress) {
+    return 'missing proxy wallet';
+  }
+  if (!input.txHash) {
+    return 'missing transaction hash';
+  }
+  if (!input.outcome) {
+    return 'missing or invalid outcome';
+  }
+  if (input.side === 'UNKNOWN') {
+    return 'missing or invalid trade side';
+  }
+  if (input.price === null || input.price <= 0) {
+    return 'missing or invalid trade price';
+  }
+  if (input.shares === null || input.shares <= 0) {
+    return 'missing or invalid trade size';
+  }
+  if (input.timestampRaw === null) {
+    return 'missing timestamp';
+  }
+
+  return 'invalid trade payload';
 }

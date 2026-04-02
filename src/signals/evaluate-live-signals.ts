@@ -1,7 +1,11 @@
 import type { AppConfig } from '../config/schema.js';
 import { clampSuspicionScore } from './scoring.js';
+import { evaluateConvictionSizeMismatch } from './conviction-size-mismatch.js';
 import { evaluateFreshWalletLargePosition } from './fresh-wallet-large-position.js';
+import { evaluateLumpEntry } from './lump-entry.js';
+import { evaluateNicheMarketEntry } from './niche-market-entry.js';
 import { evaluateOutsizedPosition } from './outsized-position.js';
+import { evaluateSybilCluster, type LiveClusterSignalContext } from './sybil-cluster.js';
 import type { FillRecord } from '../types/fill.js';
 import type { MarketInfo } from '../types/market.js';
 import type { TriggeredSignal } from '../types/signal.js';
@@ -12,10 +16,12 @@ interface EvaluateLiveSignalsContext {
   wallet: WalletProfile;
   market: MarketInfo | null;
   config: Pick<AppConfig, 'detection'>;
+  cluster: LiveClusterSignalContext | null;
 }
 
 export function evaluateLiveSignals(context: EvaluateLiveSignalsContext): TriggeredSignal[] {
-  if (context.wallet.isWhitelisted || context.market === null) {
+  const market = context.market;
+  if (context.wallet.isWhitelisted || market === null) {
     return [];
   }
 
@@ -23,23 +29,59 @@ export function evaluateLiveSignals(context: EvaluateLiveSignalsContext): Trigge
 
   const outsizedPosition = evaluateOutsizedPosition({
     fill: context.fill,
-    market: context.market,
+    market,
     config: context.config,
   });
   if (outsizedPosition) {
     signals.push(outsizedPosition);
   }
 
-  if (!context.wallet.isContract) {
-    const freshWalletLargePosition = evaluateFreshWalletLargePosition({
+  const nicheMarketEntry = evaluateNicheMarketEntry({
+    fill: context.fill,
+    market,
+    config: context.config,
+  });
+  if (nicheMarketEntry) {
+    signals.push(nicheMarketEntry);
+  }
+
+  const lumpEntry = evaluateLumpEntry({
+    fill: context.fill,
+    wallet: context.wallet,
+    config: context.config,
+  });
+  if (lumpEntry) {
+    signals.push(lumpEntry);
+  }
+
+  const convictionSizeMismatch = evaluateConvictionSizeMismatch({
+    fill: context.fill,
+    wallet: context.wallet,
+    config: context.config,
+  });
+  if (convictionSizeMismatch) {
+    signals.push(convictionSizeMismatch);
+  }
+
+  const sybilCluster = evaluateSybilCluster({
+    fill: context.fill,
+    cluster: context.cluster,
+    config: context.config,
+  });
+  if (sybilCluster) {
+    signals.push(sybilCluster);
+  }
+
+  // Contract wallets remain eligible here because the hot worker rewrites the wallet
+  // profile with resolved controller age/tx data when attribution succeeds.
+  const freshWalletLargePosition = evaluateFreshWalletLargePosition({
       fill: context.fill,
       wallet: context.wallet,
-      market: context.market,
+      market,
       config: context.config,
     });
-    if (freshWalletLargePosition) {
-      signals.push(freshWalletLargePosition);
-    }
+  if (freshWalletLargePosition) {
+    signals.push(freshWalletLargePosition);
   }
 
   return signals;

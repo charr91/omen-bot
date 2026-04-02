@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
 import { canonicalizeEvmAddress } from '../../evm/address.js';
 import { stableObservationKey } from '../../phase0/json.js';
-import type { FillRecord, NewFill } from '../../types/fill.js';
+import type { FillRecord, FillSide, NewFill } from '../../types/fill.js';
 
 interface FillRow {
   id: string;
@@ -45,8 +45,22 @@ export interface FillStore {
   getLatestFillCursor(): Promise<FillCursor | null>;
   insertFill(fill: NewFill): Promise<boolean>;
   listUnanalyzedFills(limit: number): Promise<FillRecord[]>;
+  listMarketFillsByWallets(
+    marketId: string,
+    walletAddresses: string[],
+    windowStart: Date,
+    boundary: { fillTimestamp: Date; fillId: string },
+    options?: { side?: FillSide },
+  ): Promise<FillRecord[]>;
   markFillAnalyzed(fillId: string): Promise<void>;
   getRuntimeSummary(): Promise<FillRuntimeSummary>;
+  countDistinctWalletsForMarketSideWindow(
+    marketId: string,
+    side: FillRecord['side'],
+    walletAddresses: string[],
+    since: Date,
+    until: Date,
+  ): Promise<number>;
 }
 
 export function createFillStore(pool: Pick<Pool, 'query'>): FillStore {
@@ -142,10 +156,58 @@ export function createFillStore(pool: Pick<Pool, 'query'>): FillStore {
             created_at
           from fills
           where analyzed = false
-          order by timestamp asc
+          order by timestamp asc, id asc
           limit $1
         `,
         [limit],
+      );
+
+      return result.rows.map(mapFillRow);
+    },
+
+    async listMarketFillsByWallets(
+      marketId: string,
+      walletAddresses: string[],
+      windowStart: Date,
+      boundary: { fillTimestamp: Date; fillId: string },
+      options: { side?: FillSide } = {},
+    ): Promise<FillRecord[]> {
+      if (walletAddresses.length === 0) {
+        return [];
+      }
+
+      const canonicalWalletAddresses = [
+        ...new Set(walletAddresses.map((walletAddress) => canonicalizeEvmAddress(walletAddress))),
+      ];
+      const result = await pool.query<FillRow>(
+        `
+          select
+            id,
+            market_id,
+            token_id,
+            wallet_address,
+            side,
+            outcome,
+            price::text as price,
+            shares::text as shares,
+            size_usd::text as size_usd,
+            tx_hash,
+            order_type,
+            timestamp,
+            analyzed,
+            created_at
+          from fills
+          where market_id = $1
+            and lower(wallet_address) = any($2::text[])
+            and timestamp >= $3
+            and ($6::text is null or side = $6)
+            and (
+              timestamp < $4
+              or (timestamp = $4 and id <= $5)
+            )
+          order by timestamp asc, id asc
+        `,
+        [marketId, canonicalWalletAddresses, windowStart, boundary.fillTimestamp, boundary.fillId, options.side ?? null],
       );
 
       return result.rows.map(mapFillRow);
@@ -169,6 +231,34 @@ export function createFillStore(pool: Pick<Pool, 'query'>): FillStore {
         unanalyzedFillCount: Number(result.rows[0]?.unanalyzed_count ?? '0'),
         newestFillTimestamp: result.rows[0]?.newest_fill_timestamp ?? null,
       };
+    },
+
+    async countDistinctWalletsForMarketSideWindow(
+      marketId: string,
+      side: FillRecord['side'],
+      walletAddresses: string[],
+      since: Date,
+      until: Date,
+    ): Promise<number> {
+      const canonicalWalletAddresses = [...new Set(walletAddresses.map((address) => canonicalizeEvmAddress(address)))];
+      if (canonicalWalletAddresses.length === 0) {
+        return 0;
+      }
+
+      const result = await pool.query<{ count: string }>(
+        `
+          select count(distinct lower(wallet_address))::text as count
+          from fills
+          where market_id = $1
+            and side = $2
+            and lower(wallet_address) = any($3::text[])
+            and timestamp >= $4
+            and timestamp <= $5
+        `,
+        [marketId, side, canonicalWalletAddresses, since, until],
+      );
+
+      return Number(result.rows[0]?.count ?? '0');
     },
   };
 }

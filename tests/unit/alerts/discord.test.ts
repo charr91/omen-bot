@@ -10,6 +10,12 @@ function makeAlert(): PromotedAlert {
     walletAddress: '0xabc',
     marketId: 'market-1',
     marketQuestion: 'Will @everyone and <@&123> *really* `move`?',
+    marketUrl: 'https://polymarket.com/event/election-2026/test-market',
+    fillSide: 'BUY',
+    fillOutcome: 'YES',
+    fillPrice: '0.62',
+    fillSizeUsd: '1234',
+    fillTimestamp: '2026-03-31T02:00:00.000Z',
     walletLiveScore: 62,
     walletLiveTier: 'HIGH',
     deliveryTier: 'HIGH',
@@ -37,8 +43,12 @@ function makeAlert(): PromotedAlert {
 describe('Discord alert delivery', () => {
   it('formats Discord-safe content and suppresses mentions', () => {
     const message = formatDiscordAlertMessage(makeAlert());
+    expect(message).toContain('**HIGH \\| OUTSIZED\\_POSITION**');
     expect(message).toContain('Will @\u200beveryone and <\u200b@&123\\> \\*really\\* \\`move\\`?');
-    expect(message).toContain('**HIGH OMEN alert**');
+    expect(message).toContain('*This trade is unusually large for this market: $1,234 against a threshold of $1,000.*');
+    expect(message).toContain('**Action**: Bought YES @ 0.62');
+    expect(message).toContain('**Fill**: $1,234');
+    expect(message).toContain('**Quick links**: Market <https://polymarket.com/event/election-2026/test-market> | Wallet <https://polygonscan.com/address/0xabc>');
   });
 
   it('dispatches through the configured webhook with disabled mentions', async () => {
@@ -90,6 +100,7 @@ describe('Discord alert delivery', () => {
           mediumMinScore: 40,
           lowMinScore: 20,
           dedupCooldownMs: 60_000,
+          dedupScoreIncrease: 10,
         },
         operational: {
           dryRun: false,
@@ -150,6 +161,7 @@ describe('Discord alert delivery', () => {
           mediumMinScore: 40,
           lowMinScore: 20,
           dedupCooldownMs: 60_000,
+          dedupScoreIncrease: 10,
         },
         operational: {
           dryRun: false,
@@ -205,6 +217,7 @@ describe('Discord alert delivery', () => {
           mediumMinScore: 40,
           lowMinScore: 20,
           dedupCooldownMs: 60_000,
+          dedupScoreIncrease: 10,
         },
         operational: {
           dryRun: false,

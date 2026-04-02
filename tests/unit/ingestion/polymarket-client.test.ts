@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { listRecentFills, normalizeTradeToFill } from '../../../src/ingestion/polymarket-client.js';
 import type { JsonObject } from '../../../src/phase0/types.js';
 
@@ -69,5 +69,26 @@ describe('polymarket fill source', () => {
 
     expect(offsets).toEqual([0, 500]);
     expect(fills.map((fill) => fill.txHash)).toEqual(['0xtx-2', '0xtx-1']);
+  });
+
+  it('reports invalid public trades through the quarantine callback', async () => {
+    const onInvalidTrade = vi.fn().mockResolvedValue(undefined);
+
+    const fills = await listRecentFills({
+      cursor: null,
+      maxPagesPerPoll: 1,
+      onInvalidTrade,
+      fetchPage: async () => [
+        makeTrade({ proxyWallet: '' }),
+        makeTrade({ transactionHash: '0xtx-2' }),
+      ],
+    });
+
+    expect(fills).toHaveLength(1);
+    expect(onInvalidTrade).toHaveBeenCalledTimes(1);
+    expect(onInvalidTrade.mock.calls[0]?.[0]).toMatchObject({
+      source: 'polymarket_rest',
+      failureReason: 'missing proxy wallet',
+    });
   });
 });

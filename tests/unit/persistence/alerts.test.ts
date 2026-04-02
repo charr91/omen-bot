@@ -45,6 +45,7 @@ describe('createAlertStore', () => {
           wallet_address: '0xabc123',
           market_id: 'market-1',
           fill_id: 'fill-1',
+          market_url: null,
           signal_id: SignalId.OUTSIZED_POSITION,
           signal_availability: 'LIVE',
           signal_score: 12,
@@ -69,7 +70,7 @@ describe('createAlertStore', () => {
     expect(query).toHaveBeenCalledTimes(1);
     expect(query.mock.calls[0]?.[1]?.[1]).toBe('0xabc123');
     expect(query.mock.calls[0]?.[1]?.[8]).toBe(JSON.stringify(makeAlert().signal.evidence));
-    expect(query.mock.calls[0]?.[1]?.[16]).toBe(true);
+    expect(query.mock.calls[0]?.[1]?.[17]).toBe(true);
     expect(alert).toMatchObject({
       id: 'alert-1',
       walletAddress: '0xabc123',
@@ -88,6 +89,7 @@ describe('createAlertStore', () => {
           wallet_address: '0xabc123',
           market_id: 'market-1',
           fill_id: 'fill-1',
+          market_url: null,
           signal_id: SignalId.OUTSIZED_POSITION,
           signal_availability: 'LIVE',
           signal_score: 12,
@@ -114,6 +116,18 @@ describe('createAlertStore', () => {
         deliveredChannels: ['telegram'],
       }),
     ]);
+  });
+
+  it('updates only the stored market URL when refreshing pending alerts', async () => {
+    const query = vi.fn().mockResolvedValue({ rowCount: 1, rows: [] });
+    const store = createAlertStore({ query });
+
+    await store.updateMarketUrl('alert-1', 'https://polymarket.com/event/test-market');
+
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('update alerts'),
+      ['alert-1', 'https://polymarket.com/event/test-market'],
+    );
   });
 
   it('records one delivery row per channel result and stamps terminal delivery time only for terminal statuses', async () => {

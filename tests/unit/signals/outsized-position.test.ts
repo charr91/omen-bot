@@ -17,6 +17,26 @@ function makeConfig(): Pick<AppConfig, 'detection'> {
         largePositionMinUsd: 1_000,
         largePositionVolumePct: 0.02,
       },
+      nicheMarketEntry: {
+        maxMarketVolumeUsd: 100_000,
+        minFillUsd: 1_000,
+      },
+      convictionSizeMismatch: {
+        maxWalletTotalVolumeUsd: 5_000,
+        minFillToWalletVolumeRatio: 0.5,
+        longshotMaxPrice: 0.3,
+        minFillUsd: 250,
+      },
+      lumpEntry: {
+        minFillUsd: 500,
+        minLumpRatio: 0.8,
+      },
+      cluster: {
+        minSize: 3,
+        fundingMaxDepth: 4,
+        fanoutLimit: 5,
+        maxRpcCalls: 200,
+      },
     },
   };
 }

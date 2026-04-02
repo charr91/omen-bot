@@ -15,12 +15,34 @@ niche_max_volume = 100_000
 large_position_min_usd = 1_000
 large_position_volume_pct = 0.02
 
+[detection.niche_market_entry]
+max_market_volume_usd = 100_000
+min_fill_usd = 1_000
+
+[detection.conviction_size_mismatch]
+max_wallet_total_volume_usd = 5_000
+min_fill_to_wallet_volume_ratio = 0.50
+longshot_max_price = 0.30
+min_fill_usd = 250
+
+[detection.lump_entry]
+min_fill_usd = 500
+min_lump_ratio = 0.80
+
+[detection.cluster]
+min_size = 3
+funding_max_depth = 4
+fanout_limit = 5
+max_rpc_calls = 200
+same_market_same_side_window_ms = 3_600_000
+
 [alerts]
 critical_min_score = 80
 high_min_score = 60
 medium_min_score = 40
 low_min_score = 20
 dedup_cooldown_ms = 86_400_000
+dedup_score_increase = 10
 
 [operational]
 dry_run = false

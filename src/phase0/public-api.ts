@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CircuitBreaker } from '../resilience/circuit-breaker.js';
 import {
   ACTIVE_MARKETS_PAGE_SIZE,
   BOOK_REQUEST_BATCH_SIZE,
@@ -17,6 +18,7 @@ import {
 import type { ActiveAsset, ActiveMarket, JsonObject } from './types.js';
 
 const jsonArraySchema = z.array(z.unknown());
+const polymarketRestCircuitBreaker = new CircuitBreaker('polymarket rest');
 
 export async function fetchActiveAssets(): Promise<{
   assets: ActiveAsset[];
@@ -75,6 +77,7 @@ export async function fetchActiveMarkets(): Promise<{
       return [
         {
           conditionId,
+          eventSlug: extractEventSlug(market),
           marketSlug: getString(market, ['slug', 'market_slug']),
           question: getString(market, ['question', 'title']) ?? 'Unknown market',
           dailyVolumeUsd: formatNumericString(
@@ -120,7 +123,7 @@ export async function fetchOrderBooks(assetIds: string[]): Promise<JsonObject[]>
 }
 
 async function fetchJson(url: URL, init?: RequestInit): Promise<unknown> {
-  const response = await fetch(url, init);
+  const response = await polymarketRestCircuitBreaker.execute(async () => fetch(url, init));
 
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status} ${response.statusText} for ${url}`);
@@ -189,6 +192,28 @@ function extractOutcomes(market: JsonObject): string[] {
   }
 
   return parseStringArray(getJsonArray(market, ['outcomes']) ?? getString(market, ['outcomes']));
+}
+
+function extractEventSlug(market: JsonObject): string | null {
+  const directSlug = getString(market, ['eventSlug', 'event_slug']);
+  if (directSlug) {
+    return directSlug;
+  }
+
+  const events = getJsonArray(market, ['events']);
+  if (!events) {
+    return null;
+  }
+
+  for (const entry of events) {
+    const event = asJsonObject(entry, 'gamma event');
+    const slug = getString(event, ['slug', 'eventSlug', 'event_slug']);
+    if (slug) {
+      return slug;
+    }
+  }
+
+  return null;
 }
 
 function formatNumericString(value: number): string {

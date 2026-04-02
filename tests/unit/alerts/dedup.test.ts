@@ -37,7 +37,10 @@ describe('RedisAlertDeduper', () => {
   });
 
   it('marks dispatched alerts with a cooldown TTL', async () => {
-    const get = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce('2026-03-31T02:01:00.000Z');
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce('{"dispatchedAt":"2026-03-31T02:01:00.000Z","walletLiveScore":52}');
     const set = vi.fn().mockResolvedValue('OK');
     const deduper = new RedisAlertDeduper({ get, set }, 60_000);
     const alert = makeAlert();
@@ -48,9 +51,67 @@ describe('RedisAlertDeduper', () => {
 
     expect(set).toHaveBeenCalledWith(
       'omen:dedup:telegram:market-1:0xabc:OUTSIZED_POSITION',
-      '2026-03-31T02:01:00.000Z',
+      '{"dispatchedAt":"2026-03-31T02:01:00.000Z","walletLiveScore":52}',
       'PX',
       60_000,
     );
+  });
+
+  it('allows re-alerting when the wallet score increases beyond the configured threshold', async () => {
+    const deduper = new RedisAlertDeduper(
+      {
+        get: vi
+          .fn()
+          .mockResolvedValue('{"dispatchedAt":"2026-03-31T02:01:00.000Z","walletLiveScore":40}'),
+        set: vi.fn().mockResolvedValue('OK'),
+      },
+      60_000,
+      10,
+    );
+
+    await expect(
+      deduper.hasRecentDispatch('telegram', {
+        ...makeAlert(),
+        walletLiveScore: 55,
+      }),
+    ).resolves.toBe(false);
+  });
+
+  it('continues suppressing when the wallet score increase only equals the threshold', async () => {
+    const deduper = new RedisAlertDeduper(
+      {
+        get: vi
+          .fn()
+          .mockResolvedValue('{"dispatchedAt":"2026-03-31T02:01:00.000Z","walletLiveScore":40}'),
+        set: vi.fn().mockResolvedValue('OK'),
+      },
+      60_000,
+      10,
+    );
+
+    await expect(
+      deduper.hasRecentDispatch('telegram', {
+        ...makeAlert(),
+        walletLiveScore: 50,
+      }),
+    ).resolves.toBe(true);
+  });
+
+  it('treats legacy ISO-string dedup entries as zero-score baselines', async () => {
+    const deduper = new RedisAlertDeduper(
+      {
+        get: vi.fn().mockResolvedValue('2026-03-31T02:01:00.000Z'),
+        set: vi.fn().mockResolvedValue('OK'),
+      },
+      60_000,
+      10,
+    );
+
+    await expect(
+      deduper.hasRecentDispatch('telegram', {
+        ...makeAlert(),
+        walletLiveScore: 52,
+      }),
+    ).resolves.toBe(false);
   });
 });

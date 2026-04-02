@@ -142,6 +142,7 @@ const CREATE_ALERTS_TABLE_SQL = `
     signal_triggered_at timestamptz not null,
     scoring_version text not null,
     market_question text not null,
+    market_url text,
     wallet_live_score double precision not null,
     wallet_live_tier text not null,
     delivery_tier text not null,
@@ -187,7 +188,9 @@ const CREATE_ALERT_DELIVERIES_SUPPORTING_INDEXES_SQL = [
 const CREATE_WHALE_WHITELIST_TABLE_SQL = `
   create table if not exists whale_whitelist (
     wallet_address text primary key,
+    label text not null default '',
     reason text not null,
+    added_by text not null default 'manual',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
   );
@@ -195,6 +198,56 @@ const CREATE_WHALE_WHITELIST_TABLE_SQL = `
 
 const CREATE_WHALE_WHITELIST_SUPPORTING_INDEXES_SQL = [
   'create index if not exists idx_whale_whitelist_wallet_canonical on whale_whitelist ((lower(wallet_address)));',
+];
+
+const CREATE_PROXY_OVERRIDES_TABLE_SQL = `
+  create table if not exists proxy_overrides (
+    contract_address text primary key,
+    controller_address text not null,
+    reason text not null,
+    added_by text not null default 'manual',
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  );
+`;
+
+const CREATE_PROXY_OVERRIDES_SUPPORTING_INDEXES_SQL = [
+  'create index if not exists idx_proxy_overrides_contract_canonical on proxy_overrides ((lower(contract_address)));',
+  'create index if not exists idx_proxy_overrides_controller_canonical on proxy_overrides ((lower(controller_address)));',
+];
+
+const CREATE_AUDIT_LOG_TABLE_SQL = `
+  create table if not exists audit_log (
+    id text primary key,
+    action text not null,
+    target_address text not null,
+    actor text not null,
+    old_value jsonb,
+    new_value jsonb,
+    reason text not null,
+    created_at timestamptz not null default now()
+  );
+`;
+
+const CREATE_AUDIT_LOG_SUPPORTING_INDEXES_SQL = [
+  'create index if not exists idx_audit_log_target_canonical on audit_log ((lower(target_address)));',
+  'create index if not exists idx_audit_log_action on audit_log (action);',
+  'create index if not exists idx_audit_log_created_at on audit_log (created_at);',
+];
+
+const CREATE_INGEST_QUARANTINE_TABLE_SQL = `
+  create table if not exists ingest_quarantine (
+    id text primary key,
+    source text not null,
+    raw_payload jsonb not null,
+    failure_reason text not null,
+    created_at timestamptz not null default now()
+  );
+`;
+
+const CREATE_INGEST_QUARANTINE_SUPPORTING_INDEXES_SQL = [
+  'create index if not exists idx_ingest_quarantine_source on ingest_quarantine (source);',
+  'create index if not exists idx_ingest_quarantine_created_at on ingest_quarantine (created_at);',
 ];
 
 export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promise<void> {
@@ -221,6 +274,7 @@ export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promis
   }
 
   await pool.query(CREATE_ALERTS_TABLE_SQL);
+  await pool.query('alter table alerts add column if not exists market_url text;');
   for (const statement of CREATE_ALERTS_SUPPORTING_INDEXES_SQL) {
     await pool.query(statement);
   }
@@ -231,7 +285,42 @@ export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promis
   }
 
   await pool.query(CREATE_WHALE_WHITELIST_TABLE_SQL);
+  await pool.query("alter table whale_whitelist add column if not exists label text not null default '';");
+  await pool.query("alter table whale_whitelist add column if not exists added_by text not null default 'manual';");
   for (const statement of CREATE_WHALE_WHITELIST_SUPPORTING_INDEXES_SQL) {
+    await pool.query(statement);
+  }
+
+  await pool.query(CREATE_PROXY_OVERRIDES_TABLE_SQL);
+  for (const statement of CREATE_PROXY_OVERRIDES_SUPPORTING_INDEXES_SQL) {
+    await pool.query(statement);
+  }
+
+  await pool.query(CREATE_AUDIT_LOG_TABLE_SQL);
+  for (const statement of CREATE_AUDIT_LOG_SUPPORTING_INDEXES_SQL) {
+    await pool.query(statement);
+  }
+
+  await pool.query(CREATE_INGEST_QUARANTINE_TABLE_SQL);
+  await pool.query('alter table ingest_quarantine add column if not exists source text;');
+  await pool.query('alter table ingest_quarantine add column if not exists raw_payload jsonb;');
+  await pool.query("update ingest_quarantine set raw_payload = '{}'::jsonb where raw_payload is null;");
+  await pool.query('alter table ingest_quarantine alter column raw_payload set not null;');
+  await pool.query('alter table ingest_quarantine add column if not exists error_reason text;');
+  await pool.query('alter table ingest_quarantine add column if not exists failure_reason text;');
+  await pool.query(
+    "update ingest_quarantine set failure_reason = coalesce(failure_reason, error_reason, 'unknown') where failure_reason is null;",
+  );
+  await pool.query('alter table ingest_quarantine alter column failure_reason set not null;');
+  await pool.query(
+    'update ingest_quarantine set error_reason = failure_reason where error_reason is null;',
+  );
+  await pool.query('alter table ingest_quarantine alter column error_reason set not null;');
+  await pool.query('alter table ingest_quarantine add column if not exists created_at timestamptz;');
+  await pool.query('update ingest_quarantine set created_at = now() where created_at is null;');
+  await pool.query('alter table ingest_quarantine alter column created_at set default now();');
+  await pool.query('alter table ingest_quarantine alter column created_at set not null;');
+  for (const statement of CREATE_INGEST_QUARANTINE_SUPPORTING_INDEXES_SQL) {
     await pool.query(statement);
   }
 }

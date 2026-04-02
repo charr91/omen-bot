@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import type { Readable } from 'node:stream';
 import type { AppConfig } from '../config/schema.js';
 
 const DEFAULT_RESTART_DELAY_MS = 1_000;
@@ -6,6 +7,7 @@ const DEFAULT_RESTART_DELAY_MS = 1_000;
 interface ColdWorkerSupervisorOptions {
   onError?: (message: string) => void;
   onInfo?: (message: string) => void;
+  pipeOutput?: boolean;
   restartDelayMs?: number;
 }
 
@@ -60,18 +62,49 @@ export class ColdWorkerSupervisor {
   private spawnChild(): void {
     let handledUnexpectedExit = false;
     const runtimeUrl = resolveColdWorkerRuntimeUrl().href;
+    const pipeOutput = this.options.pipeOutput ?? false;
     const child = spawn(process.execPath, buildBootstrapArgs(), {
       cwd: process.cwd(),
       env: {
         ...process.env,
         OMEN_COLD_WORKER_RUNTIME_URL: runtimeUrl,
       },
-      stdio: 'inherit',
+      stdio: pipeOutput ? ['ignore', 'pipe', 'pipe'] : 'inherit',
     });
     this.child = child;
     this.options.onInfo?.(
       `[cold-worker] spawned pid ${child.pid ?? 'unknown'} with runtime ${runtimeUrl}`,
     );
+
+    if (pipeOutput) {
+      pipeChildOutput({
+        stream: child.stdout,
+        handleLine: (line) => {
+          const summary = summarizeColdWorkerLine(line);
+          if (!summary) {
+            return;
+          }
+
+          if (summary.level === 'error') {
+            this.options.onError?.(summary.message);
+            return;
+          }
+
+          this.options.onInfo?.(summary.message);
+        },
+      });
+      pipeChildOutput({
+        stream: child.stderr,
+        handleLine: (line) => {
+          const trimmed = line.trim();
+          if (trimmed.length === 0) {
+            return;
+          }
+
+          this.options.onError?.(`[cold-worker] ${trimmed}`);
+        },
+      });
+    }
 
     const handleUnexpectedExit = (message: string): void => {
       if (handledUnexpectedExit || this.stopping) {
@@ -163,4 +196,102 @@ async function wait(milliseconds: number): Promise<void> {
       timer.unref();
     }
   });
+}
+
+function pipeChildOutput(options: {
+  stream: Readable | null;
+  handleLine: (line: string) => void;
+}): void {
+  const stream = options.stream;
+  if (!stream) {
+    return;
+  }
+
+  stream.setEncoding('utf8');
+  let buffer = '';
+  stream.on('data', (chunk: string) => {
+    buffer += chunk;
+    while (true) {
+      const newlineIndex = buffer.indexOf('\n');
+      if (newlineIndex === -1) {
+        break;
+      }
+
+      const line = buffer.slice(0, newlineIndex);
+      buffer = buffer.slice(newlineIndex + 1);
+      options.handleLine(line);
+    }
+  });
+  stream.on('end', () => {
+    const line = buffer.trim();
+    if (line.length > 0) {
+      options.handleLine(line);
+    }
+  });
+}
+
+function summarizeColdWorkerLine(line: string): {
+  level: 'info' | 'error';
+  message: string;
+} | null {
+  const trimmed = line.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(trimmed) as {
+      component?: string;
+      type?: string;
+      status?: string;
+      walletAddress?: string | null;
+      error?: string | null;
+      concurrency?: number;
+      message?: string;
+    };
+
+    if (payload.component === 'cold-worker') {
+      if (payload.type === 'cold-worker' && payload.status === 'ready') {
+        return {
+          level: 'info',
+          message: `[cold-worker] ready${typeof payload.concurrency === 'number' ? ` (concurrency ${payload.concurrency})` : ''}`,
+        };
+      }
+
+      if (payload.type === 'cold-worker' && payload.status === 'heartbeat-failed') {
+        return {
+          level: 'error',
+          message: `[cold-worker] heartbeat failed${payload.error ? `: ${payload.error}` : ''}`,
+        };
+      }
+
+      if (payload.type === 'cold-path-job' && payload.status === 'failed') {
+        return {
+          level: 'error',
+          message: `[cold-worker] rebuild failed for ${payload.walletAddress ?? 'unknown wallet'}${payload.error ? `: ${payload.error}` : ''}`,
+        };
+      }
+    }
+
+    if (payload.error) {
+      return {
+        level: 'error',
+        message: `[cold-worker/${payload.component ?? 'child'}] ${payload.error}`,
+      };
+    }
+
+    if (typeof payload.message === 'string' && payload.message.trim().length > 0) {
+      return {
+        level: payload.status === 'failed' ? 'error' : 'info',
+        message: `[cold-worker/${payload.component ?? 'child'}] ${payload.message.trim()}`,
+      };
+    }
+
+    return null;
+  } catch {
+    return {
+      level: 'error',
+      message: `[cold-worker] ${trimmed}`,
+    };
+  }
 }
