@@ -32,6 +32,7 @@ function makeConfig(): Pick<AppConfig, 'detection'> {
         minFillUsd: 500,
         minLumpRatio: 0.8,
       },
+      excludedCategories: {},
       cluster: {
         minSize: 3,
         minFillUsd: 25,
@@ -86,6 +87,7 @@ function makeFill(overrides: Partial<FillRecord> = {}): FillRecord {
 function makeMarket(overrides: Partial<MarketInfo> = {}): MarketInfo {
   return {
     id: 'market-1',
+    eventSlug: null,
     question: 'Question?',
     marketSlug: 'question',
     dailyVolumeUsd: '50000.000000',
@@ -158,6 +160,25 @@ describe('evaluateLiveSignals', () => {
     });
 
     expect(signals.map((signal) => signal.signalId)).toEqual(['OUTSIZED_POSITION']);
+  });
+
+  it('skips all live signals for markets matching excluded categories', () => {
+    const config = makeConfig();
+    config.detection.excludedCategories = {
+      weather: ['weather', 'rain'],
+    };
+    const signals = evaluateLiveSignals({
+      fill: makeFill(),
+      wallet: makeWallet(),
+      market: makeMarket({
+        eventSlug: 'will-it-rain-in-new-york',
+        question: 'Will it rain in New York on April 5?',
+      }),
+      config,
+      cluster: null,
+    });
+
+    expect(signals).toEqual([]);
   });
 
   it('skips all live signals for whitelisted wallets', () => {

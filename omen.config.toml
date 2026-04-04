@@ -15,6 +15,9 @@ niche_max_volume = 100_000
 large_position_min_usd = 1_000
 large_position_volume_pct = 0.02
 
+[detection.excluded_categories]
+weather = ["weather", "temperature", "rain", "snow", "hurricane", "tornado", "forecast", "celsius", "fahrenheit", "wind-speed", "wind speed"]
+
 [detection.niche_market_entry]
 max_market_volume_usd = 100_000
 min_fill_usd = 1_000

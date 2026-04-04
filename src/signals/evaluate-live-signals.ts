@@ -10,6 +10,7 @@ import type { FillRecord } from '../types/fill.js';
 import type { MarketInfo } from '../types/market.js';
 import type { TriggeredSignal } from '../types/signal.js';
 import type { WalletProfile } from '../types/wallet.js';
+import { isMarketExcluded } from './market-exclusion.js';
 
 interface EvaluateLiveSignalsContext {
   fill: FillRecord;
@@ -22,6 +23,10 @@ interface EvaluateLiveSignalsContext {
 export function evaluateLiveSignals(context: EvaluateLiveSignalsContext): TriggeredSignal[] {
   const market = context.market;
   if (context.wallet.isWhitelisted || market === null) {
+    return [];
+  }
+
+  if (isMarketExcluded(market, context.config.detection.excludedCategories)) {
     return [];
   }
 
