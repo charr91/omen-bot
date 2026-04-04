@@ -89,6 +89,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
         minFillUsd: fileConfig.detection.lump_entry.min_fill_usd,
         minLumpRatio: fileConfig.detection.lump_entry.min_lump_ratio,
       },
+      excludedCategories: fileConfig.detection.excluded_categories,
       cluster: {
         minSize: fileConfig.detection.cluster.min_size,
         minFillUsd: fileConfig.detection.cluster.min_fill_usd,

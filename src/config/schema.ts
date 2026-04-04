@@ -59,6 +59,7 @@ export const fileConfigSchema = z
             min_lump_ratio: z.number().positive().optional(),
           })
           .optional(),
+        excluded_categories: z.record(z.string(), z.array(z.string().min(1))).optional(),
         cluster: z
           .object({
             min_size: z.number().int().positive().optional(),
@@ -132,6 +133,7 @@ export const fileConfigSchema = z
         min_fill_usd: value.detection?.lump_entry?.min_fill_usd ?? 500,
         min_lump_ratio: value.detection?.lump_entry?.min_lump_ratio ?? 0.8,
       },
+      excluded_categories: value.detection?.excluded_categories ?? {},
       cluster: {
         min_size: value.detection?.cluster?.min_size ?? 3,
         min_fill_usd: value.detection?.cluster?.min_fill_usd ?? 200,
@@ -239,6 +241,7 @@ export interface AppConfig {
       minFillUsd: number;
       minLumpRatio: number;
     };
+    excludedCategories: Record<string, string[]>;
     cluster: {
       minSize: number;
       minFillUsd: number;
