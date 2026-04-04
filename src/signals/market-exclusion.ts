@@ -1,5 +1,9 @@
 import type { MarketInfo } from '../types/market.js';
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function isMarketExcluded(
   market: MarketInfo,
   excludedCategories: Record<string, string[]>,
@@ -11,7 +15,8 @@ export function isMarketExcluded(
 
   for (const keywords of Object.values(excludedCategories)) {
     for (const keyword of keywords) {
-      if (haystack.includes(keyword.toLowerCase())) {
+      const pattern = new RegExp(`\\b${escapeRegExp(keyword.toLowerCase())}\\b`);
+      if (pattern.test(haystack)) {
         return true;
       }
     }

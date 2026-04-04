@@ -60,8 +60,22 @@ describe('isMarketExcluded', () => {
   });
 
   it('does not match partial keywords within unrelated words', () => {
-    // "rain" appears in "brain" — this is a known trade-off of substring matching
     const market = makeMarket({ question: 'Will the brain-computer interface launch?' });
+    expect(isMarketExcluded(market, { weather: ['rain'] })).toBe(false);
+  });
+
+  it('does not match "rain" inside "ukraine"', () => {
+    const market = makeMarket({ question: 'Will Ukraine join the EU by 2030?' });
+    expect(isMarketExcluded(market, { weather: ['rain'] })).toBe(false);
+  });
+
+  it('matches "rain" as a standalone word', () => {
+    const market = makeMarket({ question: 'Will it rain in NYC tomorrow?' });
     expect(isMarketExcluded(market, { weather: ['rain'] })).toBe(true);
+  });
+
+  it('matches keyword at word boundary in slug with hyphens', () => {
+    const market = makeMarket({ marketSlug: 'will-it-snow-in-denver' });
+    expect(isMarketExcluded(market, { weather: ['snow'] })).toBe(true);
   });
 });
