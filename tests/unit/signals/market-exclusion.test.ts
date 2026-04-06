@@ -78,4 +78,45 @@ describe('isMarketExcluded', () => {
     const market = makeMarket({ marketSlug: 'will-it-snow-in-denver' });
     expect(isMarketExcluded(market, { weather: ['snow'] })).toBe(true);
   });
+
+  it('matches "highest temperature" in weather market question', () => {
+    const market = makeMarket({
+      question: 'Will the highest temperature in Moscow be 7°C on April 6?',
+    });
+    expect(isMarketExcluded(market, { weather: ['highest temperature'] })).toBe(true);
+  });
+
+  it('matches "both teams to score" in sports market question', () => {
+    const market = makeMarket({
+      question: 'Casa Pia AC vs. Sport Lisboa e Benfica: Both Teams to Score',
+    });
+    expect(isMarketExcluded(market, { sports: ['both teams to score'] })).toBe(true);
+  });
+
+  it('matches sports league in question', () => {
+    const market = makeMarket({
+      question: 'Premier League: Arsenal vs. Chelsea Match Winner',
+    });
+    expect(
+      isMarketExcluded(market, { sports: ['premier league'] }),
+    ).toBe(true);
+  });
+
+  it('matches expanded weather keyword "frost"', () => {
+    const market = makeMarket({ question: 'Will there be frost in Chicago on March 15?' });
+    expect(isMarketExcluded(market, { weather: ['frost'] })).toBe(true);
+  });
+
+  it('excludes sports market with football keyword in slug', () => {
+    const market = makeMarket({ marketSlug: 'monday-night-football-winner' });
+    expect(isMarketExcluded(market, { sports: ['football'] })).toBe(true);
+  });
+
+  it('does not false-positive on "score" in non-sports context', () => {
+    const market = makeMarket({ question: 'Will the approval score exceed 50%?' });
+    const excluded = {
+      sports: ['both teams to score', 'match result', 'goal scorer'],
+    };
+    expect(isMarketExcluded(market, excluded)).toBe(false);
+  });
 });
