@@ -16,7 +16,8 @@ large_position_min_usd = 1_000
 large_position_volume_pct = 0.02
 
 [detection.excluded_categories]
-weather = ["weather", "temperature", "rain", "snow", "hurricane", "tornado", "forecast", "celsius", "fahrenheit", "wind-speed", "wind speed"]
+weather = ["weather", "temperature", "high temperature", "low temperature", "highest temperature", "lowest temperature", "rain", "snow", "hurricane", "tornado", "forecast", "celsius", "fahrenheit", "wind-speed", "wind speed", "humidity", "heatwave", "heat wave", "heat-wave", "frost", "blizzard", "thunderstorm", "precipitation", "dew point", "dew-point", "warmest", "coldest"]
+sports = ["football", "soccer", "basketball", "baseball", "hockey", "tennis", "cricket", "rugby", "boxing", "mma", "ufc", "nfl", "nba", "mlb", "nhl", "fifa", "premier league", "premier-league", "la liga", "la-liga", "serie a", "serie-a", "bundesliga", "champions league", "champions-league", "europa league", "europa-league", "world cup", "world-cup", "super bowl", "super-bowl", "both teams to score", "both-teams-to-score", "match result", "match-result", "goal scorer", "goal-scorer", "half-time", "half time", "full-time", "full time"]
 
 [detection.niche_market_entry]
 max_market_volume_usd = 100_000
