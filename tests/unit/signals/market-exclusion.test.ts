@@ -119,4 +119,23 @@ describe('isMarketExcluded', () => {
     };
     expect(isMarketExcluded(market, excluded)).toBe(false);
   });
+
+  it('matches hyphenated slug variant of multi-word sports phrase', () => {
+    const market = makeMarket({
+      marketSlug: 'casa-pia-vs-benfica-both-teams-to-score',
+      question: 'Casa Pia vs Benfica',
+    });
+    expect(
+      isMarketExcluded(market, { sports: ['both-teams-to-score'] }),
+    ).toBe(true);
+  });
+
+  it('does not false-positive on "degrees" in non-weather context', () => {
+    const market = makeMarket({
+      question: 'Will the university award more than 1000 degrees this year?',
+    });
+    expect(isMarketExcluded(market, { weather: ['weather', 'temperature', 'forecast'] })).toBe(
+      false,
+    );
+  });
 });
