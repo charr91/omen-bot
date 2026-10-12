@@ -19,6 +19,9 @@ import { createFillStore, type FillStore } from '../persistence/queries/fills.js
 import { createIngestQuarantineStore } from '../persistence/queries/ingest-quarantine.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { readAlchemyCuUsage } from '../resilience/cu-meter.js';
+import { OutcomeTracker } from '../outcomes/tracker.js';
+import { createTradeOutcomeStore } from '../outcomes/store.js';
+import { createMarketMakerStore } from '../persistence/queries/market-maker.js';
 import { ensurePersistenceSchema } from '../persistence/schema.js';
 import { collectHealthReport } from '../resilience/health.js';
 import { TerminalDashboard } from '../tui/dashboard.js';
@@ -275,6 +278,41 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
       runtimeStatsTimer.unref();
     }
 
+    const outcomeTracker = config.outcomes.enabled
+      ? new OutcomeTracker({
+          store: createTradeOutcomeStore(pool),
+          marketMakers: createMarketMakerStore(pool),
+          baselinePerSignal: config.outcomes.baselinePerSignal,
+          baselineWindowHours: config.outcomes.baselineWindowHours,
+          marketMakerMinScore: config.marketMaker.minScore,
+        })
+      : null;
+    let outcomeRunning = false;
+    const runOutcomeTracker = (): void => {
+      if (!outcomeTracker || outcomeRunning || stopping) {
+        return;
+      }
+
+      outcomeRunning = true;
+      // Not awaited on shutdown: an interrupted run is simply redone next start.
+      void (
+        outcomeTracker
+          .runOnce()
+          .then((result) => {
+            emitStructuredLog(logger, { type: 'outcome-tracker', ...result });
+          })
+          .catch((error) => {
+            reportOperatorError({ message: `[outcomes] ${formatError(error)}`, dashboard, logger });
+          })
+          .finally(() => {
+            outcomeRunning = false;
+          })
+      );
+    };
+    const outcomeTimer = setInterval(runOutcomeTracker, config.outcomes.intervalMs);
+    outcomeTimer.unref?.();
+    runOutcomeTracker();
+
     try {
       while (!stopping) {
         try {
@@ -317,6 +355,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
       }
     } finally {
       clearInterval(runtimeStatsTimer);
+      clearInterval(outcomeTimer);
     }
   } finally {
     process.off('SIGINT', stop);

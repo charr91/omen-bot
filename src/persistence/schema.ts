@@ -1,3 +1,4 @@
+import { CREATE_TRADE_OUTCOMES_INDEXES_SQL, CREATE_TRADE_OUTCOMES_TABLE_SQL } from '../outcomes/store.js';
 import type { Pool } from 'pg';
 
 const CREATE_FILLS_TABLE_SQL = `
@@ -251,6 +252,10 @@ const CREATE_INGEST_QUARANTINE_SUPPORTING_INDEXES_SQL = [
 ];
 
 export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promise<void> {
+  await pool.query(CREATE_TRADE_OUTCOMES_TABLE_SQL);
+  for (const statement of CREATE_TRADE_OUTCOMES_INDEXES_SQL) {
+    await pool.query(statement);
+  }
   await pool.query(CREATE_FILLS_TABLE_SQL);
   await pool.query(CREATE_FILLS_UNIQUE_INDEX_SQL);
   for (const statement of CREATE_FILLS_SUPPORTING_INDEXES_SQL) {

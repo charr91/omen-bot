@@ -138,6 +138,16 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       shutdownTimeoutMs:
         envConfig.OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS ?? fileConfig.cold_path.shutdown_timeout_ms,
     },
+    outcomes: {
+      enabled: fileConfig.outcomes.enabled,
+      intervalMs: fileConfig.outcomes.interval_ms,
+      baselinePerSignal: fileConfig.outcomes.baseline_per_signal,
+      baselineWindowHours: fileConfig.outcomes.baseline_window_hours,
+    },
+    marketMaker: {
+      filterEnabled: fileConfig.market_maker.filter_enabled,
+      minScore: fileConfig.market_maker.min_score,
+    },
   };
 }
 

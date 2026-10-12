@@ -111,6 +111,20 @@ export const fileConfigSchema = z
         shutdown_timeout_ms: z.number().int().positive().optional(),
       })
       .optional(),
+    outcomes: z
+      .object({
+        enabled: z.boolean().optional(),
+        interval_ms: z.number().int().positive().optional(),
+        baseline_per_signal: z.number().int().nonnegative().optional(),
+        baseline_window_hours: z.number().positive().optional(),
+      })
+      .optional(),
+    market_maker: z
+      .object({
+        filter_enabled: z.boolean().optional(),
+        min_score: z.number().int().min(0).max(100).optional(),
+      })
+      .optional(),
   })
   .transform((value) => ({
     ingestion: {
@@ -183,6 +197,16 @@ export const fileConfigSchema = z
       concurrency: value.cold_path?.concurrency ?? 1,
       rebuild_failure_cooldown_ms: value.cold_path?.rebuild_failure_cooldown_ms ?? 15 * 60_000,
       shutdown_timeout_ms: value.cold_path?.shutdown_timeout_ms ?? 30_000,
+    },
+    outcomes: {
+      enabled: value.outcomes?.enabled ?? true,
+      interval_ms: value.outcomes?.interval_ms ?? 5 * 60_000,
+      baseline_per_signal: value.outcomes?.baseline_per_signal ?? 3,
+      baseline_window_hours: value.outcomes?.baseline_window_hours ?? 6,
+    },
+    market_maker: {
+      filter_enabled: value.market_maker?.filter_enabled ?? true,
+      min_score: value.market_maker?.min_score ?? 70,
     },
   }))
   .refine(
@@ -305,5 +329,17 @@ export interface AppConfig {
     concurrency: number;
     rebuildFailureCooldownMs: number;
     shutdownTimeoutMs: number;
+  };
+  /** Alert grading: price at +1h/+24h, resolution, and same-market baseline fills (M1). */
+  outcomes: {
+    enabled: boolean;
+    intervalMs: number;
+    baselinePerSignal: number;
+    baselineWindowHours: number;
+  };
+  /** insider-poly-bot market-maker heuristic: suppress signals from likely MMs and keep them out of baselines. */
+  marketMaker: {
+    filterEnabled: boolean;
+    minScore: number;
   };
 }

@@ -74,3 +74,16 @@ max_429_retries = 3
 min_profile_fill_usd = 200
 # Wallet chain-profile cache TTL (12h).
 profile_cache_ttl_ms = 43_200_000
+
+[outcomes]
+# Grade every signal fill at +1h, +24h and market resolution against ordinary same-market fills of similar size.
+enabled = true
+interval_ms = 300_000
+baseline_per_signal = 3
+baseline_window_hours = 6
+
+[market_maker]
+# insider-poly-bot heuristic (frequency 30 + buy/sell balance 40 + markets 20 + days active 10).
+# Likely MMs (score >= min_score) get no live signals and are excluded from baselines.
+filter_enabled = true
+min_score = 70
