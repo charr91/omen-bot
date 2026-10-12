@@ -64,7 +64,7 @@ describe('profile gate', () => {
     expect(defaults.alchemy.persisted_profile_ttl_ms).toBe(7 * 24 * 60 * 60_000);
 
     const file = fileConfigSchema.parse(parse(await readFile('omen.config.toml', 'utf8')));
-    expect(file.alchemy.min_profile_fill_usd).toBe(500);
+    expect(file.alchemy.min_profile_fill_usd).toBe(1_000);
     expect(file.alchemy.profile_cache_ttl_ms).toBe(86_400_000);
   });
 });

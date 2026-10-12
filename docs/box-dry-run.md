@@ -34,7 +34,7 @@ group is SIGKILLed.
 | max_wait_ms | 20000 | OMEN_ALCHEMY_MAX_WAIT_MS | max wait for capacity before a request is rejected |
 | max_queue | 500 | n/a | max waiters per bucket |
 | max_429_retries | 3 | n/a | retries on HTTP 429 (honours Retry-After) |
-| min_profile_fill_usd | 500 | OMEN_ALCHEMY_MIN_PROFILE_FILL_USD | Alchemy profiling only at/above this (capped at large_position_min_usd so fresh-wallet always gets a profile). Fills from the lowest signal min ($200) up to this are evaluated with the persisted/conservative profile (no CU); below $200 they are skipped |
+| min_profile_fill_usd | 500 (box: 1000) | OMEN_ALCHEMY_MIN_PROFILE_FILL_USD | Alchemy profiling only at/above this (capped at large_position_min_usd so fresh-wallet always gets a profile). Fills from the lowest signal min ($200) up to this are evaluated with the persisted/conservative profile (no CU); below $200 they are skipped |
 | profile_cache_ttl_ms | 86400000 | OMEN_ALCHEMY_PROFILE_CACHE_TTL_MS | in-memory wallet and controller profile cache TTL (24h) |
 | persisted_profile_ttl_ms | 604800000 | - | Postgres-persisted effective profiles of settled wallets (never fresh again), reused across restarts for 7d; per-day mode counts in Redis `omen:hot:profile-modes:<day>` |
 | daily_cu_budget | 1000000 | OMEN_ALCHEMY_DAILY_CU_BUDGET | CU per UTC day (about 30M/month); 0 = unlimited |
