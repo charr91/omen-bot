@@ -101,6 +101,9 @@ async function start(): Promise<void> {
 async function handleMessage(message: MainToHotWorkerMessage): Promise<void> {
   if (message.type === 'STOP') {
     stopping = true;
+    // Finish only the in-flight fill. Queued fills stay unanalyzed in Postgres and are replayed on next start.
+    queue.length = 0;
+    queuedFillIds.clear();
     if (!processing && queue.length === 0) {
       await shutdown();
     }
@@ -143,7 +146,7 @@ async function processQueue(): Promise<void> {
 
   processing = true;
   try {
-    while (queue.length > 0) {
+    while (queue.length > 0 && !stopping) {
       const fill = queue.shift();
       if (!fill) {
         continue;

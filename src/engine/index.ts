@@ -19,7 +19,6 @@ import { createFillStore, type FillStore } from '../persistence/queries/fills.js
 import { createIngestQuarantineStore } from '../persistence/queries/ingest-quarantine.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { readAlchemyCuUsage } from '../resilience/cu-meter.js';
-import { sleep } from '../phase0/io.js';
 import { ensurePersistenceSchema } from '../persistence/schema.js';
 import { collectHealthReport } from '../resilience/health.js';
 import { TerminalDashboard } from '../tui/dashboard.js';
@@ -129,6 +128,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   const signalPreviewTasks = new Set<Promise<void>>();
   let stopping = false;
 
+  const stopSignal = new AbortController();
   let lastCuDay: string | null = null;
   const stop = (): void => {
     if (stopping) {
@@ -136,6 +136,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
     }
 
     stopping = true;
+    stopSignal.abort();
     dashboard?.beginShutdown('Shutting down...');
   };
 
@@ -312,7 +313,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
           break;
         }
 
-        await sleep(config.ingestion.pollIntervalMs);
+        await sleepUnlessStopped(config.ingestion.pollIntervalMs, stopSignal.signal);
       }
     } finally {
       clearInterval(runtimeStatsTimer);
@@ -741,3 +742,18 @@ async function refreshAlertMarketUrl(
   };
 }
 
+async function sleepUnlessStopped(ms: number, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    const timer = setTimeout(done, ms);
+    function done(): void {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', done);
+      resolve();
+    }
+    signal.addEventListener('abort', done, { once: true });
+  });
+}

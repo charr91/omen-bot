@@ -61,7 +61,8 @@ async function main(): Promise<void> {
   if (scope === 'start') {
     const options = parseStartOptions(rest);
     await runStartCommand(options);
-    return;
+    // All workers, queues and pools are closed by now; exit so a stray handle cannot keep SIGTERM shutdown hanging.
+    process.exit(process.exitCode ?? 0);
   }
 
   if (scope === 'replay' && rest.length === 0) {

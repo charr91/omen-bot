@@ -20,15 +20,17 @@ LOG_PRETTY=false
 Every wallet profile then uses the conservative fallback and funding-graph jobs
 fail with a cooldown, so wallet-based signals cannot fire.
 
-`stop` sends SIGTERM to the process group, then SIGKILL after 60s, because
-SIGTERM shutdown of `start` does not complete cleanly yet (known issue).
+`stop` sends SIGTERM to the CLI, which stops ingestion, finishes the in-flight
+fill (queued fills stay unanalyzed and are replayed on next start), stops the
+cold-worker child and exits. If anything is still alive after 90s, the process
+group is SIGKILLed.
 
 ## Alchemy budget knobs (`[alchemy]` in omen.config.toml)
 
 | key | default | env override | purpose |
 |---|---|---|---|
-| hot_cu_per_second | 200 | OMEN_ALCHEMY_HOT_CU_PER_SECOND | hot-worker token bucket |
-| cold_cu_per_second | 80 | OMEN_ALCHEMY_COLD_CU_PER_SECOND | funding-graph token bucket |
+| hot_cu_per_second | 120 (code default 200) | OMEN_ALCHEMY_HOT_CU_PER_SECOND | hot-worker token bucket |
+| cold_cu_per_second | 160 (code default 80) | OMEN_ALCHEMY_COLD_CU_PER_SECOND | funding-graph token bucket |
 | max_wait_ms | 20000 | OMEN_ALCHEMY_MAX_WAIT_MS | max wait for capacity before a request is rejected |
 | max_queue | 500 | n/a | max waiters per bucket |
 | max_429_retries | 3 | n/a | retries on HTTP 429 (honours Retry-After) |
@@ -44,3 +46,18 @@ controller (owner EOA) is read on-chain: `owner()` for beacon-proxy deposit
 wallets, Gnosis Safe owner storage for Safes, `isOwner()` checks against the
 first inbound funders, and finally a single unique inbound sender. The wallet's
 age is then the controller's age.
+
+## Cold path
+
+Funding-graph jobs are deduped per wallet. When a job runs, it completes without any
+Alchemy calls if the wallet's graph is younger than 24h or the wallet has no fill
+>= `min_profile_fill_usd` in the last 24h (`status: "skipped"` in the log).
+`[cold_path] concurrency = 2`.
+
+## Alchemy CU usage
+
+Every metered Alchemy call adds its CU weight to the Redis hash
+`omen:alchemy:cu:<YYYY-MM-DD UTC>` (fields `hot`, `cold`; kept 40 days). Each
+`runtime-stats` log line carries `alchemyCu` (today's total, per component, and a
+30-day projection), and an `alchemy-cu-daily` line is logged after each UTC day ends.
+Check it by hand with `redis-cli hgetall omen:alchemy:cu:$(date -u +%F)`.

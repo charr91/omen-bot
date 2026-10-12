@@ -20,9 +20,10 @@ case "${1:-start}" in
   stop)
     [ -f "$PIDFILE" ] || { echo "no pidfile"; exit 0; }
     PID="$(cat $PIDFILE)"
-    kill -TERM -- "-$PID" 2>/dev/null || kill -TERM "$PID" 2>/dev/null || true
-    echo "sent SIGTERM to process group $PID; waiting up to 60s"
-    for _ in $(seq 60); do pgrep -g "$PID" >/dev/null || break; sleep 1; done
+    # Signal only the CLI; it stops the hot worker and cold-worker child itself. SIGKILL the group as a fallback.
+    kill -TERM "$PID" 2>/dev/null || true
+    echo "sent SIGTERM to $PID; waiting up to 90s"
+    for _ in $(seq 90); do pgrep -g "$PID" >/dev/null || break; sleep 1; done
     if pgrep -g "$PID" >/dev/null; then echo "still alive; SIGKILL"; kill -KILL -- "-$PID" 2>/dev/null || true; fi
     rm -f "$PIDFILE"; echo stopped ;;
   status)
