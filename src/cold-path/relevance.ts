@@ -5,7 +5,7 @@ import { canonicalizeEvmAddress } from '../evm/address.js';
 export const COLD_JOB_RELEVANCE_WINDOW_MS = 24 * 60 * 60_000;
 export const FUNDING_GRAPH_FRESH_MS = 24 * 60 * 60_000;
 
-export type ColdJobSkipReason = 'graph-fresh' | 'no-recent-eligible-fill';
+export type ColdJobSkipReason = 'graph-fresh' | 'no-recent-eligible-fill' | 'daily-budget';
 
 export interface ColdJobRelevanceInput {
   fundingGraphBuiltAt: Date | null;

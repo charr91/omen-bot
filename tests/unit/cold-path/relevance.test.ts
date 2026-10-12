@@ -59,3 +59,27 @@ describe('executeFundingGraphRebuild relevance gate', () => {
     expect(store.getMaxRecentFillUsd).toHaveBeenCalledWith('0xabc', new Date('2026-10-11T20:00:00Z'));
   });
 });
+
+describe('executeFundingGraphRebuild daily budget', () => {
+  it('skips an otherwise eligible job when the cold budget is exhausted', async () => {
+    const builder = { buildGraph: vi.fn() } as unknown as AlchemyFundingGraphBuilder;
+    const walletStore = {
+      getSignalContext: vi.fn().mockResolvedValue({ fundingClusterId: null, fundingGraphBuiltAt: null, controllerAddress: null }),
+    } as unknown as WalletStore;
+    const result = await executeFundingGraphRebuild({
+      walletAddress: '0xabc',
+      builder,
+      fundingEdgeStore: {} as FundingEdgeStore,
+      walletStore,
+      config: { detection: {} } as never,
+      relevance: {
+        store: { getMaxRecentFillUsd: vi.fn().mockResolvedValue(5_000) },
+        minFillUsd: 200,
+        now: () => now,
+        budgetExhausted: async () => true,
+      },
+    });
+    expect(result.skipped).toBe('daily-budget');
+    expect(builder.buildGraph).not.toHaveBeenCalled();
+  });
+});

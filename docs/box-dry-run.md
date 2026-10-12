@@ -36,6 +36,8 @@ group is SIGKILLed.
 | max_429_retries | 3 | n/a | retries on HTTP 429 (honours Retry-After) |
 | min_profile_fill_usd | 200 | OMEN_ALCHEMY_MIN_PROFILE_FILL_USD | fills below this skip profiling and funding-graph rebuilds (capped at the lowest signal min_fill_usd) |
 | profile_cache_ttl_ms | 43200000 | OMEN_ALCHEMY_PROFILE_CACHE_TTL_MS | wallet and controller profile cache TTL (12h) |
+| daily_cu_budget | 1000000 | OMEN_ALCHEMY_DAILY_CU_BUDGET | CU per UTC day (about 30M/month); 0 = unlimited |
+| hot_budget_share | 0.4 | n/a | hot worker's share; the cold path gets the rest |
 
 Hot + cold = 280 CU/s, under the 330 CU/s free-tier limit.
 
@@ -60,4 +62,7 @@ Every metered Alchemy call adds its CU weight to the Redis hash
 `omen:alchemy:cu:<YYYY-MM-DD UTC>` (fields `hot`, `cold`; kept 40 days). Each
 `runtime-stats` log line carries `alchemyCu` (today's total, per component, and a
 30-day projection), and an `alchemy-cu-daily` line is logged after each UTC day ends.
+Once a component reaches its share, the hot worker serves cached profiles and gives
+uncached wallets the conservative profile (fresh-wallet signals can't fire), and the cold
+path skips rebuilds (`reason: "daily-budget"`) until 00:00 UTC.
 Check it by hand with `redis-cli hgetall omen:alchemy:cu:$(date -u +%F)`.

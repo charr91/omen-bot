@@ -323,6 +323,13 @@ describe('AlchemyWalletProfiler', () => {
     ).resolves.toBe('0xfunder');
   });
 
+  it('fails fast without network calls once the daily budget is exhausted', async () => {
+    const fetchImpl = createSuccessfulFetchImpl();
+    const profiler = new AlchemyWalletProfiler('k', { fetchImpl, budgetExhausted: async () => true });
+    await expect(profiler.profileWallet('0xwallet')).rejects.toThrow(/daily CU budget exhausted/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('uses a 12h default profile cache TTL', async () => {
     let now = 0;
     const fetchImpl = createSuccessfulFetchImpl();

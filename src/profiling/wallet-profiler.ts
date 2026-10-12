@@ -40,8 +40,11 @@ interface WalletProfilerOptions {
   fetchImpl?: typeof fetch;
   now?: () => number;
   rateLimit?: Partial<AlchemyRateLimitOptions>;
+  /** When it resolves true, RPCs fail fast (cached profiles are still served). */
+  budgetExhausted?: () => Promise<boolean>;
 }
 
+export const ALCHEMY_BUDGET_EXHAUSTED = 'Alchemy daily CU budget exhausted';
 const DEFAULT_CACHE_TTL_MS = 12 * 60 * 60_000;
 const DEFAULT_MAX_CACHE_ENTRIES = 2_000;
 const DEFAULT_RPC_TIMEOUT_MS = 10_000;
@@ -80,6 +83,7 @@ export class AlchemyWalletProfiler {
   private readonly rpcCircuitBreaker = new CircuitBreaker('alchemy rpc');
   private readonly rpcRateLimiter: TokenBucketRateLimiter;
   private readonly retry429: AlchemyRateLimitOptions;
+  private readonly budgetExhausted: (() => Promise<boolean>) | undefined;
 
   constructor(apiKey: string | null, options: WalletProfilerOptions = {}) {
     // box-dry-run: null key => no-Alchemy mode; every RPC fails fast (conservative fallback), no network.
@@ -92,6 +96,7 @@ export class AlchemyWalletProfiler {
     this.rpcTimeoutMs = options.rpcTimeoutMs ?? DEFAULT_RPC_TIMEOUT_MS;
     this.now = options.now ?? (() => Date.now());
     this.retry429 = { ...DEFAULT_HOT_ALCHEMY_RATE_LIMIT, ...options.rateLimit };
+    this.budgetExhausted = options.budgetExhausted;
     this.rpcRateLimiter = new TokenBucketRateLimiter({
       ratePerSecond: this.retry429.cuPerSecond,
       burst: Math.max(this.retry429.cuPerSecond, 150),
@@ -351,6 +356,10 @@ export class AlchemyWalletProfiler {
 
     if (this.rpcCircuitBreaker.isOpen()) {
       throw new Error(`Alchemy RPC circuit is open`);
+    }
+
+    if (await this.budgetExhausted?.()) {
+      throw new Error(`${ALCHEMY_BUDGET_EXHAUSTED} (${method})`);
     }
 
     try {

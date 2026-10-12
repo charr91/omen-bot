@@ -67,3 +67,28 @@ describe('AlchemyCuMeter', () => {
     expect(usage.projectedMonthlyCu).toBe(10_000 * 24 * 30);
   });
 });
+
+describe('AlchemyDailyBudget', () => {
+  it('reports exhaustion once the component share of the daily budget is used, and caches reads', async () => {
+    const { AlchemyDailyBudget } = await import('../../../src/resilience/cu-meter.js');
+    const redis = fakeRedis();
+    let now = new Date('2026-10-12T12:00:00Z');
+    const budget = new AlchemyDailyBudget(redis, { dailyCu: 1_000_000, share: 0.6, component: 'cold', now: () => now });
+    redis.store.set(alchemyCuKey(now), { cold: '500000', hot: '900000' });
+    await expect(budget.isExhausted()).resolves.toBe(false);
+    redis.store.set(alchemyCuKey(now), { cold: '600000' });
+    await expect(budget.isExhausted()).resolves.toBe(false); // cached for 30s
+    now = new Date(now.getTime() + 31_000);
+    await expect(budget.isExhausted()).resolves.toBe(true);
+    expect(budget.limitCu).toBe(600_000);
+  });
+
+  it('is never exhausted with a zero budget and fails open on Redis errors', async () => {
+    const { AlchemyDailyBudget } = await import('../../../src/resilience/cu-meter.js');
+    const unlimited = new AlchemyDailyBudget(fakeRedis(), { dailyCu: 0, share: 0.4, component: 'hot' });
+    await expect(unlimited.isExhausted()).resolves.toBe(false);
+    const broken = { ...fakeRedis(), hgetall: vi.fn().mockRejectedValue(new Error('down')) };
+    const failing = new AlchemyDailyBudget(broken, { dailyCu: 10, share: 0.4, component: 'hot' });
+    await expect(failing.isExhausted()).resolves.toBe(false);
+  });
+});

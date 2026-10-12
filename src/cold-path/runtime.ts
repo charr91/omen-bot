@@ -21,7 +21,7 @@ import {
   type FundingGraphRebuildJobData,
 } from './queue.js';
 import { effectiveMinProfileFillUsd } from '../hot-worker/profile-gate.js';
-import { startCuMeterFlush } from '../resilience/cu-meter.js';
+import { AlchemyDailyBudget, startCuMeterFlush } from '../resilience/cu-meter.js';
 import { createColdJobRelevanceStore } from './relevance.js';
 import { executeFundingGraphRebuild, type FundingGraphRebuildResult } from './rebuild.js';
 
@@ -46,6 +46,11 @@ export async function runColdWorkerCommand(): Promise<void> {
   const walletStore = createWalletStore(pool);
   const relevanceStore = createColdJobRelevanceStore(pool);
   const stopCuMeter = startCuMeterFlush(heartbeatRedis, 'cold');
+  const coldBudget = new AlchemyDailyBudget(heartbeatRedis, {
+    dailyCu: config.alchemy.dailyCuBudget,
+    share: 1 - config.alchemy.hotBudgetShare,
+    component: 'cold',
+  });
   const builder = new AlchemyFundingGraphBuilder(alchemyApiKey, {
     rateLimit: {
       cuPerSecond: config.alchemy.coldCuPerSecond,
@@ -67,7 +72,11 @@ export async function runColdWorkerCommand(): Promise<void> {
         fundingEdgeStore,
         walletStore,
         config,
-        relevance: { store: relevanceStore, minFillUsd: effectiveMinProfileFillUsd(config) },
+        relevance: {
+          store: relevanceStore,
+          minFillUsd: effectiveMinProfileFillUsd(config),
+          budgetExhausted: () => coldBudget.isExhausted(),
+        },
       }),
     {
       connection: createBullmqConnection(config),

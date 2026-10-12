@@ -92,3 +92,34 @@ export async function readAlchemyCuUsage(redis: CuRedisLike, now = new Date()): 
     projectedMonthlyCu: Math.round((totalCu / elapsedDays) * 30),
   };
 }
+
+/**
+ * Daily Alchemy CU budget per component (hot/cold share of `dailyCu`, UTC day). Reads the shared Redis
+ * counter at most every `refreshMs` and adds this process's unflushed CU, so it can lag by a few seconds.
+ */
+export class AlchemyDailyBudget {
+  private cached: { at: number; used: number } | null = null;
+
+  constructor(
+    private readonly redis: CuRedisLike,
+    private readonly options: { dailyCu: number; share: number; component: string; refreshMs?: number; now?: () => Date },
+  ) {}
+
+  get limitCu(): number {
+    return Math.floor(this.options.dailyCu * this.options.share);
+  }
+
+  async isExhausted(): Promise<boolean> {
+    if (!(this.options.dailyCu > 0)) return false;
+    const now = this.options.now?.() ?? new Date();
+    if (!this.cached || now.getTime() - this.cached.at >= (this.options.refreshMs ?? 30_000)) {
+      try {
+        const usage = await readAlchemyCuUsage(this.redis, now);
+        this.cached = { at: now.getTime(), used: usage.byComponent[this.options.component] ?? 0 };
+      } catch {
+        return false; // fail open: a Redis hiccup must not stop profiling
+      }
+    }
+    return this.cached.used + alchemyCuMeter.pendingTotal() >= this.limitCu;
+  }
+}

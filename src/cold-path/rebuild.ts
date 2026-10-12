@@ -26,7 +26,12 @@ export async function executeFundingGraphRebuild(options: {
   walletStore: WalletStore;
   config: Pick<AppConfig, 'detection'>;
   /** When set, stale jobs (graph already fresh, or no recent fill >= minFillUsd) complete without Alchemy calls. */
-  relevance?: { store: ColdJobRelevanceStore; minFillUsd: number; now?: () => Date };
+  relevance?: {
+    store: ColdJobRelevanceStore;
+    minFillUsd: number;
+    now?: () => Date;
+    budgetExhausted?: () => Promise<boolean>;
+  };
 }): Promise<FundingGraphRebuildResult> {
   const walletAddress = canonicalizeEvmAddress(options.walletAddress);
   const previousSignalContext = await options.walletStore.getSignalContext(walletAddress);
@@ -41,13 +46,14 @@ export async function executeFundingGraphRebuild(options: {
       minFillUsd: options.relevance.minFillUsd,
       now,
     });
-    if (skip !== null) {
+    const finalSkip = skip ?? ((await options.relevance.budgetExhausted?.()) ? 'daily-budget' : null);
+    if (finalSkip !== null) {
       return {
         walletAddress,
         edgeCount: 0,
         truncated: false,
         fundingClusterId: previousSignalContext.fundingClusterId,
-        skipped: skip,
+        skipped: finalSkip,
       };
     }
   }

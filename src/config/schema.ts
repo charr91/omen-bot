@@ -102,6 +102,8 @@ export const fileConfigSchema = z
         max_429_retries: z.number().int().nonnegative().optional(),
         min_profile_fill_usd: z.number().nonnegative().optional(),
         profile_cache_ttl_ms: z.number().int().positive().optional(),
+        daily_cu_budget: z.number().int().nonnegative().optional(),
+        hot_budget_share: z.number().min(0).max(1).optional(),
       })
       .optional(),
     cold_path: z
@@ -192,6 +194,8 @@ export const fileConfigSchema = z
       max_429_retries: value.alchemy?.max_429_retries ?? 3,
       min_profile_fill_usd: value.alchemy?.min_profile_fill_usd ?? 200,
       profile_cache_ttl_ms: value.alchemy?.profile_cache_ttl_ms ?? 12 * 60 * 60_000,
+      daily_cu_budget: value.alchemy?.daily_cu_budget ?? 1_000_000,
+      hot_budget_share: value.alchemy?.hot_budget_share ?? 0.4,
     },
     cold_path: {
       concurrency: value.cold_path?.concurrency ?? 1,
@@ -238,6 +242,7 @@ export const envConfigSchema = z.object({
   OMEN_ALCHEMY_MAX_WAIT_MS: positiveIntegerStringSchema.optional(),
   OMEN_ALCHEMY_MIN_PROFILE_FILL_USD: positiveIntegerStringSchema.optional(),
   OMEN_ALCHEMY_PROFILE_CACHE_TTL_MS: positiveIntegerStringSchema.optional(),
+  OMEN_ALCHEMY_DAILY_CU_BUDGET: positiveIntegerStringSchema.optional(),
   OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS: positiveIntegerStringSchema.optional(),
   OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS: positiveIntegerStringSchema.optional(),
 });
@@ -324,6 +329,9 @@ export interface AppConfig {
     /** Fills below this USD size skip chain profiling and funding-graph rebuilds (no live signal can fire). */
     minProfileFillUsd: number;
     profileCacheTtlMs: number;
+    /** UTC-day CU budget (0 = unlimited). Hot gets hotBudgetShare, cold the rest. */
+    dailyCuBudget: number;
+    hotBudgetShare: number;
   };
   coldPath: {
     concurrency: number;

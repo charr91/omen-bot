@@ -15,9 +15,9 @@ import { createProxyOverrideStore } from '../persistence/queries/proxy-overrides
 import { createSignalEventStore } from '../persistence/queries/signal-events.js';
 import { createWalletStore, type WalletSignalContext } from '../persistence/queries/wallets.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
-import { AlchemyWalletProfiler } from '../profiling/wallet-profiler.js';
+import { ALCHEMY_BUDGET_EXHAUSTED, AlchemyWalletProfiler } from '../profiling/wallet-profiler.js';
 import { createMarketMakerStore } from '../persistence/queries/market-maker.js';
-import { startCuMeterFlush } from '../resilience/cu-meter.js';
+import { AlchemyDailyBudget, startCuMeterFlush } from '../resilience/cu-meter.js';
 import { effectiveMinProfileFillUsd, shouldProfileFill } from './profile-gate.js';
 import { computeCompositeLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
 import type { LiveClusterSignalContext } from '../signals/sybil-cluster.js';
@@ -54,8 +54,15 @@ const signalEventStore = createSignalEventStore(pool);
 const marketMakerStore = createMarketMakerStore(pool);
 const redis = createRedisClient(config);
 const stopCuMeter = startCuMeterFlush(redis, 'hot');
+const hotBudget = new AlchemyDailyBudget(redis, {
+  dailyCu: config.alchemy.dailyCuBudget,
+  share: config.alchemy.hotBudgetShare,
+  component: 'hot',
+});
+let hotBudgetNoticeDay: string | null = null;
 const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey, {
   cacheTtlMs: config.alchemy.profileCacheTtlMs,
+  budgetExhausted: () => hotBudget.isExhausted(),
   controllerCacheTtlMs: config.alchemy.profileCacheTtlMs,
   maxCacheEntries: 20_000,
   rateLimit: {
@@ -218,6 +225,16 @@ async function processFill(fill: FillRecord): Promise<void> {
         type: 'ERROR',
         fillId: fill.id,
         error: '[alchemy] no-Alchemy mode: all wallet profiles use conservative fallback (reported once)',
+      });
+    }
+  } else if (resolvedChainProfile.degraded && resolvedChainProfile.error?.includes(ALCHEMY_BUDGET_EXHAUSTED)) {
+    const day = new Date().toISOString().slice(0, 10);
+    if (hotBudgetNoticeDay !== day) {
+      hotBudgetNoticeDay = day;
+      postMessage({
+        type: 'ERROR',
+        fillId: fill.id,
+        error: `[alchemy] hot daily CU budget (${hotBudget.limitCu}) exhausted for ${day} UTC; uncached wallets use the conservative profile until 00:00 UTC (reported once per day)`,
       });
     }
   } else if (resolvedChainProfile.degraded) {
@@ -430,11 +447,13 @@ async function buildEffectiveChainProfile(
     controllerAddress =
       manualOverride?.controllerAddress ?? (await walletProfiler.resolveControllerAddress(walletAddress));
   } catch (error) {
-    postMessage({
-      type: 'ERROR',
-      fillId: null,
-      error: `[proxy] failed to resolve controller for ${walletAddress}: ${formatError(error)}`,
-    });
+    if (!formatError(error).includes(ALCHEMY_BUDGET_EXHAUSTED)) {
+      postMessage({
+        type: 'ERROR',
+        fillId: null,
+        error: `[proxy] failed to resolve controller for ${walletAddress}: ${formatError(error)}`,
+      });
+    }
     return {
       ...chainProfile,
       ageSeconds: 0,

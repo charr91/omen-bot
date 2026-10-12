@@ -74,6 +74,10 @@ max_429_retries = 3
 min_profile_fill_usd = 200
 # Wallet chain-profile cache TTL (12h).
 profile_cache_ttl_ms = 43_200_000
+# Daily CU budget (UTC day). 1M/day ~= 30M/month (free tier). Hot gets hot_budget_share, cold the rest.
+# Over budget: hot uses the conservative profile (fresh-wallet signals can't fire), cold skips rebuilds.
+daily_cu_budget = 1_000_000
+hot_budget_share = 0.4
 
 [outcomes]
 # Grade every signal fill at +1h, +24h and market resolution against ordinary same-market fills of similar size.
