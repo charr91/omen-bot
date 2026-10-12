@@ -21,6 +21,7 @@ interface RpcResponse<TResult> {
 interface AssetTransfer {
   blockNum: string;
   from?: string;
+  metadata?: { blockTimestamp?: string };
 }
 
 interface AssetTransferResult {
@@ -314,6 +315,7 @@ export class AlchemyWalletProfiler {
           maxCount: '0x1',
           category: ['external', 'erc20'],
           toAddress: address,
+          withMetadata: true,
         },
       ]),
       this.rpcRequest<AssetTransferResult>('alchemy_getAssetTransfers', [
@@ -324,9 +326,18 @@ export class AlchemyWalletProfiler {
           maxCount: '0x1',
           category: ['external', 'erc20'],
           fromAddress: address,
+          withMetadata: true,
         },
       ]),
     ]);
+
+    // withMetadata gives the block timestamp directly, saving an eth_getBlockByNumber (20 CU) per profile.
+    const stamped = [inbound?.transfers?.[0], outbound?.transfers?.[0]]
+      .map((transfer) => (transfer?.metadata?.blockTimestamp ? Date.parse(transfer.metadata.blockTimestamp) : Number.NaN))
+      .filter((value) => Number.isFinite(value));
+    if (stamped.length > 0) {
+      return new Date(Math.min(...stamped));
+    }
 
     const candidateBlockNumbers = [inbound?.transfers?.[0]?.blockNum, outbound?.transfers?.[0]?.blockNum]
       .filter((value): value is string => typeof value === 'string');
