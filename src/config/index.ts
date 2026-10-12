@@ -39,6 +39,8 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
     OMEN_ALCHEMY_HOT_CU_PER_SECOND: readOptionalEnv(process.env.OMEN_ALCHEMY_HOT_CU_PER_SECOND),
     OMEN_ALCHEMY_COLD_CU_PER_SECOND: readOptionalEnv(process.env.OMEN_ALCHEMY_COLD_CU_PER_SECOND),
     OMEN_ALCHEMY_MAX_WAIT_MS: readOptionalEnv(process.env.OMEN_ALCHEMY_MAX_WAIT_MS),
+    OMEN_ALCHEMY_MIN_PROFILE_FILL_USD: readOptionalEnv(process.env.OMEN_ALCHEMY_MIN_PROFILE_FILL_USD),
+    OMEN_ALCHEMY_PROFILE_CACHE_TTL_MS: readOptionalEnv(process.env.OMEN_ALCHEMY_PROFILE_CACHE_TTL_MS),
     OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS: readOptionalEnv(
       process.env.OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS,
     ),
@@ -125,6 +127,8 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       maxWaitMs: envConfig.OMEN_ALCHEMY_MAX_WAIT_MS ?? fileConfig.alchemy.max_wait_ms,
       maxQueue: fileConfig.alchemy.max_queue,
       max429Retries: fileConfig.alchemy.max_429_retries,
+      minProfileFillUsd: envConfig.OMEN_ALCHEMY_MIN_PROFILE_FILL_USD ?? fileConfig.alchemy.min_profile_fill_usd,
+      profileCacheTtlMs: envConfig.OMEN_ALCHEMY_PROFILE_CACHE_TTL_MS ?? fileConfig.alchemy.profile_cache_ttl_ms,
     },
     coldPath: {
       concurrency: envConfig.OMEN_COLD_PATH_CONCURRENCY ?? fileConfig.cold_path.concurrency,

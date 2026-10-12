@@ -255,4 +255,19 @@ describe('AlchemyWalletProfiler', () => {
 
     await expect(profiler.resolveControllerAddress('0xcontract')).resolves.toBe('0xcontroller');
   });
+
+  it('uses a 12h default profile cache TTL', async () => {
+    let now = 0;
+    const fetchImpl = createSuccessfulFetchImpl();
+    const profiler = new AlchemyWalletProfiler('k', { fetchImpl, now: () => now });
+    await profiler.profileWallet('0xwallet');
+    const callsAfterFirst = fetchImpl.mock.calls.length;
+    now = 11 * 60 * 60_000;
+    await profiler.profileWallet('0xwallet');
+    expect(fetchImpl.mock.calls.length).toBe(callsAfterFirst);
+    now = 12 * 60 * 60_000 + 1;
+    await profiler.profileWallet('0xwallet');
+    expect(fetchImpl.mock.calls.length).toBeGreaterThan(callsAfterFirst);
+  });
 });
+

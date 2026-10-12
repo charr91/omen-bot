@@ -41,7 +41,7 @@ interface WalletProfilerOptions {
   rateLimit?: Partial<AlchemyRateLimitOptions>;
 }
 
-const DEFAULT_CACHE_TTL_MS = 5 * 60_000;
+const DEFAULT_CACHE_TTL_MS = 12 * 60 * 60_000;
 const DEFAULT_MAX_CACHE_ENTRIES = 2_000;
 const DEFAULT_RPC_TIMEOUT_MS = 10_000;
 const DEFAULT_CONTROLLER_CACHE_TTL_MS = 15 * 60_000;

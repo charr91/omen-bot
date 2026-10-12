@@ -68,3 +68,8 @@ cold_cu_per_second = 80
 max_wait_ms = 20000
 max_queue = 500
 max_429_retries = 3
+# Fills below this skip chain profiling + funding-graph rebuilds. Keep <= the lowest signal min_fill_usd
+# (detection.cluster.min_fill_usd = 200); every other live signal needs >= 250.
+min_profile_fill_usd = 200
+# Wallet chain-profile cache TTL (12h).
+profile_cache_ttl_ms = 43_200_000

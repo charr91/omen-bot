@@ -16,6 +16,7 @@ import { createSignalEventStore } from '../persistence/queries/signal-events.js'
 import { createWalletStore, type WalletSignalContext } from '../persistence/queries/wallets.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { AlchemyWalletProfiler } from '../profiling/wallet-profiler.js';
+import { effectiveMinProfileFillUsd, shouldProfileFill } from './profile-gate.js';
 import { computeCompositeLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
 import type { LiveClusterSignalContext } from '../signals/sybil-cluster.js';
 import { deriveAlertTier } from '../signals/scoring.js';
@@ -50,6 +51,9 @@ const proxyOverrideStore = createProxyOverrideStore(pool);
 const signalEventStore = createSignalEventStore(pool);
 const redis = createRedisClient(config);
 const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey, {
+  cacheTtlMs: config.alchemy.profileCacheTtlMs,
+  controllerCacheTtlMs: config.alchemy.profileCacheTtlMs,
+  maxCacheEntries: 20_000,
   rateLimit: {
     cuPerSecond: config.alchemy.hotCuPerSecond,
     maxWaitMs: config.alchemy.maxWaitMs,
@@ -57,6 +61,7 @@ const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey, {
     max429Retries: config.alchemy.max429Retries,
   },
 });
+const minProfileFillUsd = effectiveMinProfileFillUsd(config);
 const marketCatalog = new ActiveMarketCatalog();
 const coldPathQueue = createFundingGraphRebuildJobQueue(config);
 const queue: FillRecord[] = [];
@@ -179,6 +184,13 @@ async function processQueue(): Promise<void> {
 
 async function processFill(fill: FillRecord): Promise<void> {
   await walletStore.upsertWalletStub(fill.walletAddress, fill.timestamp);
+
+  if (!shouldProfileFill(fill.sizeUsd, minProfileFillUsd)) {
+    // Below every live signal's min fill size: no signal can fire, so skip Alchemy profiling, controller
+    // lookup and funding-graph rebuilds. The stored wallet profile is left untouched (not downgraded).
+    await fillStore.markFillAnalyzed(fill.id);
+    return;
+  }
 
   const [aggregateStats, signalContext, isWhitelisted, resolvedChainProfile] = await Promise.all([
     walletStore.getAggregateStats(fill.walletAddress, { fillId: fill.id, fillTimestamp: fill.timestamp }),
