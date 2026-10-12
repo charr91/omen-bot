@@ -1,6 +1,7 @@
 import { CREATE_TRADE_OUTCOMES_INDEXES_SQL, CREATE_TRADE_OUTCOMES_TABLE_SQL } from '../outcomes/store.js';
 import type { Pool } from 'pg';
 import { KALSHI_SCHEMA_SQL } from '../kalshi/store.js';
+import { FEED_SYNC_SCHEMA_SQL } from '../feed/publisher.js';
 
 const CREATE_FILLS_TABLE_SQL = `
   create table if not exists fills (
@@ -257,6 +258,7 @@ export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promis
   for (const statement of CREATE_TRADE_OUTCOMES_INDEXES_SQL) {
     await pool.query(statement);
   }
+  await pool.query(FEED_SYNC_SCHEMA_SQL);
   for (const statement of KALSHI_SCHEMA_SQL) {
     await pool.query(statement);
   }

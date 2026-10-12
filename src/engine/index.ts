@@ -20,6 +20,9 @@ import { createIngestQuarantineStore } from '../persistence/queries/ingest-quara
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { readAlchemyCuUsage } from '../resilience/cu-meter.js';
 import { OutcomeTracker } from '../outcomes/tracker.js';
+import { FeedClient } from '@charr91/smart-money-feed';
+import { Pool as PgPool } from 'pg';
+import { liveAlertEnvelope, syncOutcomesToFeed } from '../feed/publisher.js';
 import { KalshiClient } from '../kalshi/client.js';
 import { KalshiService } from '../kalshi/service.js';
 import { createKalshiStore } from '../kalshi/store.js';
@@ -97,6 +100,12 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
     component: 'engine',
   });
   const pool = createDbPool(config);
+  // M3 shared feed: separate database (FEED_DATABASE_URL); omen never reads it back. Disabled => null.
+  const feedPool = config.feed.enabled && config.feed.databaseUrl ? new PgPool({ connectionString: config.feed.databaseUrl, max: 2 }) : null;
+  const feed = feedPool ? new FeedClient(feedPool) : null;
+  if (feed) {
+    await feed.ensureSchema();
+  }
   const redis = createRedisClient(config);
   const alertStore = createAlertStore(pool);
   const fillStore = createFillStore(pool);
@@ -185,6 +194,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
           alertDispatcher,
           dashboard,
           logger,
+          feed: config.feed.publishLiveAlerts ? feed : null,
         }),
       );
     },
@@ -343,8 +353,9 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
       void (
         outcomeTracker
           .runOnce()
-          .then((result) => {
-            emitStructuredLog(logger, { type: 'outcome-tracker', ...result });
+          .then(async (result) => {
+            const feedSynced = feed && config.feed.syncOutcomes ? await syncOutcomesToFeed(pool, feed) : null;
+            emitStructuredLog(logger, { type: 'outcome-tracker', ...result, feedSynced });
           })
           .catch((error) => {
             reportOperatorError({ message: `[outcomes] ${formatError(error)}`, dashboard, logger });
@@ -412,6 +423,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
     await coldPathQueue.close();
     dashboard?.stop();
     redis.disconnect(false);
+    await feedPool?.end();
     await pool.end();
   }
 }
@@ -550,6 +562,7 @@ async function handleSignalPreview(options: {
   alertDispatcher: AlertDispatcher;
   dashboard: TerminalDashboard | null;
   logger: Logger;
+  feed?: FeedClient | null;
 }): Promise<void> {
   const { preview, alertStore, fillStore, alertDispatcher, dashboard, logger } = options;
   if (dashboard === null) {
@@ -566,6 +579,14 @@ async function handleSignalPreview(options: {
   }
 
   const storedAlert = await resolveStoredAlert(promotedAlert, alertStore, alertDispatcher);
+  if (options.feed) {
+    // The feed owns delivery (dry run unless the feed process is explicitly live); a feed outage never blocks omen.
+    try {
+      await options.feed.publish(liveAlertEnvelope(storedAlert));
+    } catch (error) {
+      reportOperatorError({ message: `[feed] publish failed: ${formatError(error)}`, dashboard, logger });
+    }
+  }
   const presentableAlert = await enrichAlertWithLinkedTradeContext(storedAlert, fillStore);
   dashboard?.addAlert(presentableAlert);
 

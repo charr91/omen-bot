@@ -124,6 +124,13 @@ export const fileConfigSchema = z
         baseline_window_hours: z.number().positive().optional(),
       })
       .optional(),
+    feed: z
+      .object({
+        enabled: z.boolean().optional(),
+        publish_live_alerts: z.boolean().optional(),
+        sync_outcomes: z.boolean().optional(),
+      })
+      .optional(),
     kalshi: z
       .object({
         enabled: z.boolean().optional(),
@@ -228,6 +235,11 @@ export const fileConfigSchema = z
       interval_ms: value.outcomes?.interval_ms ?? 5 * 60_000,
       baseline_per_signal: value.outcomes?.baseline_per_signal ?? 3,
       baseline_window_hours: value.outcomes?.baseline_window_hours ?? 6,
+    },
+    feed: {
+      enabled: value.feed?.enabled ?? false,
+      publish_live_alerts: value.feed?.publish_live_alerts ?? true,
+      sync_outcomes: value.feed?.sync_outcomes ?? true,
     },
     kalshi: {
       enabled: value.kalshi?.enabled ?? false,
@@ -383,6 +395,15 @@ export interface AppConfig {
     intervalMs: number;
     baselinePerSignal: number;
     baselineWindowHours: number;
+  };
+  /** M3: shared alert feed (@charr91/smart-money-feed) in its own database (FEED_DATABASE_URL). */
+  feed: {
+    enabled: boolean;
+    databaseUrl: string | null;
+    /** Publish promoted alerts with deliver=true; the feed process owns Telegram (dry run by default). */
+    publishLiveAlerts: boolean;
+    /** Mirror M1 trade_outcomes (signals + baselines) into feed.outcomes after each tracker run. */
+    syncOutcomes: boolean;
   };
   /** M2: Kalshi public REST ingest + market-level signals (stored and graded only, never dispatched). */
   kalshi: {

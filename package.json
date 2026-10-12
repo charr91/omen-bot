@@ -25,6 +25,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@charr91/smart-money-feed": "github:charr91/smart-money-feed#v0.1.0",
     "@polymarket/clob-client": "5.8.1",
     "bullmq": "^5.72.0",
     "ethers": "5.8.0",

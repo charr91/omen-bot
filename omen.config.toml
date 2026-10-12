@@ -109,3 +109,10 @@ store_min_notional_usd = 250
 large_print_usd = 10000
 volume_spike_min_hour_usd = 5000
 book_watchlist_size = 40
+
+# M3: shared alert feed (charr91/smart-money-feed) in its own DB (FEED_DATABASE_URL in .env). omen publishes promoted
+# alerts (deliver=true) and mirrors M1 outcomes; the feed process owns Telegram and stays in dry run by default.
+[feed]
+enabled = true
+publish_live_alerts = true
+sync_outcomes = true

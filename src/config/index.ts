@@ -150,6 +150,12 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       baselinePerSignal: fileConfig.outcomes.baseline_per_signal,
       baselineWindowHours: fileConfig.outcomes.baseline_window_hours,
     },
+    feed: {
+      enabled: fileConfig.feed.enabled,
+      databaseUrl: process.env.FEED_DATABASE_URL?.trim() || null,
+      publishLiveAlerts: fileConfig.feed.publish_live_alerts,
+      syncOutcomes: fileConfig.feed.sync_outcomes,
+    },
     kalshi: {
       enabled: fileConfig.kalshi.enabled,
       tradePollMs: fileConfig.kalshi.trade_poll_ms,
