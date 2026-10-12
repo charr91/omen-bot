@@ -9,11 +9,13 @@ export function createAppLogger(
   const options: LoggerOptions = {
     level: config.logLevel,
     base: undefined,
-    timestamp: false,
+    // box-dry-run: pino 10 emits invalid JSON ('{,') when the level formatter returns {};
+    // emit an ISO timestamp and a non-colliding severity key instead.
+    timestamp: pino.stdTimeFunctions.isoTime,
     messageKey: 'message',
     formatters: {
       bindings: (bindings) => bindings,
-      level: () => ({}),
+      level: (label) => ({ severity: label }),
     },
   };
 
