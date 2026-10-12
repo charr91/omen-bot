@@ -51,9 +51,14 @@ age is then the controller's age.
 
 ## Cold path
 
+Funding-graph rebuilds are requested only for fills >= `[cold_path] rebuild_min_fill_usd`
+(500) or wallets that already triggered a signal (`rebuild_if_signaled`). Each graph uses
+at most `detection.cluster.max_rpc_calls` (31) `getAssetTransfers` calls, and block
+timestamps come from transfer metadata (no per-edge block lookups).
+
 Funding-graph jobs are deduped per wallet. When a job runs, it completes without any
-Alchemy calls if the wallet's graph is younger than 24h or the wallet has no fill
->= `min_profile_fill_usd` in the last 24h (`status: "skipped"` in the log).
+Alchemy calls if the wallet's graph is younger than 24h, or the wallet has neither a fill
+>= `rebuild_min_fill_usd` in the last 24h nor a signal (`status: "skipped"` in the log).
 `[cold_path] concurrency = 2`.
 
 ## Alchemy CU usage

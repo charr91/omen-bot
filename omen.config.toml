@@ -39,7 +39,8 @@ min_fill_usd = 200
 elevated_fill_usd = 500
 funding_max_depth = 4
 fanout_limit = 5
-max_rpc_calls = 200
+# getAssetTransfers calls per graph (block timestamps come from transfer metadata). 31 = depth 1-3 fully at fanout 5.
+max_rpc_calls = 31
 same_market_same_side_window_ms = 3_600_000
 
 [alerts]
@@ -60,6 +61,9 @@ hot_worker_queue_depth = 100
 concurrency = 2
 rebuild_failure_cooldown_ms = 900000
 shutdown_timeout_ms = 30000
+# Rebuild funding graphs only for fills >= this size, or for wallets that already triggered any signal.
+rebuild_min_fill_usd = 500
+rebuild_if_signaled = true
 
 [alchemy]
 # CU-weighted token bucket (waits for capacity). Hot + cold = 280 CU/s, under the 330 CU/s free tier.

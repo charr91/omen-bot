@@ -83,3 +83,21 @@ describe('executeFundingGraphRebuild daily budget', () => {
     expect(builder.buildGraph).not.toHaveBeenCalled();
   });
 });
+
+describe('rebuild gate', () => {
+  it('requests a rebuild only for large fills or wallets that already triggered a signal', async () => {
+    const { shouldRequestRebuild } = await import('../../../src/cold-path/relevance.js');
+    expect(shouldRequestRebuild(499, 500, false)).toBe(false);
+    expect(shouldRequestRebuild(500, 500, false)).toBe(true);
+    expect(shouldRequestRebuild(250, 500, true)).toBe(true);
+  });
+
+  it('keeps a signaled wallet eligible in the cold worker even without a large recent fill', () => {
+    expect(
+      decideColdJobSkip({ fundingGraphBuiltAt: null, maxRecentFillUsd: 250, minFillUsd: 500, now, signaled: true }),
+    ).toBeNull();
+    expect(decideColdJobSkip({ fundingGraphBuiltAt: null, maxRecentFillUsd: 250, minFillUsd: 500, now })).toBe(
+      'no-recent-eligible-fill',
+    );
+  });
+});

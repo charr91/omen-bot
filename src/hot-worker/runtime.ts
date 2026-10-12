@@ -16,6 +16,7 @@ import { createSignalEventStore } from '../persistence/queries/signal-events.js'
 import { createWalletStore, type WalletSignalContext } from '../persistence/queries/wallets.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { ALCHEMY_BUDGET_EXHAUSTED, AlchemyWalletProfiler } from '../profiling/wallet-profiler.js';
+import { createColdJobRelevanceStore, shouldRequestRebuild } from '../cold-path/relevance.js';
 import { createMarketMakerStore } from '../persistence/queries/market-maker.js';
 import { AlchemyDailyBudget, startCuMeterFlush } from '../resilience/cu-meter.js';
 import { effectiveMinProfileFillUsd, shouldProfileFill } from './profile-gate.js';
@@ -52,6 +53,7 @@ const auditLogStore = createAuditLogStore(pool);
 const proxyOverrideStore = createProxyOverrideStore(pool);
 const signalEventStore = createSignalEventStore(pool);
 const marketMakerStore = createMarketMakerStore(pool);
+const rebuildRelevance = createColdJobRelevanceStore(pool);
 const redis = createRedisClient(config);
 const stopCuMeter = startCuMeterFlush(redis, 'hot');
 const hotBudget = new AlchemyDailyBudget(redis, {
@@ -502,7 +504,14 @@ async function buildFundingClusterContext(
   const graphFresh =
     fundingGraphBuiltAt !== null && fill.timestamp.getTime() - fundingGraphBuiltAt.getTime() < 24 * 60 * 60_000;
 
-  if (!graphFresh) {
+  const wantsRebuild =
+    !graphFresh &&
+    shouldRequestRebuild(
+      Number(fill.sizeUsd),
+      config.coldPath.rebuildMinFillUsd,
+      config.coldPath.rebuildIfSignaled && (await rebuildRelevance.hasSignalEvents(fill.walletAddress)),
+    );
+  if (wantsRebuild) {
     try {
       await coldPathQueue.requestRebuild(fill.walletAddress);
     } catch (error) {

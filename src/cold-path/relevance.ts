@@ -12,6 +12,13 @@ export interface ColdJobRelevanceInput {
   maxRecentFillUsd: number;
   minFillUsd: number;
   now: Date;
+  /** True when the wallet has any signal event and rebuild_if_signaled is on. */
+  signaled?: boolean;
+}
+
+/** Hot-path enqueue rule: rebuild only for large fills or wallets that already triggered a signal. */
+export function shouldRequestRebuild(fillSizeUsd: number, rebuildMinFillUsd: number, signaled: boolean): boolean {
+  return signaled || !Number.isFinite(fillSizeUsd) || fillSizeUsd >= rebuildMinFillUsd;
 }
 
 export function decideColdJobSkip(input: ColdJobRelevanceInput): ColdJobSkipReason | null {
@@ -22,7 +29,7 @@ export function decideColdJobSkip(input: ColdJobRelevanceInput): ColdJobSkipReas
     return 'graph-fresh';
   }
 
-  if (!(input.maxRecentFillUsd >= input.minFillUsd)) {
+  if (!input.signaled && !(input.maxRecentFillUsd >= input.minFillUsd)) {
     return 'no-recent-eligible-fill';
   }
 
@@ -31,9 +38,10 @@ export function decideColdJobSkip(input: ColdJobRelevanceInput): ColdJobSkipReas
 
 export interface ColdJobRelevanceStore {
   getMaxRecentFillUsd(walletAddress: string, since: Date): Promise<number>;
+  hasSignalEvents?(walletAddress: string): Promise<boolean>;
 }
 
-export function createColdJobRelevanceStore(pool: Pick<Pool, 'query'>): ColdJobRelevanceStore {
+export function createColdJobRelevanceStore(pool: Pick<Pool, 'query'>): Required<ColdJobRelevanceStore> {
   return {
     async getMaxRecentFillUsd(walletAddress: string, since: Date): Promise<number> {
       const result = await pool.query<{ max_usd: string | null }>(
@@ -41,6 +49,13 @@ export function createColdJobRelevanceStore(pool: Pick<Pool, 'query'>): ColdJobR
         [canonicalizeEvmAddress(walletAddress), since],
       );
       return Number(result.rows[0]?.max_usd ?? 0);
+    },
+
+    async hasSignalEvents(walletAddress: string): Promise<boolean> {
+      const result = await pool.query(`select 1 from signal_events where lower(wallet_address) = $1 limit 1`, [
+        canonicalizeEvmAddress(walletAddress),
+      ]);
+      return (result.rowCount ?? 0) > 0;
     },
   };
 }

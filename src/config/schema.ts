@@ -111,6 +111,8 @@ export const fileConfigSchema = z
         concurrency: z.number().int().positive().optional(),
         rebuild_failure_cooldown_ms: z.number().int().positive().optional(),
         shutdown_timeout_ms: z.number().int().positive().optional(),
+        rebuild_min_fill_usd: z.number().nonnegative().optional(),
+        rebuild_if_signaled: z.boolean().optional(),
       })
       .optional(),
     outcomes: z
@@ -201,6 +203,8 @@ export const fileConfigSchema = z
       concurrency: value.cold_path?.concurrency ?? 1,
       rebuild_failure_cooldown_ms: value.cold_path?.rebuild_failure_cooldown_ms ?? 15 * 60_000,
       shutdown_timeout_ms: value.cold_path?.shutdown_timeout_ms ?? 30_000,
+      rebuild_min_fill_usd: value.cold_path?.rebuild_min_fill_usd ?? 500,
+      rebuild_if_signaled: value.cold_path?.rebuild_if_signaled ?? true,
     },
     outcomes: {
       enabled: value.outcomes?.enabled ?? true,
@@ -337,6 +341,9 @@ export interface AppConfig {
     concurrency: number;
     rebuildFailureCooldownMs: number;
     shutdownTimeoutMs: number;
+    /** Funding graphs are rebuilt only for fills >= this size, or for wallets with a signal (rebuildIfSignaled). */
+    rebuildMinFillUsd: number;
+    rebuildIfSignaled: boolean;
   };
   /** Alert grading: price at +1h/+24h, resolution, and same-market baseline fills (M1). */
   outcomes: {

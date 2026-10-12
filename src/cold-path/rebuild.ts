@@ -31,6 +31,7 @@ export async function executeFundingGraphRebuild(options: {
     minFillUsd: number;
     now?: () => Date;
     budgetExhausted?: () => Promise<boolean>;
+    rebuildIfSignaled?: boolean;
   };
 }): Promise<FundingGraphRebuildResult> {
   const walletAddress = canonicalizeEvmAddress(options.walletAddress);
@@ -45,6 +46,9 @@ export async function executeFundingGraphRebuild(options: {
       ),
       minFillUsd: options.relevance.minFillUsd,
       now,
+      signaled:
+        options.relevance.rebuildIfSignaled === true &&
+        (await options.relevance.store.hasSignalEvents?.(walletAddress)) === true,
     });
     const finalSkip = skip ?? ((await options.relevance.budgetExhausted?.()) ? 'daily-budget' : null);
     if (finalSkip !== null) {

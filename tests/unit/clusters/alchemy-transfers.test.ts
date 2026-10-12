@@ -56,4 +56,34 @@ describe('AlchemyFundingGraphBuilder', () => {
       truncated: true,
     });
   });
+
+  it('uses transfer metadata timestamps instead of one eth_getBlockByNumber per edge', async () => {
+    const methods: string[] = [];
+    const bodies: Array<{ params: Array<{ withMetadata?: boolean; toAddress?: string }> }> = [];
+    const fetchImpl = (async (_input: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { method: string; params: Array<{ withMetadata?: boolean; toAddress?: string }> };
+      methods.push(body.method);
+      bodies.push(body);
+      const isRoot = body.params[0]?.toAddress === '0x0000000000000000000000000000000000000001';
+      return new Response(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          result: {
+            transfers: isRoot
+              ? [{ blockNum: '0x10', from: '0xfunder', hash: '0xh', asset: 'USDC', value: 50, metadata: { blockTimestamp: '2026-10-01T00:00:00.000Z' } }]
+              : [],
+          },
+        }),
+      );
+    }) as typeof fetch;
+    const builder = new AlchemyFundingGraphBuilder('alchemy-key', { fetchImpl });
+    const result = await builder.buildGraph('0x0000000000000000000000000000000000000001', makeConfig());
+
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0]!.timestamp).toEqual(new Date('2026-10-01T00:00:00.000Z'));
+    expect(methods).not.toContain('eth_getBlockByNumber');
+    expect(bodies[0]!.params[0]!.withMetadata).toBe(true);
+  });
 });
+

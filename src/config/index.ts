@@ -140,6 +140,8 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
         fileConfig.cold_path.rebuild_failure_cooldown_ms,
       shutdownTimeoutMs:
         envConfig.OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS ?? fileConfig.cold_path.shutdown_timeout_ms,
+      rebuildMinFillUsd: fileConfig.cold_path.rebuild_min_fill_usd,
+      rebuildIfSignaled: fileConfig.cold_path.rebuild_if_signaled,
     },
     outcomes: {
       enabled: fileConfig.outcomes.enabled,

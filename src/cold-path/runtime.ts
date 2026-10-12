@@ -20,7 +20,6 @@ import {
   recordFundingGraphRebuildFailureCooldown,
   type FundingGraphRebuildJobData,
 } from './queue.js';
-import { effectiveMinProfileFillUsd } from '../hot-worker/profile-gate.js';
 import { AlchemyDailyBudget, startCuMeterFlush } from '../resilience/cu-meter.js';
 import { createColdJobRelevanceStore } from './relevance.js';
 import { executeFundingGraphRebuild, type FundingGraphRebuildResult } from './rebuild.js';
@@ -74,7 +73,8 @@ export async function runColdWorkerCommand(): Promise<void> {
         config,
         relevance: {
           store: relevanceStore,
-          minFillUsd: effectiveMinProfileFillUsd(config),
+          minFillUsd: config.coldPath.rebuildMinFillUsd,
+          rebuildIfSignaled: config.coldPath.rebuildIfSignaled,
           budgetExhausted: () => coldBudget.isExhausted(),
         },
       }),

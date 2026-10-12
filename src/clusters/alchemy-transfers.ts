@@ -30,6 +30,7 @@ interface AssetTransfer {
   transactionHash?: string;
   asset?: string;
   value?: number | string;
+  metadata?: { blockTimestamp?: string };
 }
 
 interface AssetTransferResult {
@@ -110,7 +111,10 @@ export class AlchemyFundingGraphBuilder {
           continue;
         }
 
-        const timestamp = await this.getBlockTimestamp(blockNum, config.detection.cluster.maxRpcCalls, blockTimestampCache);
+        const metadataTimestamp = parseMetadataTimestamp(transfer.metadata?.blockTimestamp);
+        const timestamp =
+          metadataTimestamp ??
+          (await this.getBlockTimestamp(blockNum, config.detection.cluster.maxRpcCalls, blockTimestampCache));
         if (timestamp === null) {
           truncated = true;
           break;
@@ -175,6 +179,8 @@ export class AlchemyFundingGraphBuilder {
           category: ['external', 'erc20'],
           toAddress: walletAddress,
           excludeZeroValue: true,
+          // Returns metadata.blockTimestamp, so no eth_getBlockByNumber call per edge.
+          withMetadata: true,
         },
       ]);
     } catch (error) {
@@ -334,4 +340,13 @@ function shouldTruncateBuild(error: unknown): boolean {
     error.message.includes('circuit is open') ||
     error.message.includes('timed out')
   );
+}
+
+function parseMetadataTimestamp(value: string | undefined): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? new Date(parsed) : null;
 }
