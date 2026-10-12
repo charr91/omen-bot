@@ -18,6 +18,7 @@ import {
 import type { ActiveAsset, ActiveMarket, JsonObject } from './types.js';
 
 const jsonArraySchema = z.array(z.unknown());
+const GAMMA_MARKETS_SERVER_PAGE_CAP = 100;
 const polymarketRestCircuitBreaker = new CircuitBreaker('polymarket rest');
 
 export async function fetchActiveAssets(): Promise<{
@@ -68,27 +69,46 @@ export async function fetchActiveMarkets(): Promise<{
   const markets = await fetchAllActiveMarkets();
 
   return {
-    markets: markets.flatMap((market) => {
-      const conditionId = getString(market, ['conditionId', 'condition_id']);
-      if (!conditionId) {
-        return [];
-      }
-
-      return [
-        {
-          conditionId,
-          eventSlug: extractEventSlug(market),
-          marketSlug: getString(market, ['slug', 'market_slug']),
-          question: getString(market, ['question', 'title']) ?? 'Unknown market',
-          dailyVolumeUsd: formatNumericString(
-            getNumber(market, ['volume24hrClob', 'volume24hr']) ?? 0,
-          ),
-          volumeUsd: formatNumericString(getNumber(market, ['volumeNum', 'volume']) ?? 0),
-          liquidityUsd: formatNumericString(getNumber(market, ['liquidityNum', 'liquidity']) ?? 0),
-        },
-      ];
-    }),
+    markets: markets.flatMap(mapGammaMarket),
   };
+}
+
+// box-dry-run: shared mapper + on-demand lookup by condition id (Gamma caps offset paging at ~2100).
+function mapGammaMarket(market: JsonObject): ActiveMarket[] {
+  const conditionId = getString(market, ['conditionId', 'condition_id']);
+  if (!conditionId) {
+    return [];
+  }
+
+  return [
+    {
+      conditionId,
+      eventSlug: extractEventSlug(market),
+      marketSlug: getString(market, ['slug', 'market_slug']),
+      question: getString(market, ['question', 'title']) ?? 'Unknown market',
+      dailyVolumeUsd: formatNumericString(
+        getNumber(market, ['volume24hrClob', 'volume24hr']) ?? 0,
+      ),
+      volumeUsd: formatNumericString(getNumber(market, ['volumeNum', 'volume']) ?? 0),
+      liquidityUsd: formatNumericString(getNumber(market, ['liquidityNum', 'liquidity']) ?? 0),
+    },
+  ];
+}
+
+export async function fetchMarketsByConditionIds(conditionIds: string[]): Promise<ActiveMarket[]> {
+  if (conditionIds.length === 0) {
+    return [];
+  }
+  const url = new URL('/markets', POLYMARKET_GAMMA_URL);
+  for (const conditionId of conditionIds) {
+    url.searchParams.append('condition_ids', conditionId);
+  }
+  url.searchParams.set('limit', String(conditionIds.length));
+  const payload = await fetchJson(url);
+  return jsonArraySchema
+    .parse(payload)
+    .map((entry) => asJsonObject(entry, 'gamma market'))
+    .flatMap(mapGammaMarket);
 }
 
 export async function fetchPublicTrades(offset = 0): Promise<JsonObject[]> {
@@ -143,7 +163,16 @@ async function fetchAllActiveMarkets(): Promise<JsonObject[]> {
     url.searchParams.set('limit', String(ACTIVE_MARKETS_PAGE_SIZE));
     url.searchParams.set('offset', String(offset));
 
-    const payload = await fetchJson(url);
+    let payload: unknown;
+    try {
+      payload = await fetchJson(url);
+    } catch (error) {
+      // box-dry-run: Gamma returns 422 past its offset cap (~2100); treat as end of listing.
+      if (offset > 0 && error instanceof Error && error.message.includes('422')) {
+        break;
+      }
+      throw error;
+    }
     const page = jsonArraySchema.parse(payload).map((entry) => asJsonObject(entry, 'gamma market'));
 
     if (page.length === 0) {
@@ -152,11 +181,15 @@ async function fetchAllActiveMarkets(): Promise<JsonObject[]> {
 
     markets.push(...page);
 
-    if (page.length < ACTIVE_MARKETS_PAGE_SIZE) {
+    // box-dry-run: Gamma now caps /markets at 100 rows regardless of `limit`, so a short page no
+    // longer means the end; the old check stopped after the first 100 markets and almost every
+    // fill resolved to market=null (no signals). Page by the returned length until a short/empty page
+    // below the server cap.
+    if (page.length < Math.min(ACTIVE_MARKETS_PAGE_SIZE, GAMMA_MARKETS_SERVER_PAGE_CAP)) {
       break;
     }
 
-    offset += ACTIVE_MARKETS_PAGE_SIZE;
+    offset += page.length;
   }
 
   return markets;
