@@ -44,6 +44,7 @@ export const ALCHEMY_METHOD_CU: Readonly<Record<string, number>> = {
   eth_getCode: 20,
   eth_getBalance: 20,
   eth_call: 26,
+  eth_getStorageAt: 20,
 };
 export const DEFAULT_ALCHEMY_METHOD_CU = 26;
 

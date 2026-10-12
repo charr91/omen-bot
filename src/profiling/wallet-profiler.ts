@@ -46,6 +46,14 @@ const DEFAULT_MAX_CACHE_ENTRIES = 2_000;
 const DEFAULT_RPC_TIMEOUT_MS = 10_000;
 const DEFAULT_CONTROLLER_CACHE_TTL_MS = 15 * 60_000;
 const DEFAULT_CONTROLLER_LOOKUP_FANOUT = 5;
+const OWNER_SELECTOR = '0x8da5cb5b'; // owner()
+// Gnosis Safe storage: slot 2 = mapping owners (linked list from SENTINEL 0x1), slot 3 = ownerCount.
+const SAFE_SENTINEL = '0x0000000000000000000000000000000000000001';
+const SAFE_OWNER_COUNT_SLOT = '0x3';
+// keccak256(abi.encode(address(0x1), uint256(2))) = storage key of owners[SENTINEL] (the first owner).
+const SAFE_FIRST_OWNER_SLOT = '0xe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e0';
+const IS_OWNER_SELECTOR = '0x2f54bf6e'; // isOwner(address)
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 interface CachedWalletProfile {
   expiresAt: number;
@@ -189,10 +197,33 @@ export class AlchemyWalletProfiler {
     };
   }
 
+  /**
+   * Resolve the EOA that controls a Polymarket proxy wallet.
+   *
+   * Polymarket proxies are funded with USDC/USDC.e/pUSD (not native POL), so inbound native transfers rarely
+   * identify the owner. Ownership is read on-chain instead, in order of reliability:
+   *   1. `owner()`        – Polymarket beacon-proxy deposit wallets.
+   *   2. Gnosis Safe storage – Polymarket browser-wallet Safes (their singleton has no `getOwners()`):
+   *                         ownerCount (slot 3) must be 1, then owners[SENTINEL] (mapping at slot 2) is the owner.
+   *   3. `isOwner(addr)`  – other owner-checking proxies: verify the first inbound external/erc20 senders.
+   *   4. Fallback: a single unique inbound sender (external + erc20), for proxies with no owner view
+   *      (e.g. Polymarket's EIP-1167 ProxyWallet clones, whose owner is only implied by the CREATE2 salt).
+   */
   private async loadControllerAddress(address: string): Promise<string | null> {
     const code = await this.rpcRequest<string>('eth_getCode', [address, 'latest']);
     if ((code ?? '0x') === '0x') {
       return null;
+    }
+
+    const ownerWord = await this.tryEthCall(address, OWNER_SELECTOR);
+    const owner = decodeAddressWord(ownerWord);
+    if (owner !== null) {
+      return owner;
+    }
+
+    const safeOwner = await this.readSafeSingleOwner(address);
+    if (safeOwner !== undefined) {
+      return safeOwner;
     }
 
     const inbound = await this.rpcRequest<AssetTransferResult>('alchemy_getAssetTransfers', [
@@ -201,7 +232,7 @@ export class AlchemyWalletProfiler {
         toBlock: 'latest',
         order: 'asc',
         maxCount: toHexCount(this.controllerLookupFanout),
-        category: ['external'],
+        category: ['external', 'erc20'],
         toAddress: address,
         excludeZeroValue: true,
       },
@@ -211,11 +242,60 @@ export class AlchemyWalletProfiler {
       ...new Set(
         (inbound?.transfers ?? [])
           .map((transfer) => canonicalizeOptionalEvmAddress(transfer.from ?? null))
-          .filter((value): value is string => value !== null),
+          .filter((value): value is string => value !== null && value !== ZERO_ADDRESS),
       ),
     ];
 
+    let isOwnerSupported = false;
+    for (const sender of senders) {
+      const result = await this.tryEthCall(address, `${IS_OWNER_SELECTOR}${sender.slice(2).padStart(64, '0')}`);
+      if (result === null) {
+        break;
+      }
+
+      isOwnerSupported = true;
+      if (decodeBoolWord(result)) {
+        return sender;
+      }
+    }
+
+    if (isOwnerSupported) {
+      return null;
+    }
+
     return senders.length === 1 ? (senders[0] ?? null) : null;
+  }
+
+  /**
+   * Returns the owner of a single-owner Safe, null for a multi-owner Safe, undefined if the storage layout
+   * does not look like a Safe.
+   */
+  private async readSafeSingleOwner(address: string): Promise<string | null | undefined> {
+    const [countWord, firstOwnerWord] = await Promise.all([
+      this.rpcRequest<string>('eth_getStorageAt', [address, SAFE_OWNER_COUNT_SLOT, 'latest']),
+      this.rpcRequest<string>('eth_getStorageAt', [address, SAFE_FIRST_OWNER_SLOT, 'latest']),
+    ]);
+    const firstOwner = decodeAddressWord(firstOwnerWord);
+    const ownerCount = countWord ? Number.parseInt(countWord, 16) : 0;
+    if (firstOwner === null || firstOwner === SAFE_SENTINEL || !Number.isSafeInteger(ownerCount) || ownerCount < 1) {
+      return undefined;
+    }
+
+    return ownerCount === 1 ? firstOwner : null;
+  }
+
+  /** eth_call that returns null when the call reverts (e.g. the selector is not implemented). */
+  private async tryEthCall(to: string, data: string): Promise<string | null> {
+    try {
+      const result = await this.rpcRequest<string>('eth_call', [{ to, data }, 'latest']);
+      return typeof result === 'string' && result !== '0x' ? result : null;
+    } catch (error) {
+      if (error instanceof Error && /execution reverted|revert/i.test(error.message)) {
+        return null;
+      }
+
+      throw error;
+    }
   }
 
   private async findEarliestActivity(address: string): Promise<Date | null> {
@@ -434,3 +514,19 @@ function toHexCount(value: number): string {
   return `0x${Math.max(1, Math.floor(value)).toString(16)}`;
 }
 
+function decodeAddressWord(word: string | null): string | null {
+  if (word === null || !/^0x[0-9a-fA-F]{64}$/.test(word)) {
+    return null;
+  }
+
+  if (!/^0x0{24}/.test(word)) {
+    return null;
+  }
+
+  const address = `0x${word.slice(-40).toLowerCase()}`;
+  return address === ZERO_ADDRESS ? null : address;
+}
+
+function decodeBoolWord(word: string): boolean {
+  return /^0x0*1$/.test(word);
+}
