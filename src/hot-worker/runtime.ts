@@ -16,6 +16,7 @@ import { createSignalEventStore } from '../persistence/queries/signal-events.js'
 import { createWalletStore, type WalletSignalContext } from '../persistence/queries/wallets.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { AlchemyWalletProfiler } from '../profiling/wallet-profiler.js';
+import { createMarketMakerStore } from '../persistence/queries/market-maker.js';
 import { startCuMeterFlush } from '../resilience/cu-meter.js';
 import { effectiveMinProfileFillUsd, shouldProfileFill } from './profile-gate.js';
 import { computeCompositeLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
@@ -50,6 +51,7 @@ const walletStore = createWalletStore(pool);
 const auditLogStore = createAuditLogStore(pool);
 const proxyOverrideStore = createProxyOverrideStore(pool);
 const signalEventStore = createSignalEventStore(pool);
+const marketMakerStore = createMarketMakerStore(pool);
 const redis = createRedisClient(config);
 const stopCuMeter = startCuMeterFlush(redis, 'hot');
 const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey, {
@@ -251,13 +253,26 @@ async function processFill(fill: FillRecord): Promise<void> {
     isWhitelisted,
   };
 
-  const triggeredSignals = evaluateLiveSignals({
+  const evaluatedSignals = evaluateLiveSignals({
     fill,
     wallet: baseWallet,
     market,
     config,
     cluster,
   });
+  // insider-poly-bot port: likely market makers (balanced, high-frequency, multi-market) produce no live signals.
+  const marketMakerScore =
+    evaluatedSignals.length > 0 && config.marketMaker.filterEnabled
+      ? await marketMakerStore.getScore(fill.walletAddress, fill.timestamp)
+      : 0;
+  const triggeredSignals = marketMakerScore >= config.marketMaker.minScore ? [] : evaluatedSignals;
+  if (triggeredSignals.length !== evaluatedSignals.length) {
+    postMessage({
+      type: 'ERROR',
+      fillId: fill.id,
+      error: `[mm-filter] suppressed ${evaluatedSignals.length} signal(s) for likely market maker ${fill.walletAddress} (score ${marketMakerScore})`,
+    });
+  }
 
   const liveScore = computeCompositeLiveScore(triggeredSignals);
   const liveTier = deriveAlertTier(liveScore, config);
