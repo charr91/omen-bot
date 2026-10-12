@@ -5,12 +5,14 @@ import { alchemyMethodCost } from './rate-limit.js';
  * (child process) add up into one daily total: hash `omen:alchemy:cu:<YYYY-MM-DD UTC>` with one field per component.
  */
 export const ALCHEMY_CU_KEY_PREFIX = 'omen:alchemy:cu:';
+const FIRST_AT_FIELD = '_firstAt';
 const KEY_TTL_SECONDS = 40 * 24 * 60 * 60;
 
 export interface CuRedisLike {
   hincrby(key: string, field: string, increment: number): Promise<unknown>;
   expire(key: string, seconds: number): Promise<unknown>;
   hgetall(key: string): Promise<Record<string, string>>;
+  hsetnx(key: string, field: string, value: string): Promise<unknown>;
 }
 
 export function alchemyCuKey(date: Date): string {
@@ -36,6 +38,7 @@ export class AlchemyCuMeter {
     this.pending = new Map();
     for (const [key, cu] of batch) {
       try {
+        await redis.hsetnx(key, FIRST_AT_FIELD, String(Date.now()));
         await redis.hincrby(key, component, cu);
         await redis.expire(key, KEY_TTL_SECONDS);
       } catch (error) {
@@ -64,17 +67,24 @@ export interface AlchemyCuUsage {
   day: string;
   totalCu: number;
   byComponent: Record<string, number>;
-  /** Today's rate extrapolated to a 30-day month. */
+  /** Today's rate since the first metered call of the day, extrapolated to a 30-day month. */
   projectedMonthlyCu: number;
 }
 
 export async function readAlchemyCuUsage(redis: CuRedisLike, now = new Date()): Promise<AlchemyCuUsage> {
   const key = alchemyCuKey(now);
   const raw = await redis.hgetall(key);
-  const byComponent = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, Number(v)]));
+  const firstAt = Number(raw[FIRST_AT_FIELD] ?? Number.NaN);
+  const byComponent = Object.fromEntries(
+    Object.entries(raw)
+      .filter(([k]) => k !== FIRST_AT_FIELD)
+      .map(([k, v]) => [k, Number(v)]),
+  );
   const totalCu = Object.values(byComponent).reduce((sum, value) => sum + value, 0);
   const startOfDay = Date.parse(`${key.slice(ALCHEMY_CU_KEY_PREFIX.length)}T00:00:00Z`);
-  const elapsedDays = Math.max((now.getTime() - startOfDay) / 86_400_000, 1 / 24);
+  // Measure from the first metered call of the day (e.g. a mid-day restart), with a 1h floor.
+  const since = Number.isFinite(firstAt) ? Math.max(startOfDay, firstAt) : startOfDay;
+  const elapsedDays = Math.max((now.getTime() - since) / 86_400_000, 1 / 24);
   return {
     day: key.slice(ALCHEMY_CU_KEY_PREFIX.length),
     totalCu,

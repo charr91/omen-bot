@@ -11,6 +11,11 @@ function fakeRedis() {
       store.set(key, hash);
     }),
     expire: vi.fn(async () => 1),
+    hsetnx: vi.fn(async (key: string, field: string, value: string) => {
+      const hash = store.get(key) ?? {};
+      if (hash[field] === undefined) hash[field] = value;
+      store.set(key, hash);
+    }),
     hgetall: vi.fn(async (key: string) => store.get(key) ?? {}),
   };
 }
@@ -26,7 +31,7 @@ describe('AlchemyCuMeter', () => {
     const redis = fakeRedis();
     await meter.flush(redis, 'hot');
     expect(meter.pendingTotal()).toBe(0);
-    expect(redis.store.get(alchemyCuKey(new Date()))).toEqual({ hot: '196' });
+    expect(redis.store.get(alchemyCuKey(new Date()))).toMatchObject({ hot: '196' });
   });
 
   it('keeps unflushed CU when Redis fails', async () => {
@@ -48,5 +53,17 @@ describe('AlchemyCuMeter', () => {
       byComponent: { hot: 100_000, cold: 400_000 },
       projectedMonthlyCu: 30_000_000,
     });
+  });
+
+  it('projects from the first metered call when metering started mid-day', async () => {
+    const redis = fakeRedis();
+    const now = new Date('2026-10-12T12:00:00Z');
+    redis.store.set(alchemyCuKey(now), {
+      _firstAt: String(Date.parse('2026-10-12T11:00:00Z')),
+      cold: '10000',
+    });
+    const usage = await readAlchemyCuUsage(redis, now);
+    expect(usage.byComponent).toEqual({ cold: 10_000 });
+    expect(usage.projectedMonthlyCu).toBe(10_000 * 24 * 30);
   });
 });
