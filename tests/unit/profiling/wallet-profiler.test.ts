@@ -177,6 +177,7 @@ describe('AlchemyWalletProfiler', () => {
       cacheTtlMs: 50,
       maxCacheEntries: 2,
       now: () => now,
+      rateLimit: { cuPerSecond: 100_000 },
     });
 
     await profiler.profileWallet('0xwallet-1');

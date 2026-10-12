@@ -64,8 +64,8 @@ export class HotWorkerClient {
   };
 
   constructor(config: AppConfig, options: HotWorkerClientOptions = {}) {
-    if (!config.alchemyApiKey) {
-      throw new Error('ALCHEMY_API_KEY is required to start the hot worker');
+    if (!config.alchemyApiKey && !(process.env.OMEN_ALLOW_MISSING_ALCHEMY === 'true')) {
+      throw new Error('ALCHEMY_API_KEY is required to start the hot worker (set OMEN_ALLOW_MISSING_ALCHEMY=true for degraded no-Alchemy mode)');
     }
 
     this.onSignalPreview = options.onSignalPreview;

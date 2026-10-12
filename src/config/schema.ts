@@ -93,6 +93,15 @@ export const fileConfigSchema = z
         hot_worker_queue_depth: z.number().int().positive().optional(),
       })
       .optional(),
+    alchemy: z
+      .object({
+        hot_cu_per_second: z.number().positive().optional(),
+        cold_cu_per_second: z.number().positive().optional(),
+        max_wait_ms: z.number().int().positive().optional(),
+        max_queue: z.number().int().positive().optional(),
+        max_429_retries: z.number().int().nonnegative().optional(),
+      })
+      .optional(),
     cold_path: z
       .object({
         concurrency: z.number().int().positive().optional(),
@@ -159,6 +168,13 @@ export const fileConfigSchema = z
     backpressure: {
       hot_worker_queue_depth: value.backpressure?.hot_worker_queue_depth ?? 100,
     },
+    alchemy: {
+      hot_cu_per_second: value.alchemy?.hot_cu_per_second ?? 200,
+      cold_cu_per_second: value.alchemy?.cold_cu_per_second ?? 80,
+      max_wait_ms: value.alchemy?.max_wait_ms ?? 20_000,
+      max_queue: value.alchemy?.max_queue ?? 500,
+      max_429_retries: value.alchemy?.max_429_retries ?? 3,
+    },
     cold_path: {
       concurrency: value.cold_path?.concurrency ?? 1,
       rebuild_failure_cooldown_ms: value.cold_path?.rebuild_failure_cooldown_ms ?? 15 * 60_000,
@@ -189,6 +205,9 @@ export const envConfigSchema = z.object({
   OMEN_OPERATIONAL_DRY_RUN: booleanStringSchema.optional(),
   OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH: positiveIntegerStringSchema.optional(),
   OMEN_COLD_PATH_CONCURRENCY: positiveIntegerStringSchema.optional(),
+  OMEN_ALCHEMY_HOT_CU_PER_SECOND: positiveIntegerStringSchema.optional(),
+  OMEN_ALCHEMY_COLD_CU_PER_SECOND: positiveIntegerStringSchema.optional(),
+  OMEN_ALCHEMY_MAX_WAIT_MS: positiveIntegerStringSchema.optional(),
   OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS: positiveIntegerStringSchema.optional(),
   OMEN_COLD_PATH_SHUTDOWN_TIMEOUT_MS: positiveIntegerStringSchema.optional(),
 });
@@ -265,6 +284,13 @@ export interface AppConfig {
   };
   backpressure: {
     hotWorkerQueueDepth: number;
+  };
+  alchemy: {
+    hotCuPerSecond: number;
+    coldCuPerSecond: number;
+    maxWaitMs: number;
+    maxQueue: number;
+    max429Retries: number;
   };
   coldPath: {
     concurrency: number;

@@ -1,7 +1,13 @@
 import type { WalletChainProfile } from '../types/wallet.js';
 import { canonicalizeEvmAddress, canonicalizeOptionalEvmAddress } from '../evm/address.js';
 import { CircuitBreaker } from '../resilience/circuit-breaker.js';
-import { SlidingWindowRateLimiter } from '../resilience/rate-limit.js';
+import {
+  alchemyMethodCost,
+  fetchWithRetryOn429,
+  TokenBucketRateLimiter,
+  type AlchemyRateLimitOptions,
+  DEFAULT_HOT_ALCHEMY_RATE_LIMIT,
+} from '../resilience/rate-limit.js';
 
 interface RpcResponse<TResult> {
   result?: TResult;
@@ -32,6 +38,7 @@ interface WalletProfilerOptions {
   rpcTimeoutMs?: number;
   fetchImpl?: typeof fetch;
   now?: () => number;
+  rateLimit?: Partial<AlchemyRateLimitOptions>;
 }
 
 const DEFAULT_CACHE_TTL_MS = 5 * 60_000;
@@ -39,8 +46,6 @@ const DEFAULT_MAX_CACHE_ENTRIES = 2_000;
 const DEFAULT_RPC_TIMEOUT_MS = 10_000;
 const DEFAULT_CONTROLLER_CACHE_TTL_MS = 15 * 60_000;
 const DEFAULT_CONTROLLER_LOOKUP_FANOUT = 5;
-const DEFAULT_RPC_RATE_LIMIT_MAX_OPERATIONS = 25;
-const DEFAULT_RPC_RATE_LIMIT_WINDOW_MS = 1_000;
 
 interface CachedWalletProfile {
   expiresAt: number;
@@ -64,13 +69,12 @@ export class AlchemyWalletProfiler {
   private readonly cache = new Map<string, CachedWalletProfile>();
   private readonly controllerCache = new Map<string, CachedControllerAddress>();
   private readonly rpcCircuitBreaker = new CircuitBreaker('alchemy rpc');
-  private readonly rpcRateLimiter = new SlidingWindowRateLimiter(
-    DEFAULT_RPC_RATE_LIMIT_MAX_OPERATIONS,
-    DEFAULT_RPC_RATE_LIMIT_WINDOW_MS,
-  );
+  private readonly rpcRateLimiter: TokenBucketRateLimiter;
+  private readonly retry429: AlchemyRateLimitOptions;
 
-  constructor(apiKey: string, options: WalletProfilerOptions = {}) {
-    this.rpcUrl = `https://polygon-mainnet.g.alchemy.com/v2/${apiKey}`;
+  constructor(apiKey: string | null, options: WalletProfilerOptions = {}) {
+    // box-dry-run: null key => no-Alchemy mode; every RPC fails fast (conservative fallback), no network.
+    this.rpcUrl = apiKey ? `https://polygon-mainnet.g.alchemy.com/v2/${apiKey}` : '';
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.cacheTtlMs = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
     this.maxCacheEntries = options.maxCacheEntries ?? DEFAULT_MAX_CACHE_ENTRIES;
@@ -78,6 +82,14 @@ export class AlchemyWalletProfiler {
     this.controllerLookupFanout = options.controllerLookupFanout ?? DEFAULT_CONTROLLER_LOOKUP_FANOUT;
     this.rpcTimeoutMs = options.rpcTimeoutMs ?? DEFAULT_RPC_TIMEOUT_MS;
     this.now = options.now ?? (() => Date.now());
+    this.retry429 = { ...DEFAULT_HOT_ALCHEMY_RATE_LIMIT, ...options.rateLimit };
+    this.rpcRateLimiter = new TokenBucketRateLimiter({
+      ratePerSecond: this.retry429.cuPerSecond,
+      burst: Math.max(this.retry429.cuPerSecond, 150),
+      maxWaitMs: this.retry429.maxWaitMs,
+      maxQueue: this.retry429.maxQueue,
+      label: 'Alchemy RPC',
+    });
   }
 
   async profileWallet(address: string): Promise<WalletChainProfile> {
@@ -252,12 +264,18 @@ export class AlchemyWalletProfiler {
   }
 
   private async rpcRequest<TResult>(method: string, params: unknown[]): Promise<TResult | null> {
+    if (!this.rpcUrl) {
+      throw new Error(`ALCHEMY_API_KEY not configured (no-Alchemy mode) for ${method}`);
+    }
+
     if (this.rpcCircuitBreaker.isOpen()) {
       throw new Error(`Alchemy RPC circuit is open`);
     }
 
-    if (!this.rpcRateLimiter.tryAcquire()) {
-      throw new Error(`Alchemy RPC rate limit exceeded for ${method}`);
+    try {
+      await this.rpcRateLimiter.acquire(alchemyMethodCost(method));
+    } catch {
+      throw new Error(`Alchemy RPC rate limit exceeded for ${method} (no capacity within ${this.retry429.maxWaitMs}ms)`);
     }
 
     const controller = new AbortController();
@@ -267,7 +285,7 @@ export class AlchemyWalletProfiler {
 
     try {
       const response = await this.rpcCircuitBreaker.execute(async () =>
-        this.fetchImpl(this.rpcUrl, {
+        fetchWithRetryOn429(() => this.fetchImpl(this.rpcUrl, {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
@@ -279,7 +297,7 @@ export class AlchemyWalletProfiler {
             params,
           }),
           signal: controller.signal,
-        }),
+        }), { maxRetries: this.retry429.max429Retries, baseDelayMs: this.retry429.retryBaseDelayMs }),
       );
 
       if (!response.ok) {
@@ -415,3 +433,4 @@ function parseHexInteger(value: string): number {
 function toHexCount(value: number): string {
   return `0x${Math.max(1, Math.floor(value)).toString(16)}`;
 }
+

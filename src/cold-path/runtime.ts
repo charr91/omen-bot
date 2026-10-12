@@ -29,7 +29,7 @@ interface ColdWorkerRuntimeState {
 
 export async function runColdWorkerCommand(): Promise<void> {
   const config = await loadAppConfig();
-  if (!config.alchemyApiKey) {
+  if (!config.alchemyApiKey && !(process.env.OMEN_ALLOW_MISSING_ALCHEMY === 'true')) {
     throw new Error('ALCHEMY_API_KEY is required to start the cold worker');
   }
   const alchemyApiKey = config.alchemyApiKey;
@@ -41,7 +41,14 @@ export async function runColdWorkerCommand(): Promise<void> {
   const heartbeatRedis = createRedisClient(config);
   const fundingEdgeStore = createFundingEdgeStore(pool);
   const walletStore = createWalletStore(pool);
-  const builder = new AlchemyFundingGraphBuilder(alchemyApiKey);
+  const builder = new AlchemyFundingGraphBuilder(alchemyApiKey, {
+    rateLimit: {
+      cuPerSecond: config.alchemy.coldCuPerSecond,
+      maxWaitMs: config.alchemy.maxWaitMs,
+      maxQueue: config.alchemy.maxQueue,
+      max429Retries: config.alchemy.max429Retries,
+    },
+  });
   const runtimeState: ColdWorkerRuntimeState = {
     lastCompletedAt: null,
     lastFailedAt: null,

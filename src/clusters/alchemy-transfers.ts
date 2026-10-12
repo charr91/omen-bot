@@ -2,10 +2,17 @@ import { canonicalizeEvmAddress, canonicalizeOptionalEvmAddress } from '../evm/a
 import type { AppConfig } from '../config/schema.js';
 import type { NewFundingEdge } from '../persistence/queries/funding-edges.js';
 import { CircuitBreaker } from '../resilience/circuit-breaker.js';
-import { SlidingWindowRateLimiter } from '../resilience/rate-limit.js';
+import {
+  alchemyMethodCost,
+  DEFAULT_COLD_ALCHEMY_RATE_LIMIT,
+  fetchWithRetryOn429,
+  TokenBucketRateLimiter,
+  type AlchemyRateLimitOptions,
+} from '../resilience/rate-limit.js';
 
 interface FundingGraphBuilderOptions {
   fetchImpl?: typeof fetch;
+  rateLimit?: Partial<AlchemyRateLimitOptions>;
 }
 
 interface RpcResponse<TResult> {
@@ -38,25 +45,30 @@ export interface FundingGraphBuildResult {
 }
 
 const DEFAULT_RPC_TIMEOUT_MS = 10_000;
-const DEFAULT_RATE_LIMIT_WINDOW_MS = 1_000;
-const DEFAULT_RATE_LIMIT_OPERATIONS = 25;
 
 export class AlchemyFundingGraphBuilder {
   private readonly fetchImpl: typeof fetch;
   private readonly rpcUrl: string;
   private readonly circuitBreaker = new CircuitBreaker('alchemy funding graph');
-  private readonly rateLimiter = new SlidingWindowRateLimiter(
-    DEFAULT_RATE_LIMIT_OPERATIONS,
-    DEFAULT_RATE_LIMIT_WINDOW_MS,
-  );
+  private readonly rateLimiter: TokenBucketRateLimiter;
+  private readonly rateLimit: AlchemyRateLimitOptions;
   private rpcCalls = 0;
 
   constructor(
-    apiKey: string,
+    apiKey: string | null,
     options: FundingGraphBuilderOptions = {},
   ) {
     this.fetchImpl = options.fetchImpl ?? fetch;
-    this.rpcUrl = `https://polygon-mainnet.g.alchemy.com/v2/${apiKey}`;
+    // box-dry-run: null key => no-Alchemy mode; rebuild jobs fail fast without network.
+    this.rpcUrl = apiKey ? `https://polygon-mainnet.g.alchemy.com/v2/${apiKey}` : '';
+    this.rateLimit = { ...DEFAULT_COLD_ALCHEMY_RATE_LIMIT, ...options.rateLimit };
+    this.rateLimiter = new TokenBucketRateLimiter({
+      ratePerSecond: this.rateLimit.cuPerSecond,
+      burst: Math.max(this.rateLimit.cuPerSecond, 150),
+      maxWaitMs: this.rateLimit.maxWaitMs,
+      maxQueue: this.rateLimit.maxQueue,
+      label: 'Alchemy funding-graph',
+    });
   }
 
   async buildGraph(
@@ -220,12 +232,18 @@ export class AlchemyFundingGraphBuilder {
   }
 
   private async rpcRequest<TResult>(method: string, params: unknown[]): Promise<TResult | null> {
+    if (!this.rpcUrl) {
+      throw new Error(`ALCHEMY_API_KEY not configured (no-Alchemy mode) for ${method}`);
+    }
+
     if (this.circuitBreaker.isOpen()) {
       throw new Error(`Alchemy funding-graph circuit is open`);
     }
 
-    if (!this.rateLimiter.tryAcquire()) {
-      throw new Error(`Alchemy funding-graph rate limit exceeded for ${method}`);
+    try {
+      await this.rateLimiter.acquire(alchemyMethodCost(method));
+    } catch {
+      throw new Error(`Alchemy funding-graph rate limit exceeded for ${method} (no capacity within ${this.rateLimit.maxWaitMs}ms)`);
     }
 
     this.rpcCalls += 1;
@@ -236,7 +254,7 @@ export class AlchemyFundingGraphBuilder {
 
     try {
       const response = await this.circuitBreaker.execute(async () =>
-        this.fetchImpl(this.rpcUrl, {
+        fetchWithRetryOn429(() => this.fetchImpl(this.rpcUrl, {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
@@ -248,7 +266,7 @@ export class AlchemyFundingGraphBuilder {
             params,
           }),
           signal: controller.signal,
-        }),
+        }), { maxRetries: this.rateLimit.max429Retries, baseDelayMs: this.rateLimit.retryBaseDelayMs }),
       );
 
       if (!response.ok) {

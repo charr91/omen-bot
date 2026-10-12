@@ -60,3 +60,11 @@ hot_worker_queue_depth = 100
 concurrency = 1
 rebuild_failure_cooldown_ms = 900000
 shutdown_timeout_ms = 30000
+
+[alchemy]
+# CU-weighted token bucket (waits for capacity). Hot + cold = 280 CU/s, under the 330 CU/s free tier.
+hot_cu_per_second = 200
+cold_cu_per_second = 80
+max_wait_ms = 20000
+max_queue = 500
+max_429_retries = 3

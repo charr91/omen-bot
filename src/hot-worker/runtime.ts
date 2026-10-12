@@ -35,9 +35,11 @@ if (!port) {
 const workerPort = port;
 
 const { config } = workerData as HotWorkerData;
-if (!config.alchemyApiKey) {
+const noAlchemyMode = !config.alchemyApiKey && process.env.OMEN_ALLOW_MISSING_ALCHEMY === 'true';
+if (!config.alchemyApiKey && !noAlchemyMode) {
   throw new Error('ALCHEMY_API_KEY is required to start the hot worker');
 }
+let noAlchemyNoticeSent = false;
 
 const pool = createDbPool(config);
 const alertStore = createAlertStore(pool);
@@ -47,7 +49,14 @@ const auditLogStore = createAuditLogStore(pool);
 const proxyOverrideStore = createProxyOverrideStore(pool);
 const signalEventStore = createSignalEventStore(pool);
 const redis = createRedisClient(config);
-const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey);
+const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey, {
+  rateLimit: {
+    cuPerSecond: config.alchemy.hotCuPerSecond,
+    maxWaitMs: config.alchemy.maxWaitMs,
+    maxQueue: config.alchemy.maxQueue,
+    max429Retries: config.alchemy.max429Retries,
+  },
+});
 const marketCatalog = new ActiveMarketCatalog();
 const coldPathQueue = createFundingGraphRebuildJobQueue(config);
 const queue: FillRecord[] = [];
@@ -182,7 +191,17 @@ async function processFill(fill: FillRecord): Promise<void> {
   ]);
   const chainProfile = resolvedChainProfile.profile;
 
-  if (resolvedChainProfile.degraded) {
+  if (resolvedChainProfile.degraded && noAlchemyMode) {
+    // box-dry-run: report no-Alchemy degradation once instead of once per fill.
+    if (!noAlchemyNoticeSent) {
+      noAlchemyNoticeSent = true;
+      postMessage({
+        type: 'ERROR',
+        fillId: fill.id,
+        error: '[alchemy] no-Alchemy mode: all wallet profiles use conservative fallback (reported once)',
+      });
+    }
+  } else if (resolvedChainProfile.degraded) {
     postMessage({
       type: 'ERROR',
       fillId: fill.id,

@@ -36,6 +36,9 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
     OMEN_OPERATIONAL_DRY_RUN: readOptionalEnv(process.env.OMEN_OPERATIONAL_DRY_RUN),
     OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH: readOptionalEnv(process.env.OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH),
     OMEN_COLD_PATH_CONCURRENCY: readOptionalEnv(process.env.OMEN_COLD_PATH_CONCURRENCY),
+    OMEN_ALCHEMY_HOT_CU_PER_SECOND: readOptionalEnv(process.env.OMEN_ALCHEMY_HOT_CU_PER_SECOND),
+    OMEN_ALCHEMY_COLD_CU_PER_SECOND: readOptionalEnv(process.env.OMEN_ALCHEMY_COLD_CU_PER_SECOND),
+    OMEN_ALCHEMY_MAX_WAIT_MS: readOptionalEnv(process.env.OMEN_ALCHEMY_MAX_WAIT_MS),
     OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS: readOptionalEnv(
       process.env.OMEN_COLD_PATH_REBUILD_FAILURE_COOLDOWN_MS,
     ),
@@ -115,6 +118,13 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       hotWorkerQueueDepth:
         envConfig.OMEN_BACKPRESSURE_HOT_WORKER_QUEUE_DEPTH ??
         fileConfig.backpressure.hot_worker_queue_depth,
+    },
+    alchemy: {
+      hotCuPerSecond: envConfig.OMEN_ALCHEMY_HOT_CU_PER_SECOND ?? fileConfig.alchemy.hot_cu_per_second,
+      coldCuPerSecond: envConfig.OMEN_ALCHEMY_COLD_CU_PER_SECOND ?? fileConfig.alchemy.cold_cu_per_second,
+      maxWaitMs: envConfig.OMEN_ALCHEMY_MAX_WAIT_MS ?? fileConfig.alchemy.max_wait_ms,
+      maxQueue: fileConfig.alchemy.max_queue,
+      max429Retries: fileConfig.alchemy.max_429_retries,
     },
     coldPath: {
       concurrency: envConfig.OMEN_COLD_PATH_CONCURRENCY ?? fileConfig.cold_path.concurrency,
