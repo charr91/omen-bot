@@ -119,3 +119,5 @@ book_watchlist_size = 40
 enabled = true
 publish_live_alerts = true
 sync_outcomes = true
+# Skip omen's own Telegram/Discord while the feed delivers live alerts (needs enabled + FEED_DATABASE_URL + publish_live_alerts).
+disable_legacy_channels = true

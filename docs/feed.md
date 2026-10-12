@@ -12,5 +12,8 @@ Its README covers the design and decision #11 (a library writing to a shared sch
   and baselines) are mirrored as envelopes (`deliver=false`) plus `feed.outcomes`. `trade_outcomes.feed_synced_at`
   tracks progress.
 - **Parity:** `smart-money-feed stats --app omen` matches `omen stats` (same hit definition, flat moves excluded).
-- **Before going live:** omen's own Telegram/Discord channels still deliver promoted alerts too. Turn them off (or
-  set `publish_live_alerts = false`) so each alert reaches Telegram only once.
+- **Legacy channels:** `[feed] disable_legacy_channels = true` (default false) drops omen's own Telegram/Discord
+  channels, so the feed process is the only delivery path. It takes effect only while `enabled`,
+  `FEED_DATABASE_URL` and `publish_live_alerts` are all on; otherwise the legacy channels stay so alerts are never
+  silently dropped. Alerts are still stored and shown on the dashboard. Without it, both paths deliver, so turn one
+  off before going live.

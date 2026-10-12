@@ -23,6 +23,16 @@ interface DispatchOptions {
   channels?: AlertDeliveryChannelName[];
 }
 
+/**
+ * True when the shared feed is the live delivery path, so omen's own Telegram/Discord channels are skipped.
+ * Only takes effect if the feed is actually on and publishing live alerts; otherwise alerts would go nowhere.
+ */
+export function legacyChannelsDisabled(feed: AppConfig['feed'] | undefined): boolean {
+  return Boolean(
+    feed && feed.disableLegacyChannels && feed.enabled && feed.databaseUrl && feed.publishLiveAlerts,
+  );
+}
+
 export class AlertDispatcher {
   private readonly deduper: RedisAlertDeduper;
   private readonly channels: AlertDeliveryChannel[];
@@ -30,7 +40,7 @@ export class AlertDispatcher {
   private dryRun: boolean;
 
   constructor(
-    config: Pick<AppConfig, 'alerts' | 'operational' | 'telegram' | 'discord'>,
+    config: Pick<AppConfig, 'alerts' | 'operational' | 'telegram' | 'discord'> & Partial<Pick<AppConfig, 'feed'>>,
     redis: RedisDispatchStore,
     options: AlertDispatcherOptions = {},
   ) {
@@ -39,7 +49,9 @@ export class AlertDispatcher {
       config.alerts.dedupCooldownMs,
       config.alerts.dedupScoreIncrease,
     );
-    this.channels = [new TelegramDispatcher(config, options), new DiscordDispatcher(config, options)];
+    this.channels = legacyChannelsDisabled(config.feed)
+      ? []
+      : [new TelegramDispatcher(config, options), new DiscordDispatcher(config, options)];
     this.dryRun = config.operational.dryRun;
   }
 

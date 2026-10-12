@@ -129,6 +129,7 @@ export const fileConfigSchema = z
         enabled: z.boolean().optional(),
         publish_live_alerts: z.boolean().optional(),
         sync_outcomes: z.boolean().optional(),
+        disable_legacy_channels: z.boolean().optional(),
       })
       .optional(),
     kalshi: z
@@ -240,6 +241,7 @@ export const fileConfigSchema = z
       enabled: value.feed?.enabled ?? false,
       publish_live_alerts: value.feed?.publish_live_alerts ?? true,
       sync_outcomes: value.feed?.sync_outcomes ?? true,
+      disable_legacy_channels: value.feed?.disable_legacy_channels ?? false,
     },
     kalshi: {
       enabled: value.kalshi?.enabled ?? false,
@@ -404,6 +406,8 @@ export interface AppConfig {
     publishLiveAlerts: boolean;
     /** Mirror M1 trade_outcomes (signals + baselines) into feed.outcomes after each tracker run. */
     syncOutcomes: boolean;
+    /** Skip omen's own Telegram/Discord channels while the feed delivers live alerts (see legacyChannelsDisabled). */
+    disableLegacyChannels: boolean;
   };
   /** M2: Kalshi public REST ingest + market-level signals (stored and graded only, never dispatched). */
   kalshi: {

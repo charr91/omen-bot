@@ -155,6 +155,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       databaseUrl: process.env.FEED_DATABASE_URL?.trim() || null,
       publishLiveAlerts: fileConfig.feed.publish_live_alerts,
       syncOutcomes: fileConfig.feed.sync_outcomes,
+      disableLegacyChannels: fileConfig.feed.disable_legacy_channels,
     },
     kalshi: {
       enabled: fileConfig.kalshi.enabled,
