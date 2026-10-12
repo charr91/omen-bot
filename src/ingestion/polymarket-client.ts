@@ -7,6 +7,10 @@ import type { FillCursor } from '../persistence/queries/fills.js';
 import type { JsonObject } from '../phase0/types.js';
 import type { FillOutcome, NewFill } from '../types/fill.js';
 
+// box-dry-run: process-local dedupe for quarantined trades.
+const MAX_RECENT_QUARANTINE_KEYS = 200_000;
+const recentQuarantineKeys = new Set<string>();
+
 export interface FillSource {
   listRecentFills(cursor: FillCursor | null): Promise<NewFill[]>;
 }
@@ -75,6 +79,28 @@ export async function listRecentFills(options: ListRecentFillsOptions): Promise<
 
       const parsedTrade = parseTradeToFill(trade);
       if (parsedTrade.kind === 'invalid') {
+        // box-dry-run: every poll re-reads up to max_pages_per_poll pages, so the same invalid
+        // (mostly non-YES/NO outcome) trades were re-quarantined each cycle (~6k rows/min).
+        // Skip trades older than the cursor and dedupe within this process.
+        if (timestampMs !== null && cursorTimestampMs !== null && timestampMs < cursorTimestampMs) {
+          continue;
+        }
+        const quarantineKey = stableObservationKey([
+          getString(trade, ['transactionHash', 'transaction_hash']) ?? '',
+          getString(trade, ['asset', 'asset_id']) ?? '',
+          String(timestampMs ?? ''),
+          parsedTrade.reason,
+        ]);
+        if (recentQuarantineKeys.has(quarantineKey)) {
+          continue;
+        }
+        recentQuarantineKeys.add(quarantineKey);
+        if (recentQuarantineKeys.size > MAX_RECENT_QUARANTINE_KEYS) {
+          const oldest = recentQuarantineKeys.values().next().value;
+          if (oldest !== undefined) {
+            recentQuarantineKeys.delete(oldest);
+          }
+        }
         await options.onInvalidTrade?.({
           source: 'polymarket_rest',
           rawPayload: trade,
@@ -106,14 +132,14 @@ export async function listRecentFills(options: ListRecentFillsOptions): Promise<
       fills.push(fill);
     }
 
-    if (page.length < PUBLIC_TRADE_POLL_LIMIT || pageAllOlderThanCursor) {
+    // box-dry-run: as of Oct 2026 data-api /trades pages are not globally time-ordered (each page is
+    // sorted internally but offsets come back shuffled/overlapping, refreshed in ~5 min batches), so
+    // stopping at the first all-older page dropped most of each batch, and the max-pages guard is
+    // meaningless. Read every page up to max_pages_per_poll; DB dedupes on (tx_hash, token_id).
+    void pageAllOlderThanCursor;
+    void pageContainsCursorOrNewer;
+    if (page.length < PUBLIC_TRADE_POLL_LIMIT) {
       break;
-    }
-
-    if (pageIndex === options.maxPagesPerPoll - 1 && pageContainsCursorOrNewer) {
-      throw new Error(
-        `Public trade polling exceeded configured max_pages_per_poll ${options.maxPagesPerPoll}; refusing to continue with possible silent fill loss.`,
-      );
     }
   }
 
