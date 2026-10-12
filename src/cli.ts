@@ -40,7 +40,7 @@ Usage:
   omen [--env-file .env] replay
   omen [--env-file .env] health
   omen [--env-file .env] stats [--days 7] [--json] [--refresh]
-  omen [--env-file .env] kalshi-map <list|add|remove> [...]
+  omen [--env-file .env] kalshi-map <list|add|remove|suggest [--auto] [--min 0.6]> [...]
   omen [--env-file .env] test-telegram
   omen [--env-file .env] cold-worker
   omen [--env-file .env] whitelist <list|add|remove> [...]

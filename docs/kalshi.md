@@ -36,3 +36,19 @@ omen kalshi-map add <polymarketConditionId> <KALSHI-TICKER> [--invert] [--note "
 omen kalshi-map remove <polymarketConditionId> <KALSHI-TICKER>
 ```
 Only map markets that are strictly equivalent (same event, same resolution criteria). Use `--invert` when Kalshi YES equals Polymarket NO.
+
+### Suggesting pairs
+```
+omen kalshi-map suggest [--min 0.6] [--pm-limit 3000] [--kalshi-pages 60] [--json] [--auto]
+```
+This compares the top Polymarket markets by 24h volume (Gamma) with open Kalshi markets. For each Polymarket market it
+lists the best Kalshi candidate and a confidence score:
+- **confidence** = 0.7 × token Jaccard + 0.2 × date proximity + 0.1 × matching numbers.
+- Halved when threshold numbers differ, and halved again when the dates are more than 30 days apart.
+- Multiplied by 0.6 when one side has a qualifier the other lacks (vice/1st/anytime/most/seats/...) or names a
+  different calendar day.
+
+`EXACT` requires all of the following: binary Yes/No, the same numbers, no qualifier or date conflicts, a date gap of
+36h or less, token similarity ≥ 0.85 and confidence ≥ 0.9. `--auto` adds only EXACT pairs. Even close candidates often
+resolve differently (e.g. a BTC price at noon ET on Binance vs 5pm ET on CF Benchmarks), so check the rules before a
+manual `add`.

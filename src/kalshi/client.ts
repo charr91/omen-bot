@@ -30,6 +30,9 @@ export interface KalshiMarket {
   yesBidSize: number;
   yesAskSize: number;
   lastPrice: number | null;
+  yesSubTitle?: string;
+  /** expected_expiration_time (event date); close_time is often weeks later. */
+  expectedExpiration?: Date | null;
 }
 
 export interface KalshiCandle {
@@ -96,6 +99,11 @@ export function parseKalshiMarket(raw: Record<string, unknown>): KalshiMarket | 
     yesBidSize: num(raw.yes_bid_size_fp) ?? 0,
     yesAskSize: num(raw.yes_ask_size_fp) ?? 0,
     lastPrice: num(raw.last_price_dollars),
+    yesSubTitle: typeof raw.yes_sub_title === 'string' ? raw.yes_sub_title : '',
+    expectedExpiration:
+      typeof raw.expected_expiration_time === 'string' && Number.isFinite(Date.parse(raw.expected_expiration_time))
+        ? new Date(raw.expected_expiration_time)
+        : null,
   };
 }
 
