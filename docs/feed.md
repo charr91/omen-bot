@@ -17,3 +17,12 @@ Its README covers the design and decision #11 (a library writing to a shared sch
   `FEED_DATABASE_URL` and `publish_live_alerts` are all on; otherwise the legacy channels stay so alerts are never
   silently dropped. Alerts are still stored and shown on the dashboard. Without it, both paths deliver, so turn one
   off before going live.
+
+## X context (M4)
+- `[feed] x_enrich` (default true) and `x_min_tier` (default MEDIUM): each promoted alert at or above the tier
+  enqueues a keyword search for its market (`marketKeywords`, e.g. "Bitcoin 150k") in the shared X bridge, priority
+  CRITICAL 90 / HIGH 70 / MEDIUM 50, window 24 h before the fill. Only while the shared `x.source` is `grokbot`.
+- Grok Bot fills the request (smart-money-feed docs/x-bridge.md). Every `x_annotate_interval_ms` (60 s) omen reads
+  the bridge, stores the chatter summary in `alert_x_context` (trend quiet | rising | steady | falling | busy), logs
+  `x-chatter`, and shows it under the alert on the dashboard.
+- Bridge failures are logged as `[x] …` and never block an alert.

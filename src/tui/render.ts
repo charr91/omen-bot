@@ -167,6 +167,9 @@ function renderAlertFeed(alerts: PresentableAlert[], width: number, maxLines: nu
         width,
       ),
     );
+    if (alert.xChatter) {
+      lines.push(padRight(truncate(paint(sanitizeForTerminal(alert.xChatter), ['2']), width), width));
+    }
     if (lines.length >= maxLines) {
       break;
     }

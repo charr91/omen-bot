@@ -86,6 +86,13 @@ export class TerminalDashboard {
     this.render();
   }
 
+  /** M4: attach the X chatter summary to an alert already on screen. */
+  annotateAlert(fillId: string, summary: string): void {
+    const alert = this.alerts.find((entry) => entry.fillId === fillId);
+    if (alert) alert.xChatter = summary;
+    this.notify(`X context: ${summary}`);
+  }
+
   addSignalPreview(preview: SignalPreview): void {
     this.signalPreviews.unshift(preview);
     if (this.signalPreviews.length > 100) {

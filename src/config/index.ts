@@ -156,6 +156,9 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       publishLiveAlerts: fileConfig.feed.publish_live_alerts,
       syncOutcomes: fileConfig.feed.sync_outcomes,
       disableLegacyChannels: fileConfig.feed.disable_legacy_channels,
+      xEnrich: fileConfig.feed.x_enrich,
+      xMinTier: fileConfig.feed.x_min_tier,
+      xAnnotateIntervalMs: fileConfig.feed.x_annotate_interval_ms,
     },
     kalshi: {
       enabled: fileConfig.kalshi.enabled,

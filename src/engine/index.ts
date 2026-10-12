@@ -20,7 +20,8 @@ import { createIngestQuarantineStore } from '../persistence/queries/ingest-quara
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { readAlchemyCuUsage } from '../resilience/cu-meter.js';
 import { OutcomeTracker } from '../outcomes/tracker.js';
-import { FeedClient } from '@charr91/smart-money-feed';
+import { FeedClient, XBridge, loadXOptions } from '@charr91/smart-money-feed';
+import { annotatePendingAlerts, recordXRequest, xRequestForAlert } from '../feed/x-enrich.js';
 import { Pool as PgPool } from 'pg';
 import { liveAlertEnvelope, syncOutcomesToFeed } from '../feed/publisher.js';
 import { KalshiClient } from '../kalshi/client.js';
@@ -103,6 +104,8 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   // M3 shared feed: separate database (FEED_DATABASE_URL); omen never reads it back. Disabled => null.
   const feedPool = config.feed.enabled && config.feed.databaseUrl ? new PgPool({ connectionString: config.feed.databaseUrl, max: 2 }) : null;
   const feed = feedPool ? new FeedClient(feedPool) : null;
+  // M4: X context through the shared bridge. Requests are only queued while x.source = grokbot.
+  const xBridge = feedPool && config.feed.xEnrich ? new XBridge(feedPool, loadXOptions()) : null;
   if (feed) {
     await feed.ensureSchema();
   }
@@ -195,6 +198,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
           dashboard,
           logger,
           feed: config.feed.publishLiveAlerts ? feed : null,
+          x: xBridge ? { bridge: xBridge, db: pool, minTier: config.feed.xMinTier } : null,
         }),
       );
     },
@@ -365,6 +369,25 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
           })
       );
     };
+    let xAnnotating = false;
+    const runXAnnotator = (): void => {
+      if (!xBridge || xAnnotating || stopping) return;
+      xAnnotating = true;
+      void annotatePendingAlerts(pool, xBridge)
+        .then((annotated) => {
+          for (const note of annotated) {
+            emitStructuredLog(logger, { type: 'x-chatter', ...note });
+            dashboard?.annotateAlert(note.fillId, note.summary);
+          }
+        })
+        .catch((error: unknown) => reportOperatorError({ message: `[x] annotate failed: ${formatError(error)}`, dashboard, logger }))
+        .finally(() => {
+          xAnnotating = false;
+        });
+    };
+    const xTimer = xBridge ? setInterval(runXAnnotator, config.feed.xAnnotateIntervalMs) : null;
+    xTimer?.unref?.();
+
     const outcomeTimer = setInterval(runOutcomeTracker, config.outcomes.intervalMs);
     outcomeTimer.unref?.();
     runOutcomeTracker();
@@ -412,6 +435,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
     } finally {
       clearInterval(runtimeStatsTimer);
       clearInterval(outcomeTimer);
+      if (xTimer) clearInterval(xTimer);
       kalshiTimers.forEach((timer) => clearInterval(timer));
     }
   } finally {
@@ -563,6 +587,7 @@ async function handleSignalPreview(options: {
   dashboard: TerminalDashboard | null;
   logger: Logger;
   feed?: FeedClient | null;
+  x?: { bridge: XBridge; db: Pick<Pool, 'query'>; minTier: string } | null;
 }): Promise<void> {
   const { preview, alertStore, fillStore, alertDispatcher, dashboard, logger } = options;
   if (dashboard === null) {
@@ -585,6 +610,20 @@ async function handleSignalPreview(options: {
       await options.feed.publish(liveAlertEnvelope(storedAlert));
     } catch (error) {
       reportOperatorError({ message: `[feed] publish failed: ${formatError(error)}`, dashboard, logger });
+    }
+  }
+  if (options.x) {
+    const request = xRequestForAlert(storedAlert, options.x.minTier);
+    if (request) {
+      try {
+        if ((await options.x.bridge.getSource()) === 'grokbot') {
+          const queued = await options.x.bridge.enqueue(request);
+          await recordXRequest(options.x.db, storedAlert.fillId, queued.requestId, request.query, queued.status);
+          emitStructuredLog(logger, { type: 'x-request', fillId: storedAlert.fillId, query: request.query, ...queued });
+        }
+      } catch (error) {
+        reportOperatorError({ message: `[x] enqueue failed: ${formatError(error)}`, dashboard, logger });
+      }
     }
   }
   const presentableAlert = await enrichAlertWithLinkedTradeContext(storedAlert, fillStore);

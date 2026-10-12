@@ -50,4 +50,6 @@ export interface StoredAlert extends PromotedAlert {
 
 export type PresentableAlert = PromotedAlert & {
   linkedTradeContext?: AlertLinkedTradeContext | null;
+  /** M4: X chatter summary from the shared bridge, once Grok Bot's search results arrive. */
+  xChatter?: string | null;
 };

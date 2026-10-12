@@ -130,6 +130,9 @@ export const fileConfigSchema = z
         publish_live_alerts: z.boolean().optional(),
         sync_outcomes: z.boolean().optional(),
         disable_legacy_channels: z.boolean().optional(),
+        x_enrich: z.boolean().optional(),
+        x_min_tier: z.enum(['MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+        x_annotate_interval_ms: z.number().int().positive().optional(),
       })
       .optional(),
     kalshi: z
@@ -242,6 +245,9 @@ export const fileConfigSchema = z
       publish_live_alerts: value.feed?.publish_live_alerts ?? true,
       sync_outcomes: value.feed?.sync_outcomes ?? true,
       disable_legacy_channels: value.feed?.disable_legacy_channels ?? false,
+      x_enrich: value.feed?.x_enrich ?? true,
+      x_min_tier: value.feed?.x_min_tier ?? 'MEDIUM',
+      x_annotate_interval_ms: value.feed?.x_annotate_interval_ms ?? 60_000,
     },
     kalshi: {
       enabled: value.kalshi?.enabled ?? false,
@@ -408,6 +414,10 @@ export interface AppConfig {
     syncOutcomes: boolean;
     /** Skip omen's own Telegram/Discord channels while the feed delivers live alerts (see legacyChannelsDisabled). */
     disableLegacyChannels: boolean;
+    /** M4: enqueue X searches for alerts at or above xMinTier in the shared bridge and show the chatter summary. */
+    xEnrich: boolean;
+    xMinTier: 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    xAnnotateIntervalMs: number;
   };
   /** M2: Kalshi public REST ingest + market-level signals (stored and graded only, never dispatched). */
   kalshi: {
