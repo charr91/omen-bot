@@ -158,7 +158,8 @@ describe('Discord alert delivery', () => {
         },
       ],
     });
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    // HIGH alerts go to both Telegram chats (medium + prime/critical) plus Discord.
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
   it('continues dispatching remaining channels when one channel fails', async () => {
@@ -219,7 +220,8 @@ describe('Discord alert delivery', () => {
         },
       ],
     });
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    // HIGH alerts go to both Telegram chats (medium + prime/critical) plus Discord.
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
   it('can target only the missing channel during recovery dispatch', async () => {
