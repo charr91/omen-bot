@@ -130,6 +130,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       max429Retries: fileConfig.alchemy.max_429_retries,
       minProfileFillUsd: envConfig.OMEN_ALCHEMY_MIN_PROFILE_FILL_USD ?? fileConfig.alchemy.min_profile_fill_usd,
       profileCacheTtlMs: envConfig.OMEN_ALCHEMY_PROFILE_CACHE_TTL_MS ?? fileConfig.alchemy.profile_cache_ttl_ms,
+      persistedProfileTtlMs: fileConfig.alchemy.persisted_profile_ttl_ms,
       dailyCuBudget: envConfig.OMEN_ALCHEMY_DAILY_CU_BUDGET ?? fileConfig.alchemy.daily_cu_budget,
       hotBudgetShare: fileConfig.alchemy.hot_budget_share,
     },

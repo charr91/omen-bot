@@ -19,7 +19,8 @@ import { ALCHEMY_BUDGET_EXHAUSTED, AlchemyWalletProfiler } from '../profiling/wa
 import { createColdJobRelevanceStore, shouldRequestRebuild } from '../cold-path/relevance.js';
 import { createMarketMakerStore } from '../persistence/queries/market-maker.js';
 import { AlchemyDailyBudget, startCuMeterFlush } from '../resilience/cu-meter.js';
-import { effectiveMinProfileFillUsd, shouldProfileFill } from './profile-gate.js';
+import { isSettledChainProfile, profileModeForFill } from './profile-gate.js';
+import { buildConservativeChainProfile } from './chain-profile.js';
 import { computeCompositeLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
 import type { LiveClusterSignalContext } from '../signals/sybil-cluster.js';
 import { deriveAlertTier } from '../signals/scoring.js';
@@ -62,6 +63,13 @@ const hotBudget = new AlchemyDailyBudget(redis, {
   component: 'hot',
 });
 let hotBudgetNoticeDay: string | null = null;
+/** Counts how each fill's chain profile was obtained, per UTC day, in Redis (omen:hot:profile-modes:<day>). */
+const profileStats = {
+  bump(field: 'skip' | 'light' | 'persistedHit' | 'alchemy'): void {
+    const key = `omen:hot:profile-modes:${new Date().toISOString().slice(0, 10)}`;
+    void redis.hincrby(key, field, 1).then(() => redis.expire(key, 8 * 86_400)).catch(() => undefined);
+  },
+};
 const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey, {
   cacheTtlMs: config.alchemy.profileCacheTtlMs,
   budgetExhausted: () => hotBudget.isExhausted(),
@@ -74,7 +82,6 @@ const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey, {
     max429Retries: config.alchemy.max429Retries,
   },
 });
-const minProfileFillUsd = effectiveMinProfileFillUsd(config);
 const marketCatalog = new ActiveMarketCatalog();
 const coldPathQueue = createFundingGraphRebuildJobQueue(config);
 const queue: FillRecord[] = [];
@@ -201,22 +208,33 @@ async function processQueue(): Promise<void> {
 async function processFill(fill: FillRecord): Promise<void> {
   await walletStore.upsertWalletStub(fill.walletAddress, fill.timestamp);
 
-  if (!shouldProfileFill(fill.sizeUsd, minProfileFillUsd)) {
+  const mode = profileModeForFill(fill.sizeUsd, config);
+  if (mode === 'skip') {
     // Below every live signal's min fill size: no signal can fire, so skip Alchemy profiling, controller
     // lookup and funding-graph rebuilds. The stored wallet profile is left untouched (not downgraded).
+    profileStats.bump('skip');
     await fillStore.markFillAnalyzed(fill.id);
     return;
   }
 
-  const [aggregateStats, signalContext, isWhitelisted, resolvedChainProfile] = await Promise.all([
+  const [aggregateStats, signalContext, isWhitelisted, persisted] = await Promise.all([
     walletStore.getAggregateStats(fill.walletAddress, { fillId: fill.id, fillTimestamp: fill.timestamp }),
     walletStore.getSignalContext(fill.walletAddress),
     walletStore.isWhitelisted(fill.walletAddress),
-    resolveWalletChainProfile({
-      walletAddress: fill.walletAddress,
-      profiler: walletProfiler,
-    }),
+    walletStore.getPersistedChainProfile(fill.walletAddress, config.alchemy.persistedProfileTtlMs),
   ]);
+  const persistedUsable = persisted !== null && isSettledChainProfile(persisted, config);
+  // light: below the Alchemy threshold (and below fresh-wallet's min), so never spend CU; use the persisted
+  // profile when there is one, else the conservative one (fresh-wallet can't fire below its min anyway).
+  const resolvedChainProfile =
+    persistedUsable || mode === 'light'
+      ? { profile: persisted ?? buildConservativeChainProfile(), degraded: false, error: null }
+      : await resolveWalletChainProfile({ walletAddress: fill.walletAddress, profiler: walletProfiler });
+  const chainFromCache = persistedUsable || (mode === 'light' && persisted !== null);
+  const chainKnown = mode === 'full' || persisted !== null;
+  if (persistedUsable) profileStats.bump('persistedHit');
+  else if (mode === 'light') profileStats.bump('light');
+  else profileStats.bump('alchemy');
   const chainProfile = resolvedChainProfile.profile;
 
   if (resolvedChainProfile.degraded && noAlchemyMode) {
@@ -248,7 +266,12 @@ async function processFill(fill: FillRecord): Promise<void> {
   }
 
   const market = await marketCatalog.getMarket(fill.marketId);
-  const effectiveChainProfile = await buildEffectiveChainProfile(fill.walletAddress, chainProfile);
+  // Persisted profiles are already effective (controller-resolved); light mode never resolves controllers.
+  const effectiveChainProfile =
+    chainFromCache || mode === 'light' ? chainProfile : await buildEffectiveChainProfile(fill.walletAddress, chainProfile);
+  if (mode === 'full' && !chainFromCache && !resolvedChainProfile.degraded) {
+    await walletStore.savePersistedChainProfile(fill.walletAddress, effectiveChainProfile);
+  }
   const cluster = await buildFundingClusterContext(fill, signalContext);
 
   const baseWallet: WalletProfile = {
@@ -301,8 +324,10 @@ async function processFill(fill: FillRecord): Promise<void> {
     liveTier,
   };
 
-  await walletStore.upsertLiveProfile(walletProfile);
-  await maybeRecordControllerAttribution(fill.walletAddress, signalContext.controllerAddress, effectiveChainProfile);
+  await walletStore.upsertLiveProfile(walletProfile, { chainKnown });
+  if (chainKnown) {
+    await maybeRecordControllerAttribution(fill.walletAddress, signalContext.controllerAddress, effectiveChainProfile);
+  }
 
   if (market !== null) {
     for (const signal of triggeredSignals) {

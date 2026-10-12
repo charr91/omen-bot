@@ -67,17 +67,21 @@ rebuild_if_signaled = true
 
 [alchemy]
 # CU-weighted token bucket (waits for capacity). Hot + cold = 280 CU/s, under the 330 CU/s free tier.
-# Hot only profiles fills >= min_profile_fill_usd now, so most budget goes to funding-graph rebuilds.
+# Hot only calls Alchemy for fills >= min_profile_fill_usd, so most budget goes to funding-graph rebuilds.
 hot_cu_per_second = 120
 cold_cu_per_second = 160
 max_wait_ms = 20000
 max_queue = 500
 max_429_retries = 3
-# Fills below this skip chain profiling + funding-graph rebuilds. Keep <= the lowest signal min_fill_usd
-# (detection.cluster.min_fill_usd = 200); every other live signal needs >= 250.
-min_profile_fill_usd = 200
-# Wallet chain-profile cache TTL (12h).
-profile_cache_ttl_ms = 43_200_000
+# Alchemy chain profiling only for fills >= min_profile_fill_usd (capped at detection.market.large_position_min_usd
+# so fresh-wallet, the only signal that needs the on-chain profile, always gets one). Fills between the lowest
+# signal min (cluster, $200) and this value are still evaluated with the persisted or conservative profile, at no CU cost.
+min_profile_fill_usd = 500
+# In-memory wallet chain-profile cache TTL (24h).
+profile_cache_ttl_ms = 86_400_000
+# Postgres-persisted profiles of settled wallets (age past the fresh window, or txns > max_txns): reused across
+# restarts for 7 days. Fresh-looking wallets are always re-fetched.
+persisted_profile_ttl_ms = 604_800_000
 # Daily CU budget (UTC day). 1M/day ~= 30M/month (free tier). Hot gets hot_budget_share, cold the rest.
 # Over budget: hot uses the conservative profile (fresh-wallet signals can't fire), cold skips rebuilds.
 daily_cu_budget = 1_000_000

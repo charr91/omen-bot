@@ -268,6 +268,8 @@ export async function ensurePersistenceSchema(pool: Pick<Pool, 'query'>): Promis
 
   await pool.query(CREATE_WALLETS_TABLE_SQL);
   await pool.query("alter table wallets add column if not exists activity_age_known boolean not null default true;");
+  await pool.query('alter table wallets add column if not exists chain_profile jsonb;');
+  await pool.query('alter table wallets add column if not exists chain_profiled_at timestamptz;');
   for (const statement of CREATE_WALLETS_SUPPORTING_INDEXES_SQL) {
     await pool.query(statement);
   }

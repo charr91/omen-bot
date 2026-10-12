@@ -102,6 +102,7 @@ export const fileConfigSchema = z
         max_429_retries: z.number().int().nonnegative().optional(),
         min_profile_fill_usd: z.number().nonnegative().optional(),
         profile_cache_ttl_ms: z.number().int().positive().optional(),
+        persisted_profile_ttl_ms: z.number().int().positive().optional(),
         daily_cu_budget: z.number().int().nonnegative().optional(),
         hot_budget_share: z.number().min(0).max(1).optional(),
       })
@@ -209,8 +210,9 @@ export const fileConfigSchema = z
       max_wait_ms: value.alchemy?.max_wait_ms ?? 20_000,
       max_queue: value.alchemy?.max_queue ?? 500,
       max_429_retries: value.alchemy?.max_429_retries ?? 3,
-      min_profile_fill_usd: value.alchemy?.min_profile_fill_usd ?? 200,
-      profile_cache_ttl_ms: value.alchemy?.profile_cache_ttl_ms ?? 12 * 60 * 60_000,
+      min_profile_fill_usd: value.alchemy?.min_profile_fill_usd ?? 500,
+      persisted_profile_ttl_ms: value.alchemy?.persisted_profile_ttl_ms ?? 7 * 24 * 60 * 60_000,
+      profile_cache_ttl_ms: value.alchemy?.profile_cache_ttl_ms ?? 24 * 60 * 60_000,
       daily_cu_budget: value.alchemy?.daily_cu_budget ?? 1_000_000,
       hot_budget_share: value.alchemy?.hot_budget_share ?? 0.4,
     },
@@ -361,6 +363,8 @@ export interface AppConfig {
     /** Fills below this USD size skip chain profiling and funding-graph rebuilds (no live signal can fire). */
     minProfileFillUsd: number;
     profileCacheTtlMs: number;
+    /** Postgres-persisted profiles of settled (never-fresh-again) wallets are reused for this long, across restarts. */
+    persistedProfileTtlMs: number;
     /** UTC-day CU budget (0 = unlimited). Hot gets hotBudgetShare, cold the rest. */
     dailyCuBudget: number;
     hotBudgetShare: number;

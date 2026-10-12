@@ -1,6 +1,6 @@
 import type { Pool } from 'pg';
 import { canonicalizeEvmAddress, canonicalizeOptionalEvmAddress } from '../../evm/address.js';
-import type { WalletProfile } from '../../types/wallet.js';
+import type { WalletChainProfile, WalletProfile } from '../../types/wallet.js';
 
 interface WalletAggregateRow {
   total_fills: string;
@@ -36,7 +36,11 @@ export interface WalletStore {
   getAggregateStats(address: string, boundary?: FillBoundary): Promise<WalletAggregateStats>;
   getSignalContext(address: string): Promise<WalletSignalContext>;
   isWhitelisted(address: string): Promise<boolean>;
-  upsertLiveProfile(profile: WalletProfile): Promise<void>;
+  /** chainKnown=false keeps the stored chain fields (age/txns/contract/controller) instead of overwriting them. */
+  upsertLiveProfile(profile: WalletProfile, options?: { chainKnown?: boolean }): Promise<void>;
+  /** Persisted effective chain profile (survives restarts), aged forward to `now`. */
+  getPersistedChainProfile(address: string, maxAgeMs: number, now?: Date): Promise<WalletChainProfile | null>;
+  savePersistedChainProfile(address: string, profile: WalletChainProfile, at?: Date): Promise<void>;
   updateFundingGraphBuiltAt(address: string, builtAt: Date): Promise<void>;
   listFundingClusterMembers(clusterId: string): Promise<string[]>;
   setFundingClusterAssignments(assignments: FundingClusterAssignment[]): Promise<void>;
@@ -147,7 +151,41 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
       };
     },
 
-    async upsertLiveProfile(profile: WalletProfile): Promise<void> {
+    async getPersistedChainProfile(address: string, maxAgeMs: number, now = new Date()): Promise<WalletChainProfile | null> {
+      const result = await pool.query<{ chain_profile: Record<string, unknown>; chain_profiled_at: Date }>(
+        `select chain_profile, chain_profiled_at from wallets
+         where address = $1 and chain_profile is not null and chain_profiled_at >= $2`,
+        [canonicalizeEvmAddress(address), new Date(now.getTime() - maxAgeMs)],
+      );
+      const row = result.rows[0];
+      if (!row) return null;
+      const raw = row.chain_profile;
+      const elapsed = Math.max(0, Math.floor((now.getTime() - row.chain_profiled_at.getTime()) / 1000));
+      const ageSeconds = Number(raw.ageSeconds ?? 0);
+      const freshnessAgeSeconds = Number(raw.freshnessAgeSeconds ?? 0);
+      return {
+        ageSeconds: raw.activityAgeKnown ? ageSeconds + elapsed : ageSeconds,
+        activityAgeKnown: raw.activityAgeKnown === true,
+        totalTransactions: Number(raw.totalTransactions ?? 0),
+        isContract: raw.isContract === true,
+        controllerAddress: typeof raw.controllerAddress === 'string' ? raw.controllerAddress : null,
+        freshnessAgeSeconds: raw.freshnessActivityAgeKnown ? freshnessAgeSeconds + elapsed : freshnessAgeSeconds,
+        freshnessActivityAgeKnown: raw.freshnessActivityAgeKnown === true,
+        freshnessTotalTransactions: Number(raw.freshnessTotalTransactions ?? 0),
+        firstActivityAt: typeof raw.firstActivityAt === 'string' ? new Date(raw.firstActivityAt) : null,
+      };
+    },
+
+    async savePersistedChainProfile(address: string, profile: WalletChainProfile, at = new Date()): Promise<void> {
+      await pool.query(`update wallets set chain_profile = $2::jsonb, chain_profiled_at = $3 where address = $1`, [
+        canonicalizeEvmAddress(address),
+        JSON.stringify(profile),
+        at,
+      ]);
+    },
+
+    async upsertLiveProfile(profile: WalletProfile, options: { chainKnown?: boolean } = {}): Promise<void> {
+      const chainKnown = options.chainKnown ?? true;
       const canonicalAddress = canonicalizeEvmAddress(profile.address);
       const controllerAddress = canonicalizeOptionalEvmAddress(profile.controllerAddress);
       await pool.query(
@@ -173,11 +211,11 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, now())
           on conflict (address) do update
           set
-            age_seconds = excluded.age_seconds,
-            activity_age_known = excluded.activity_age_known,
-            total_transactions = excluded.total_transactions,
-            is_contract = excluded.is_contract,
-            controller_address = excluded.controller_address,
+            age_seconds = case when $16 then excluded.age_seconds else wallets.age_seconds end,
+            activity_age_known = case when $16 then excluded.activity_age_known else wallets.activity_age_known end,
+            total_transactions = case when $16 then excluded.total_transactions else wallets.total_transactions end,
+            is_contract = case when $16 then excluded.is_contract else wallets.is_contract end,
+            controller_address = case when $16 then excluded.controller_address else wallets.controller_address end,
             first_seen_at = least(wallets.first_seen_at, excluded.first_seen_at),
             last_active_at = greatest(wallets.last_active_at, excluded.last_active_at),
             total_markets = excluded.total_markets,
@@ -208,6 +246,7 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
           profile.liveSuspicionScore,
           profile.liveTier,
           profile.isWhitelisted,
+          chainKnown,
         ],
       );
     },
