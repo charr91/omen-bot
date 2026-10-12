@@ -123,6 +123,21 @@ export const fileConfigSchema = z
         baseline_window_hours: z.number().positive().optional(),
       })
       .optional(),
+    kalshi: z
+      .object({
+        enabled: z.boolean().optional(),
+        trade_poll_ms: z.number().int().positive().optional(),
+        market_cycle_ms: z.number().int().positive().optional(),
+        store_min_notional_usd: z.number().nonnegative().optional(),
+        large_print_usd: z.number().positive().optional(),
+        volume_spike_min_hour_usd: z.number().nonnegative().optional(),
+        book_move_min_cents: z.number().positive().optional(),
+        book_move_window_ms: z.number().int().positive().optional(),
+        depth_pull_ratio: z.number().positive().max(1).optional(),
+        divergence_min_gap: z.number().positive().optional(),
+        book_watchlist_size: z.number().int().nonnegative().optional(),
+      })
+      .optional(),
     market_maker: z
       .object({
         filter_enabled: z.boolean().optional(),
@@ -211,6 +226,19 @@ export const fileConfigSchema = z
       interval_ms: value.outcomes?.interval_ms ?? 5 * 60_000,
       baseline_per_signal: value.outcomes?.baseline_per_signal ?? 3,
       baseline_window_hours: value.outcomes?.baseline_window_hours ?? 6,
+    },
+    kalshi: {
+      enabled: value.kalshi?.enabled ?? false,
+      trade_poll_ms: value.kalshi?.trade_poll_ms ?? 15_000,
+      market_cycle_ms: value.kalshi?.market_cycle_ms ?? 60_000,
+      store_min_notional_usd: value.kalshi?.store_min_notional_usd ?? 250,
+      large_print_usd: value.kalshi?.large_print_usd ?? 10_000,
+      volume_spike_min_hour_usd: value.kalshi?.volume_spike_min_hour_usd ?? 5_000,
+      book_move_min_cents: value.kalshi?.book_move_min_cents ?? 8,
+      book_move_window_ms: value.kalshi?.book_move_window_ms ?? 15 * 60_000,
+      depth_pull_ratio: value.kalshi?.depth_pull_ratio ?? 0.7,
+      divergence_min_gap: value.kalshi?.divergence_min_gap ?? 0.06,
+      book_watchlist_size: value.kalshi?.book_watchlist_size ?? 40,
     },
     market_maker: {
       filter_enabled: value.market_maker?.filter_enabled ?? true,
@@ -351,6 +379,20 @@ export interface AppConfig {
     intervalMs: number;
     baselinePerSignal: number;
     baselineWindowHours: number;
+  };
+  /** M2: Kalshi public REST ingest + market-level signals (stored and graded only, never dispatched). */
+  kalshi: {
+    enabled: boolean;
+    tradePollMs: number;
+    marketCycleMs: number;
+    storeMinNotionalUsd: number;
+    largePrintUsd: number;
+    volumeSpikeMinHourUsd: number;
+    bookMoveMinCents: number;
+    bookMoveWindowMs: number;
+    depthPullRatio: number;
+    divergenceMinGap: number;
+    bookWatchlistSize: number;
   };
   /** insider-poly-bot market-maker heuristic: suppress signals from likely MMs and keep them out of baselines. */
   marketMaker: {

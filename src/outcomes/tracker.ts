@@ -14,6 +14,12 @@ export interface OutcomeTrackerOptions {
   now?: () => Date;
   priceAt?: (tokenId: string, at: Date) => Promise<number | null>;
   resolutions?: (conditionIds: string[]) => Promise<MarketResolution[]>;
+  /** Kalshi grading; when omitted, Kalshi rows are left alone. */
+  kalshi?: {
+    priceAt(eventTicker: string, ticker: string, at: Date): Promise<number | null>;
+    /** Final YES price per ticker for settled markets (1 = YES won, 0 = NO won). */
+    settlements(tickers: string[]): Promise<Record<string, number>>;
+  };
 }
 
 export interface OutcomeTrackerRunResult {
@@ -69,6 +75,7 @@ export class OutcomeTracker {
     await attempt('enroll', async () => {
       const since = new Date(now.getTime() - (this.options.enrollLookbackDays ?? 30) * 86_400_000);
       result.enrolled = await store.enrollSignalFills(since);
+      if (this.options.kalshi) result.enrolled += await store.enrollKalshiSignals(since);
     });
 
     await attempt('baseline', async () => {
@@ -78,6 +85,13 @@ export class OutcomeTracker {
         batch * 4,
         await this.likelyMarketMakers(now),
       );
+      if (this.options.kalshi) {
+        result.baselines += await store.sampleKalshiBaselines(
+          this.options.baselinePerSignal,
+          this.options.baselineWindowHours,
+          batch * 4,
+        );
+      }
     });
 
     await attempt('volume', async () => {
@@ -103,12 +117,23 @@ export class OutcomeTracker {
       await attempt(`price ${horizon}`, async () => {
         for (const row of await store.listPendingPrices(horizon, now, PRICE_RETRY_MS, batch)) {
           let price: number | null = null;
-          try {
-            price = await (this.options.priceAt ?? fetchTokenPriceAt)(row.tokenId, row.targetAt);
-          } catch {
-            price = null;
+          if (row.venue === 'kalshi') {
+            if (!this.options.kalshi) continue;
+            try {
+              const eventTicker = await store.getKalshiEventTicker(row.tokenId);
+              price = eventTicker ? await this.options.kalshi.priceAt(eventTicker, row.tokenId, row.targetAt) : null;
+            } catch {
+              price = null;
+            }
+            price ??= await store.findNearestKalshiPrice(row.tokenId, row.targetAt, FILL_FALLBACK_WINDOW_MS);
+          } else {
+            try {
+              price = await (this.options.priceAt ?? fetchTokenPriceAt)(row.tokenId, row.targetAt);
+            } catch {
+              price = null;
+            }
+            price ??= await store.findNearestFillPrice(row.tokenId, row.targetAt, FILL_FALLBACK_WINDOW_MS);
           }
-          price ??= await store.findNearestFillPrice(row.tokenId, row.targetAt, FILL_FALLBACK_WINDOW_MS);
           await store.setPrice(horizon, row.fillId, price, now);
           if (price !== null) {
             if (horizon === '1h') result.prices1h += 1;
@@ -129,6 +154,19 @@ export class OutcomeTracker {
       }
       await store.markMarketsChecked(markets, now);
     });
+
+    if (this.options.kalshi) {
+      const kalshi = this.options.kalshi;
+      await attempt('kalshi resolution', async () => {
+        const tickers = await store.listUnresolvedMarkets(now, RESOLUTION_RETRY_MS, 100, 'kalshi');
+        if (tickers.length === 0) return;
+        const settled = await kalshi.settlements(tickers);
+        for (const [ticker, price] of Object.entries(settled)) {
+          result.resolved += await store.setResolution(ticker, { [ticker]: price }, now);
+        }
+        await store.markMarketsChecked(tickers, now);
+      });
+    }
 
     return result;
   }

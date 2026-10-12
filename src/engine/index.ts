@@ -20,6 +20,9 @@ import { createIngestQuarantineStore } from '../persistence/queries/ingest-quara
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { readAlchemyCuUsage } from '../resilience/cu-meter.js';
 import { OutcomeTracker } from '../outcomes/tracker.js';
+import { KalshiClient } from '../kalshi/client.js';
+import { KalshiService } from '../kalshi/service.js';
+import { createKalshiStore } from '../kalshi/store.js';
 import { createTradeOutcomeStore } from '../outcomes/store.js';
 import { createMarketMakerStore } from '../persistence/queries/market-maker.js';
 import { ensurePersistenceSchema } from '../persistence/schema.js';
@@ -278,6 +281,47 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
       runtimeStatsTimer.unref();
     }
 
+    const kalshiClient = new KalshiClient();
+    const kalshiGrading = {
+      priceAt: (eventTicker: string, ticker: string, at: Date) => kalshiClient.getYesPriceAt(eventTicker, ticker, at),
+      settlements: async (tickers: string[]) => {
+        const settled: Record<string, number> = {};
+        for (const market of await kalshiClient.getMarkets(tickers)) {
+          if (market.result === 'yes') settled[market.ticker] = 1;
+          else if (market.result === 'no') settled[market.ticker] = 0;
+        }
+        return settled;
+      },
+    };
+    const kalshiTimers: NodeJS.Timeout[] = [];
+    if (config.kalshi.enabled) {
+      const kalshi = new KalshiService(kalshiClient, createKalshiStore(pool), {
+        ...config.kalshi,
+        maxTradePagesPerPoll: 20,
+        divergenceCooldownMs: 60 * 60_000,
+        bookMoveCooldownMs: 30 * 60_000,
+      });
+      const loop = (name: string, fn: () => Promise<object>, everyMs: number): void => {
+        let running = false;
+        const tick = (): void => {
+          if (running || stopping) return;
+          running = true;
+          fn()
+            .then((result) => emitStructuredLog(logger, { type: name, ...result }))
+            .catch((error: unknown) => reportOperatorError({ message: `[${name}] ${formatError(error)}`, dashboard, logger }))
+            .finally(() => {
+              running = false;
+            });
+        };
+        const timer = setInterval(tick, everyMs);
+        timer.unref?.();
+        kalshiTimers.push(timer);
+        tick();
+      };
+      loop('kalshi-trades', () => kalshi.pollTrades(), config.kalshi.tradePollMs);
+      loop('kalshi-markets', () => kalshi.runMarketCycle(), config.kalshi.marketCycleMs);
+    }
+
     const outcomeTracker = config.outcomes.enabled
       ? new OutcomeTracker({
           store: createTradeOutcomeStore(pool),
@@ -285,6 +329,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
           baselinePerSignal: config.outcomes.baselinePerSignal,
           baselineWindowHours: config.outcomes.baselineWindowHours,
           marketMakerMinScore: config.marketMaker.minScore,
+          kalshi: config.kalshi.enabled ? kalshiGrading : undefined,
         })
       : null;
     let outcomeRunning = false;
@@ -356,6 +401,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
     } finally {
       clearInterval(runtimeStatsTimer);
       clearInterval(outcomeTimer);
+      kalshiTimers.forEach((timer) => clearInterval(timer));
     }
   } finally {
     process.off('SIGINT', stop);

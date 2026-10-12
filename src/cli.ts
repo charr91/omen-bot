@@ -10,6 +10,7 @@ import { runProxyOverrideCommand, runQuarantineCommand, runWhitelistCommand } fr
 import { sendTestTelegramAlert } from './alerts/test-telegram.js';
 import { runColdWorkerCommand } from './cold-path/runtime.js';
 import { parseStatsOptions, runStatsCommand } from './outcomes/command.js';
+import { runKalshiMapCommand } from './kalshi/command.js';
 import { runHealthCommand, runReplayCommand, runStartCommand } from './engine/index.js';
 import { loadEnvironment } from './env.js';
 import { runPhase0Analysis } from './phase0/analyze.js';
@@ -39,6 +40,7 @@ Usage:
   omen [--env-file .env] replay
   omen [--env-file .env] health
   omen [--env-file .env] stats [--days 7] [--json] [--refresh]
+  omen [--env-file .env] kalshi-map <list|add|remove> [...]
   omen [--env-file .env] test-telegram
   omen [--env-file .env] cold-worker
   omen [--env-file .env] whitelist <list|add|remove> [...]
@@ -74,6 +76,11 @@ async function main(): Promise<void> {
 
   if (scope === 'stats') {
     process.stdout.write(`${await runStatsCommand(parseStatsOptions(rest))}\n`);
+    return;
+  }
+
+  if (scope === 'kalshi-map') {
+    process.stdout.write(`${await runKalshiMapCommand(rest)}\n`);
     return;
   }
 

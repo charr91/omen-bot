@@ -95,3 +95,13 @@ baseline_window_hours = 6
 # Likely MMs (score >= min_score) get no live signals and are excluded from baselines.
 filter_enabled = true
 min_score = 70
+
+# M2: Kalshi public REST (no API key). Signals are stored + graded only, never dispatched.
+[kalshi]
+enabled = true
+trade_poll_ms = 15000
+market_cycle_ms = 60000
+store_min_notional_usd = 250
+large_print_usd = 10000
+volume_spike_min_hour_usd = 5000
+book_watchlist_size = 40

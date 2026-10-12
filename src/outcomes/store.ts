@@ -33,7 +33,10 @@ export const CREATE_TRADE_OUTCOMES_INDEXES_SQL = [
   'create index if not exists idx_trade_outcomes_kind_alert_at on trade_outcomes (kind, alert_at);',
   'create index if not exists idx_trade_outcomes_market on trade_outcomes (market_id);',
   'create index if not exists idx_trade_outcomes_ref on trade_outcomes (ref_fill_id);',
+  "alter table trade_outcomes add column if not exists venue text not null default 'polymarket';",
 ];
+
+export type Venue = 'polymarket' | 'kalshi';
 
 export type Horizon = '1h' | '24h';
 
@@ -41,6 +44,7 @@ export interface PendingPriceRow {
   fillId: string;
   tokenId: string;
   targetAt: Date;
+  venue: Venue;
 }
 
 export interface SignalRowForContext {
@@ -96,7 +100,8 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
       const pending = await pool.query<{ fill_id: string }>(
         // Wait until the whole +/- window has been ingested before sampling.
         `select fill_id from trade_outcomes
-         where kind = 'signal' and not baseline_sampled and alert_at <= now() - make_interval(hours => $2)
+         where kind = 'signal' and venue = 'polymarket' and not baseline_sampled
+           and alert_at <= now() - make_interval(hours => $2)
          order by alert_at limit $1`,
         [limit, windowHours],
       );
@@ -134,9 +139,9 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
 
     async listPendingPrices(horizon: Horizon, now: Date, retryAfterMs: number, limit: number): Promise<PendingPriceRow[]> {
       const offset = horizon === '1h' ? '1 hour' : '24 hours';
-      const result = await pool.query<{ fill_id: string; token_id: string; target_at: Date }>(
+      const result = await pool.query<{ fill_id: string; token_id: string; target_at: Date; venue: Venue }>(
         `
-          select fill_id, token_id, alert_at + interval '${offset}' as target_at
+          select fill_id, token_id, venue, alert_at + interval '${offset}' as target_at
           from trade_outcomes
           where price_${horizon} is null
             and alert_at + interval '${offset}' <= $1
@@ -147,7 +152,7 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
         `,
         [now, new Date(now.getTime() - retryAfterMs), limit],
       );
-      return result.rows.map((row) => ({ fillId: row.fill_id, tokenId: row.token_id, targetAt: row.target_at }));
+      return result.rows.map((row) => ({ fillId: row.fill_id, tokenId: row.token_id, targetAt: row.target_at, venue: row.venue }));
     },
 
     async setPrice(horizon: Horizon, fillId: string, price: number | null, now: Date): Promise<void> {
@@ -171,18 +176,99 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
       return Number.isFinite(price) ? price : null;
     },
 
-    async listUnresolvedMarkets(now: Date, retryAfterMs: number, limit: number): Promise<string[]> {
+    async listUnresolvedMarkets(now: Date, retryAfterMs: number, limit: number, venue: Venue = 'polymarket'): Promise<string[]> {
       const result = await pool.query<{ market_id: string }>(
         `
           select market_id from trade_outcomes
-          where resolution_price is null and (resolution_checked_at is null or resolution_checked_at <= $1)
+          where resolution_price is null and venue = $3
+            and (resolution_checked_at is null or resolution_checked_at <= $1)
           group by market_id
           order by min(alert_at)
           limit $2
         `,
-        [new Date(now.getTime() - retryAfterMs), limit],
+        [new Date(now.getTime() - retryAfterMs), limit, venue],
       );
       return result.rows.map((row) => row.market_id);
+    },
+
+    /** Enrolls Kalshi signals (market-level, no wallet): token/market id = ticker, BUY = expects YES up. */
+    async enrollKalshiSignals(since: Date): Promise<number> {
+      const result = await pool.query(
+        `
+          insert into trade_outcomes (
+            fill_id, kind, signal_ids, delivery_tier, wallet_address, market_id, token_id, side, size_usd,
+            alert_at, price_at_alert, venue, volume_spike
+          )
+          select 'kalshi:' || id, 'signal', array[signal_id], 'KALSHI', '', ticker, ticker,
+            case side when 'yes' then 'BUY' else 'SELL' end, coalesce(size_usd, 0), at, yes_price, 'kalshi', false
+          from kalshi_signals
+          where at >= $1 and yes_price > 0 and yes_price < 1
+          on conflict (fill_id) do nothing
+        `,
+        [since],
+      );
+      return result.rowCount ?? 0;
+    },
+
+    /**
+     * Kalshi baseline: ordinary stored prints (non-block) on the same ticker within +/- windowHours; when the
+     * signal has a size (block/large print) the baseline is limited to 0.5-2x that notional.
+     */
+    async sampleKalshiBaselines(perSignal: number, windowHours: number, limit: number): Promise<number> {
+      const pending = await pool.query<{ fill_id: string }>(
+        `select fill_id from trade_outcomes
+         where kind = 'signal' and venue = 'kalshi' and not baseline_sampled
+           and alert_at <= now() - make_interval(hours => $2)
+         order by alert_at limit $1`,
+        [limit, windowHours],
+      );
+      let inserted = 0;
+      for (const { fill_id: refFillId } of pending.rows) {
+        const result = await pool.query(
+          `
+            insert into trade_outcomes (
+              fill_id, kind, ref_fill_id, signal_ids, delivery_tier, wallet_address, market_id, token_id, side,
+              size_usd, alert_at, price_at_alert, venue, volume_spike
+            )
+            select 'kalshi-trade:' || t.trade_id, 'baseline', r.fill_id, r.signal_ids, r.delivery_tier, '', t.ticker,
+              t.ticker, case t.taker_side when 'yes' then 'BUY' else 'SELL' end, t.notional_usd, t.created_at,
+              t.yes_price, 'kalshi', false
+            from trade_outcomes r
+            join kalshi_trades t on t.ticker = r.market_id
+            where r.fill_id = $1
+              and t.created_at between r.alert_at - make_interval(hours => $3) and r.alert_at + make_interval(hours => $3)
+              and not t.is_block_trade
+              and (r.size_usd = 0 or t.notional_usd between r.size_usd / 2 and r.size_usd * 2)
+              and t.yes_price > 0 and t.yes_price < 1
+              and not exists (select 1 from kalshi_signals s where s.trade_id = t.trade_id)
+              and not exists (select 1 from trade_outcomes o where o.fill_id = 'kalshi-trade:' || t.trade_id)
+            order by random()
+            limit $2
+            on conflict (fill_id) do nothing
+          `,
+          [refFillId, perSignal, windowHours],
+        );
+        inserted += result.rowCount ?? 0;
+        await pool.query(`update trade_outcomes set baseline_sampled = true where fill_id = $1`, [refFillId]);
+      }
+      return inserted;
+    },
+
+    /** Kalshi fallback price: closest stored print on the ticker within +/- windowMs. */
+    async findNearestKalshiPrice(ticker: string, at: Date, windowMs: number): Promise<number | null> {
+      const result = await pool.query<{ price: string }>(
+        `select yes_price::text as price from kalshi_trades
+         where ticker = $1 and created_at between $2 and $3
+         order by abs(extract(epoch from (created_at - $4::timestamptz))) limit 1`,
+        [ticker, new Date(at.getTime() - windowMs), new Date(at.getTime() + windowMs), at],
+      );
+      const price = Number(result.rows[0]?.price ?? Number.NaN);
+      return Number.isFinite(price) ? price : null;
+    },
+
+    async getKalshiEventTicker(ticker: string): Promise<string | null> {
+      const result = await pool.query<{ event_ticker: string }>(`select event_ticker from kalshi_markets where ticker = $1`, [ticker]);
+      return result.rows[0]?.event_ticker ?? null;
     },
 
     async markMarketsChecked(marketIds: string[], now: Date): Promise<void> {
@@ -209,7 +295,7 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
     async listSignalRowsMissingContext(limit: number): Promise<SignalRowForContext[]> {
       const result = await pool.query<{ fill_id: string; market_id: string; alert_at: Date }>(
         `select fill_id, market_id, alert_at from trade_outcomes
-         where kind = 'signal' and volume_spike is null order by alert_at limit $1`,
+         where kind = 'signal' and venue = 'polymarket' and volume_spike is null order by alert_at limit $1`,
         [limit],
       );
       return result.rows.map((row) => ({ fillId: row.fill_id, marketId: row.market_id, alertAt: row.alert_at }));
