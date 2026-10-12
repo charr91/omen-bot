@@ -16,6 +16,7 @@ import { createSignalEventStore } from '../persistence/queries/signal-events.js'
 import { createWalletStore, type WalletSignalContext } from '../persistence/queries/wallets.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { AlchemyWalletProfiler } from '../profiling/wallet-profiler.js';
+import { startCuMeterFlush } from '../resilience/cu-meter.js';
 import { effectiveMinProfileFillUsd, shouldProfileFill } from './profile-gate.js';
 import { computeCompositeLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
 import type { LiveClusterSignalContext } from '../signals/sybil-cluster.js';
@@ -50,6 +51,7 @@ const auditLogStore = createAuditLogStore(pool);
 const proxyOverrideStore = createProxyOverrideStore(pool);
 const signalEventStore = createSignalEventStore(pool);
 const redis = createRedisClient(config);
+const stopCuMeter = startCuMeterFlush(redis, 'hot');
 const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey, {
   cacheTtlMs: config.alchemy.profileCacheTtlMs,
   controllerCacheTtlMs: config.alchemy.profileCacheTtlMs,
@@ -366,6 +368,7 @@ async function shutdown(): Promise<void> {
     // Ignore final heartbeat failures during shutdown.
   }
 
+  await stopCuMeter();
   await coldPathQueue.close();
   redis.disconnect(false);
   await pool.end();

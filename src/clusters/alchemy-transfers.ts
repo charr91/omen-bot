@@ -1,3 +1,4 @@
+import { alchemyCuMeter } from '../resilience/cu-meter.js';
 import { canonicalizeEvmAddress, canonicalizeOptionalEvmAddress } from '../evm/address.js';
 import type { AppConfig } from '../config/schema.js';
 import type { NewFundingEdge } from '../persistence/queries/funding-edges.js';
@@ -242,6 +243,7 @@ export class AlchemyFundingGraphBuilder {
 
     try {
       await this.rateLimiter.acquire(alchemyMethodCost(method));
+      alchemyCuMeter.record(method);
     } catch {
       throw new Error(`Alchemy funding-graph rate limit exceeded for ${method} (no capacity within ${this.rateLimit.maxWaitMs}ms)`);
     }

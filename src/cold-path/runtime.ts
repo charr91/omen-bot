@@ -20,6 +20,9 @@ import {
   recordFundingGraphRebuildFailureCooldown,
   type FundingGraphRebuildJobData,
 } from './queue.js';
+import { effectiveMinProfileFillUsd } from '../hot-worker/profile-gate.js';
+import { startCuMeterFlush } from '../resilience/cu-meter.js';
+import { createColdJobRelevanceStore } from './relevance.js';
 import { executeFundingGraphRebuild, type FundingGraphRebuildResult } from './rebuild.js';
 
 interface ColdWorkerRuntimeState {
@@ -41,6 +44,8 @@ export async function runColdWorkerCommand(): Promise<void> {
   const heartbeatRedis = createRedisClient(config);
   const fundingEdgeStore = createFundingEdgeStore(pool);
   const walletStore = createWalletStore(pool);
+  const relevanceStore = createColdJobRelevanceStore(pool);
+  const stopCuMeter = startCuMeterFlush(heartbeatRedis, 'cold');
   const builder = new AlchemyFundingGraphBuilder(alchemyApiKey, {
     rateLimit: {
       cuPerSecond: config.alchemy.coldCuPerSecond,
@@ -62,6 +67,7 @@ export async function runColdWorkerCommand(): Promise<void> {
         fundingEdgeStore,
         walletStore,
         config,
+        relevance: { store: relevanceStore, minFillUsd: effectiveMinProfileFillUsd(config) },
       }),
     {
       connection: createBullmqConnection(config),
@@ -94,7 +100,8 @@ export async function runColdWorkerCommand(): Promise<void> {
     runtimeState.lastCompletedAt = new Date().toISOString();
     emitStructuredLog(logger, {
       type: 'cold-path-job',
-      status: 'completed',
+      status: result.skipped ? 'skipped' : 'completed',
+      ...(result.skipped ? { reason: result.skipped } : {}),
       walletAddress: job.data.walletAddress,
       edgeCount: result.edgeCount,
       truncated: result.truncated,
@@ -165,6 +172,7 @@ export async function runColdWorkerCommand(): Promise<void> {
     process.off('SIGINT', stop);
     process.off('SIGTERM', stop);
     await worker.close();
+    await stopCuMeter();
     heartbeatRedis.disconnect(false);
     await pool.end();
   }

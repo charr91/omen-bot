@@ -1,3 +1,4 @@
+import { alchemyCuMeter } from '../resilience/cu-meter.js';
 import type { WalletChainProfile } from '../types/wallet.js';
 import { canonicalizeEvmAddress, canonicalizeOptionalEvmAddress } from '../evm/address.js';
 import { CircuitBreaker } from '../resilience/circuit-breaker.js';
@@ -354,6 +355,7 @@ export class AlchemyWalletProfiler {
 
     try {
       await this.rpcRateLimiter.acquire(alchemyMethodCost(method));
+      alchemyCuMeter.record(method);
     } catch {
       throw new Error(`Alchemy RPC rate limit exceeded for ${method} (no capacity within ${this.retry429.maxWaitMs}ms)`);
     }

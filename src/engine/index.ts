@@ -12,13 +12,14 @@ import { HotWorkerClient } from '../hot-worker/client.js';
 import { createPolymarketFillSource, type FillSource } from '../ingestion/polymarket-client.js';
 import { createAppLogger, emitStructuredLog } from '../logging/logger.js';
 import { ActiveMarketCatalog } from '../markets/catalog.js';
-import { sleep } from '../phase0/io.js';
 import { RuntimeStatsCollector } from './runtime-stats.js';
 import { createDbPool } from '../persistence/db.js';
 import { createAlertStore, type AlertStore, type PendingStoredAlert } from '../persistence/queries/alerts.js';
 import { createFillStore, type FillStore } from '../persistence/queries/fills.js';
 import { createIngestQuarantineStore } from '../persistence/queries/ingest-quarantine.js';
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
+import { readAlchemyCuUsage } from '../resilience/cu-meter.js';
+import { sleep } from '../phase0/io.js';
 import { ensurePersistenceSchema } from '../persistence/schema.js';
 import { collectHealthReport } from '../resilience/health.js';
 import { TerminalDashboard } from '../tui/dashboard.js';
@@ -128,6 +129,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   const signalPreviewTasks = new Set<Promise<void>>();
   let stopping = false;
 
+  let lastCuDay: string | null = null;
   const stop = (): void => {
     if (stopping) {
       return;
@@ -254,7 +256,17 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
             return;
           }
 
-          emitStructuredLog(logger, runtimeStats);
+          void readAlchemyCuUsage(redis)
+            .catch(() => null)
+            .then((alchemyCu) => {
+              emitStructuredLog(logger, { ...runtimeStats, alchemyCu });
+              if (alchemyCu && lastCuDay !== null && alchemyCu.day !== lastCuDay) {
+                void readAlchemyCuUsage(redis, new Date(Date.parse(`${lastCuDay}T23:59:59Z`)))
+                  .then((previous) => emitStructuredLog(logger, { type: 'alchemy-cu-daily', ...previous }))
+                  .catch(() => undefined);
+              }
+              lastCuDay = alchemyCu?.day ?? lastCuDay;
+            });
         });
     }, RUNTIME_STATS_INTERVAL_MS);
 
@@ -728,3 +740,4 @@ async function refreshAlertMarketUrl(
     marketUrl,
   };
 }
+
