@@ -8,7 +8,7 @@ at the latest run.
 `.env` (gitignored) for a box run:
 
 ```
-DATABASE_URL=postgresql://omen:omen@localhost:5432/omen
+DATABASE_URL=postgresql://omen:omen@localhost:5433/omen
 REDIS_URL=redis://localhost:6379
 ALCHEMY_API_KEY=...            # optional, see below
 OMEN_OPERATIONAL_DRY_RUN=true
@@ -79,19 +79,56 @@ The box keeps `/workspace` and `$HOME` across a restart but not system packages:
 restart, apt Postgres 17 + Redis (and their data under `/var/lib/postgresql`, `/var/lib/redis`), cron, nvm/node 22
 and `node_modules` were all gone. Everything omen had stored in Postgres before then (fills, alerts, outcomes) was lost.
 
-Postgres on `127.0.0.1:5432` is the Docker container `smart-money-feed-pg` (postgres:16-alpine, superuser `feed`).
-It is managed outside the box's view: the box has no docker CLI or socket, and the listener's cgroup is
-`docker.service`. omen (`omen` DB, user `omen`) and the feed (`smart_money_feed` DB, user `feed`) both use it.
-Don't run apt Postgres on 5432 alongside it. If the apt cluster is installed, keep it stopped.
+### Durable data (since 2026-10-12 23:20 PT)
+
+Postgres and Redis now run as the `box` user with their data under `/workspace`, which survives restarts:
+
+| | binary | data | listen |
+|---|---|---|---|
+| Postgres 17 | apt `/usr/lib/postgresql/17/bin` | `/workspace/data/pg` (config in the data dir, log `/workspace/data/pg.log`) | `127.0.0.1:5433`, socket dir `/workspace/data/pg` |
+| Redis | apt `redis-server` | `/workspace/data/redis` (RDB + AOF), config `/workspace/data/redis.conf` | `127.0.0.1:6379` |
+
+Roles: `postgres` (superuser, local socket trust), `feed` (superuser, `feed_local_box`), `omen` (`omen`).
+DBs: `omen` (owner `omen`), `smart_money_feed` (owner `feed`). Both `.env` files point at port 5433.
+`scripts/box-db.sh` reinstalls the apt binaries if they are missing, keeps the apt cluster (`/var/lib/postgresql`,
+start.conf `manual`) and the apt redis service stopped, and starts both servers. `box-boot.sh` and `box-run.sh` call it.
+
+The Docker container `smart-money-feed-pg` on `127.0.0.1:5432` (postgres:16-alpine) is no longer used. The box has
+no docker CLI or socket, so its volume can't be inspected, and its data was lost in the 20:40 PT restart. Treat it as
+non-persistent. Its data was moved over with `pg_dump`/`pg_restore` (row counts checked per table).
+Don't point anything back at 5432.
 
 `scripts/box-boot.sh` is idempotent. It:
-1. reinstalls nvm + node 22.23.3 and runs `npm ci` if they are missing, and reinstalls redis-server, cron and the postgres client;
-2. starts Redis and cron. If nothing answers on 5432, it installs and starts apt Postgres on 5432 instead;
+1. reinstalls nvm + node 22.23.3 and runs `npm ci` if they are missing, and reinstalls cron;
+2. runs `scripts/box-db.sh` (Postgres 5433 + Redis from `/workspace/data`). It stops if `/workspace/data/pg` is missing;
 3. creates the `omen`/`feed` roles and DBs if they are missing;
-4. installs the `@reboot` crontab line (`>> logs/box-boot.log`);
+4. installs the crontab: `@reboot` (`>> logs/box-boot.log`) and `scripts/backup.sh` every 6 h at :17 (`>> logs/backup.log`);
 5. runs `scripts/box-run.sh start` (omen dry run);
 6. runs `smart-money-feed migrate` and starts `smart-money-feed run` (pid `../smart-money-feed/logs/feed.pid`,
    log `../smart-money-feed/logs/feed.log`), using omen's `.env` and then the feed's gitignored `.env`.
+
+### Backups (`scripts/backup.sh`)
+
+- `pg_dump -Fc` of `omen` and `smart_money_feed`, plus `pg_dumpall --roles-only`, into `/workspace/backups/<YYYYmmdd-HHMMSS>/`.
+- The run is also tarred and gpg-encrypted (symmetric AES256) to `/workspace/backups/box-db-<ts>.tar.gpg`.
+  The passphrase is in `/workspace/data/backup.key` (mode 600, never committed). **Keep a copy of that key off the box
+  as well (e.g. a password manager).** Without it the off-box copies can't be decrypted.
+- Local rotation keeps the newest 28 dump dirs and 28 archives (`KEEP_LOCAL`).
+- Off-box: the archive is uploaded as an asset on the `db` release of the **private** GitHub repo
+  `charr91/omen-box-backups` (via `gh`, created on first run). The newest 14 are kept (`KEEP_REMOTE`).
+  A run is about 1.7 MB. Set `BACKUP_OFFBOX=0` for a local-only run.
+
+Restore (tested 2026-10-12 into scratch DBs `restore_test_*` from the downloaded release asset: exact row counts on all
+18 omen and 7 feed tables):
+
+```bash
+gh release download db -R charr91/omen-box-backups -p 'box-db-<ts>.tar.gpg'
+gpg --batch --pinentry-mode loopback --passphrase-file /workspace/data/backup.key -d box-db-<ts>.tar.gpg | tar -xf -
+P="-h /workspace/data/pg -p 5433 -U postgres"
+psql $P -c 'create database restore_test'; pg_restore $P -d restore_test --no-owner <ts>/omen.dump
+# full rebuild of a lost cluster: initdb -D /workspace/data/pg -U postgres (port/listen/socket lines as in box-db.sh header),
+# start it, psql -f <ts>/roles.sql, create the DBs with their owners, pg_restore each dump.
+```
 
 Since cron itself is wiped by a box restart, the `@reboot` line may not survive one. After a restart, run
 `scripts/box-boot.sh` once by hand (or from an agent). It brings everything back and reinstalls the hook.

@@ -11,8 +11,7 @@ PIDFILE=logs/omen.pid
 case "${1:-start}" in
   start)
     if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then echo "already running pid $(cat $PIDFILE)"; exit 0; fi
-    sudo -n service postgresql start >/dev/null 2>&1 || true
-    sudo -n service redis-server start >/dev/null 2>&1 || true
+    scripts/box-db.sh
     LOG="logs/omen-$(date +%Y%m%d-%H%M%S).log"
     nohup setsid node node_modules/tsx/dist/cli.mjs src/cli.ts start >"$LOG" 2>&1 < /dev/null &
     echo $! > "$PIDFILE"; ln -sf "$(basename "$LOG")" logs/omen.log
