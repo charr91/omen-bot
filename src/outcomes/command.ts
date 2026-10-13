@@ -64,6 +64,11 @@ export async function runStatsCommand(options: StatsCommandOptions): Promise<str
       formatStatsTable('By signal', report.bySignal),
       '',
       formatStatsTable('By alert tier (NO_ALERT = signal not promoted)', report.byTier),
+      '',
+      formatStatsTable(
+        'By signal and game phase (in-play = filled after kickoff; baselines matched on the same phase)',
+        report.bySignalPhase,
+      ),
     ].join('\n');
   } finally {
     await pool.end();

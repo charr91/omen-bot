@@ -1,12 +1,17 @@
 import { aggregateOutcomes, type GroupStats, type HorizonStats } from './scoring.js';
 import type { OutcomeQueryRow } from './store.js';
 
-export type StatsGrouping = 'signal' | 'tier';
+export type StatsGrouping = 'signal' | 'tier' | 'signal-phase';
 
 /** Expands rows into one row per signal id (or per tier); baseline rows inherit their reference signal's groups. */
 export function groupOutcomeRows(rows: OutcomeQueryRow[], by: StatsGrouping) {
   return rows.flatMap((row) => {
-    const groups = by === 'signal' ? row.signalIds : [row.deliveryTier ?? 'NO_ALERT'];
+    const groups =
+      by === 'tier'
+        ? [row.deliveryTier ?? 'NO_ALERT']
+        : by === 'signal-phase'
+          ? row.signalIds.map((id) => `${id} [${row.phase ?? 'unknown'}]`)
+          : row.signalIds;
     return groups.map((group) => ({ ...row, group }));
   });
 }
@@ -42,9 +47,10 @@ export function formatStatsTable(title: string, stats: GroupStats[]): string {
   return lines.join('\n');
 }
 
-export function buildStatsReport(rows: OutcomeQueryRow[]): { bySignal: GroupStats[]; byTier: GroupStats[] } {
+export function buildStatsReport(rows: OutcomeQueryRow[]): { bySignal: GroupStats[]; byTier: GroupStats[]; bySignalPhase: GroupStats[] } {
   return {
     bySignal: aggregateOutcomes(groupOutcomeRows(rows, 'signal')),
+    bySignalPhase: aggregateOutcomes(groupOutcomeRows(rows, 'signal-phase')),
     byTier: aggregateOutcomes(groupOutcomeRows(rows, 'tier')),
   };
 }

@@ -24,6 +24,8 @@ function makeStore(overrides: Partial<TradeOutcomeStore> = {}): TradeOutcomeStor
     markMarketsChecked: vi.fn(),
     setResolution: vi.fn().mockResolvedValue(3),
     listOutcomes: vi.fn(),
+    listMarketsMissingGameStart: vi.fn().mockResolvedValue([]),
+    setGameStart: vi.fn().mockResolvedValue(1),
     ...overrides,
   } as unknown as TradeOutcomeStore;
 }
@@ -104,5 +106,28 @@ describe('parseStatsOptions', () => {
     expect(parseStatsOptions(['--days=2'])).toMatchObject({ days: 2 });
     expect(() => parseStatsOptions(['--days', '0'])).toThrow();
     expect(() => parseStatsOptions(['--bogus'])).toThrow();
+  });
+
+  it('flags in-play markets from Gamma game starts before sampling baselines, and retries markets Gamma omitted', async () => {
+    const now = new Date('2026-10-13T01:00:00Z');
+    const store = makeStore({
+      listMarketsMissingGameStart: vi.fn().mockResolvedValue(['0xGame', '0xPolitics', '0xMissing']),
+      listPendingPrices: vi.fn().mockResolvedValue([]),
+      listUnresolvedMarkets: vi.fn().mockResolvedValue([]),
+    });
+    const order: string[] = [];
+    (store.setGameStart as ReturnType<typeof vi.fn>).mockImplementation(async () => { order.push('game'); return 1; });
+    (store.sampleBaselines as ReturnType<typeof vi.fn>).mockImplementation(async () => { order.push('baseline'); return 0; });
+    const tracker = new OutcomeTracker({
+      store, marketMakers: { listLikelyMarketMakers: vi.fn().mockResolvedValue([]) }, baselinePerSignal: 3,
+      baselineWindowHours: 6, marketMakerMinScore: 70, now: () => now,
+      gameStarts: vi.fn().mockResolvedValue(new Map([['0xgame', '2026-10-13T00:00:00.000Z'], ['0xpolitics', null]])),
+    });
+    const result = await tracker.runOnce();
+    expect(result.errors).toEqual([]);
+    expect(store.setGameStart).toHaveBeenCalledWith('0xGame', new Date('2026-10-13T00:00:00Z'), now);
+    expect(store.setGameStart).toHaveBeenCalledWith('0xPolitics', null, now);
+    expect(store.setGameStart).toHaveBeenCalledTimes(2);
+    expect(order).toEqual(['game', 'game', 'baseline']);
   });
 });

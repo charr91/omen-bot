@@ -12,6 +12,15 @@ export function isHit(side: TradeSide, priceAtAlert: number, laterPrice: number 
   return directionalReturn(side, priceAtAlert, laterPrice) > 0;
 }
 
+/** In-play = filled at or after the game's start (sports); non-game = no start time; unknown = not checked yet. */
+export type GamePhase = 'pre-game' | 'in-play' | 'non-game' | 'unknown';
+
+export function gamePhase(gameChecked: boolean, gameStartAt: Date | null, alertAt: Date): GamePhase {
+  if (!gameChecked) return 'unknown';
+  if (gameStartAt === null) return 'non-game';
+  return alertAt.getTime() >= gameStartAt.getTime() ? 'in-play' : 'pre-game';
+}
+
 export interface OutcomeRow {
   group: string;
   kind: 'signal' | 'baseline';
@@ -20,6 +29,7 @@ export interface OutcomeRow {
   price1h: number | null;
   price24h: number | null;
   resolutionPrice: number | null;
+  phase?: GamePhase;
 }
 
 export interface HorizonStats {

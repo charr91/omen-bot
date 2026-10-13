@@ -2,6 +2,18 @@ import { buildVolumeBaseline, detectVolumeSpike } from '../signals/volume-baseli
 import type { MarketMakerStore } from '../persistence/queries/market-maker.js';
 import { fetchMarketResolutions, fetchTokenPriceAt, type MarketResolution } from './polymarket.js';
 import type { Horizon, TradeOutcomeStore } from './store.js';
+import { fetchMarketsByConditionIds } from '../phase0/public-api.js';
+
+/** Gamma game start per condition id (lower-cased); markets Gamma did not return are absent. */
+export async function fetchGameStarts(conditionIds: string[]): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
+  for (let i = 0; i < conditionIds.length; i += 20) {
+    for (const market of await fetchMarketsByConditionIds(conditionIds.slice(i, i + 20))) {
+      out.set(market.conditionId.toLowerCase(), market.gameStartTime ?? null);
+    }
+  }
+  return out;
+}
 
 export interface OutcomeTrackerOptions {
   store: TradeOutcomeStore;
@@ -14,6 +26,8 @@ export interface OutcomeTrackerOptions {
   now?: () => Date;
   priceAt?: (tokenId: string, at: Date) => Promise<number | null>;
   resolutions?: (conditionIds: string[]) => Promise<MarketResolution[]>;
+  /** Game start per condition id (ISO or null); default reads Gamma. */
+  gameStarts?: (conditionIds: string[]) => Promise<Map<string, string | null>>;
   /** Kalshi grading; when omitted, Kalshi rows are left alone. */
   kalshi?: {
     priceAt(eventTicker: string, ticker: string, at: Date): Promise<number | null>;
@@ -76,6 +90,18 @@ export class OutcomeTracker {
       const since = new Date(now.getTime() - (this.options.enrollLookbackDays ?? 30) * 86_400_000);
       result.enrolled = await store.enrollSignalFills(since);
       if (this.options.kalshi) result.enrolled += await store.enrollKalshiSignals(since);
+    });
+
+    // Before baselines: they are matched on in-play status, so the signal's game start must be known first.
+    await attempt('game start', async () => {
+      const markets = await store.listMarketsMissingGameStart(40);
+      if (markets.length === 0) return;
+      const starts = await (this.options.gameStarts ?? fetchGameStarts)(markets);
+      for (const marketId of markets) {
+        if (!starts.has(marketId.toLowerCase())) continue; // Gamma had no row: retry next run
+        const iso = starts.get(marketId.toLowerCase()) ?? null;
+        await store.setGameStart(marketId, iso ? new Date(iso) : null, now);
+      }
     });
 
     await attempt('baseline', async () => {

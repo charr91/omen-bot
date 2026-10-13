@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import type { OutcomeRow, TradeSide } from './scoring.js';
+import { gamePhase, type OutcomeRow, type TradeSide } from './scoring.js';
 
 export const CREATE_TRADE_OUTCOMES_TABLE_SQL = `
   create table if not exists trade_outcomes (
@@ -34,6 +34,10 @@ export const CREATE_TRADE_OUTCOMES_INDEXES_SQL = [
   'create index if not exists idx_trade_outcomes_market on trade_outcomes (market_id);',
   'create index if not exists idx_trade_outcomes_ref on trade_outcomes (ref_fill_id);',
   "alter table trade_outcomes add column if not exists venue text not null default 'polymarket';",
+  // In-play flag (sports): game start from Gamma (market gameStartTime, else the event startTime).
+  'alter table trade_outcomes add column if not exists game_start_at timestamptz;',
+  'alter table trade_outcomes add column if not exists game_checked_at timestamptz;',
+  'alter table trade_outcomes add column if not exists in_play boolean;',
 ];
 
 export type Venue = 'polymarket' | 'kalshi';
@@ -101,6 +105,7 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
         // Wait until the whole +/- window has been ingested before sampling.
         `select fill_id from trade_outcomes
          where kind = 'signal' and venue = 'polymarket' and not baseline_sampled
+           and game_checked_at is not null
            and alert_at <= now() - make_interval(hours => $2)
          order by alert_at limit $1`,
         [limit, windowHours],
@@ -111,10 +116,11 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
           `
             insert into trade_outcomes (
               fill_id, kind, ref_fill_id, signal_ids, delivery_tier, wallet_address, market_id, token_id, side,
-              size_usd, alert_at, price_at_alert
+              size_usd, alert_at, price_at_alert, game_start_at, game_checked_at, in_play
             )
             select f.id, 'baseline', r.fill_id, r.signal_ids, r.delivery_tier, lower(f.wallet_address), f.market_id,
-              f.token_id, f.side, f.size_usd, f.timestamp, f.price
+              f.token_id, f.side, f.size_usd, f.timestamp, f.price, r.game_start_at, r.game_checked_at,
+              case when r.game_start_at is null then null else f.timestamp >= r.game_start_at end
             from trade_outcomes r
             join fills f on f.market_id = r.market_id
             where r.fill_id = $1
@@ -123,6 +129,8 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
               and lower(f.wallet_address) <> r.wallet_address
               and not (lower(f.wallet_address) = any($4::text[]))
               and f.price > 0 and f.price < 1
+              -- Same in-play status as the signal fill: in-play prices move on the score, not on information.
+              and (r.game_start_at is null or (f.timestamp >= r.game_start_at) = (r.alert_at >= r.game_start_at))
               and not exists (select 1 from signal_events se where se.fill_id = f.id)
               and not exists (select 1 from trade_outcomes o where o.fill_id = f.id)
             order by random()
@@ -135,6 +143,27 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
         await pool.query(`update trade_outcomes set baseline_sampled = true where fill_id = $1`, [refFillId]);
       }
       return inserted;
+    },
+
+    /** Polymarket markets whose rows have no game-start check yet. */
+    async listMarketsMissingGameStart(limit: number): Promise<string[]> {
+      const result = await pool.query<{ market_id: string }>(
+        `select market_id from trade_outcomes where venue = 'polymarket' and game_checked_at is null
+         group by market_id order by min(alert_at) limit $1`,
+        [limit],
+      );
+      return result.rows.map((row) => row.market_id);
+    },
+
+    /** Stores the game start for every row of a market and flags in-play fills (null start = not a game). */
+    async setGameStart(marketId: string, gameStartAt: Date | null, now: Date): Promise<number> {
+      const result = await pool.query(
+        `update trade_outcomes set game_start_at = $2, game_checked_at = $3,
+           in_play = case when $2::timestamptz is null then null else alert_at >= $2::timestamptz end
+         where market_id = $1 and venue = 'polymarket'`,
+        [marketId, gameStartAt, now],
+      );
+      return result.rowCount ?? 0;
     },
 
     async listPendingPrices(horizon: Horizon, now: Date, retryAfterMs: number, limit: number): Promise<PendingPriceRow[]> {
@@ -328,9 +357,12 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
         price_1h: string | null;
         price_24h: string | null;
         resolution_price: string | null;
+        alert_at: Date;
+        game_start_at: Date | null;
+        game_checked_at: Date | null;
       }>(
         `select kind, side, signal_ids, delivery_tier, price_at_alert::text, price_1h::text, price_24h::text,
-           resolution_price::text
+           resolution_price::text, alert_at, game_start_at, game_checked_at
          from trade_outcomes where alert_at >= $1`,
         [since],
       );
@@ -345,6 +377,7 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
         price1h: num(row.price_1h),
         price24h: num(row.price_24h),
         resolutionPrice: num(row.resolution_price),
+        phase: gamePhase(row.game_checked_at !== null, row.game_start_at, row.alert_at),
       }));
     },
   };
