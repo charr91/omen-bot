@@ -19,6 +19,11 @@ export interface WalletSignalContext {
   fundingClusterId: string | null;
   fundingGraphBuiltAt: Date | null;
   controllerAddress: string | null;
+  /** omen's first-seen fill for the wallet. */
+  firstSeenAt?: Date | null;
+  /** Earliest depth-1 funding edge into the wallet, and how many there are (age lower bound / activity count). */
+  fundingFirstAt?: Date | null;
+  fundingInboundCount?: number;
 }
 
 export interface FundingClusterAssignment {
@@ -45,6 +50,8 @@ export interface WalletStore {
   listFundingClusterMembers(clusterId: string): Promise<string[]>;
   setFundingClusterAssignments(assignments: FundingClusterAssignment[]): Promise<void>;
 }
+
+export const PERSISTED_PROFILE_VERSION = 2;
 
 export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
   return {
@@ -129,13 +136,21 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
         funding_cluster_id: string | null;
         funding_graph_built_at: Date | null;
         controller_address: string | null;
+        first_seen_at: Date | null;
+        funding_first_at: Date | null;
+        funding_inbound: string | null;
       }>(
         `
           select
             is_whitelisted,
             funding_cluster_id,
             funding_graph_built_at,
-            controller_address
+            controller_address,
+            first_seen_at,
+            (select min(e.timestamp) from funding_edges e
+              where lower(e.root_wallet) = $1 and lower(e.to_address) = $1) as funding_first_at,
+            (select count(*)::text from funding_edges e
+              where lower(e.root_wallet) = $1 and lower(e.to_address) = $1) as funding_inbound
           from wallets
           where lower(address) = $1
         `,
@@ -148,6 +163,9 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
         fundingClusterId: row?.funding_cluster_id ?? null,
         fundingGraphBuiltAt: row?.funding_graph_built_at ?? null,
         controllerAddress: canonicalizeOptionalEvmAddress(row?.controller_address ?? null),
+        firstSeenAt: row?.first_seen_at ?? null,
+        fundingFirstAt: row?.funding_first_at ?? null,
+        fundingInboundCount: Number(row?.funding_inbound ?? 0),
       };
     },
 
@@ -160,6 +178,8 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
       const row = result.rows[0];
       if (!row) return null;
       const raw = row.chain_profile;
+      // v1 rows could carry "first activity = profiling time" for wallets with no on-chain history; re-profile.
+      if (raw.profileVersion !== PERSISTED_PROFILE_VERSION) return null;
       const elapsed = Math.max(0, Math.floor((now.getTime() - row.chain_profiled_at.getTime()) / 1000));
       const ageSeconds = Number(raw.ageSeconds ?? 0);
       const freshnessAgeSeconds = Number(raw.freshnessAgeSeconds ?? 0);
@@ -179,7 +199,7 @@ export function createWalletStore(pool: Pick<Pool, 'query'>): WalletStore {
     async savePersistedChainProfile(address: string, profile: WalletChainProfile, at = new Date()): Promise<void> {
       await pool.query(`update wallets set chain_profile = $2::jsonb, chain_profiled_at = $3 where address = $1`, [
         canonicalizeEvmAddress(address),
-        JSON.stringify(profile),
+        JSON.stringify({ ...profile, profileVersion: PERSISTED_PROFILE_VERSION }),
         at,
       ]);
     },

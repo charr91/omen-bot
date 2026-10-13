@@ -22,6 +22,8 @@ export interface ActiveMarket {
   marketSlug: string | null;
   question: string;
   dailyVolumeUsd: string;
+  /** Sports kickoff (ISO), from Gamma gameStartTime or the event startTime; null for non-game markets. */
+  gameStartTime?: string | null;
   volumeUsd: string;
   liquidityUsd: string;
 }

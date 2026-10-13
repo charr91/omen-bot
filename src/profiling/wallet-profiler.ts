@@ -175,7 +175,9 @@ export class AlchemyWalletProfiler {
     ]);
     const totalTransactions = parseHexInteger(transactionCountHex ?? '0x0');
 
-    if (earliestActivityAt === null && totalTransactions > 0) {
+    // No first transfer found = no data, not "born now": Polymarket controller EOAs trade gaslessly and often have
+    // neither transfers nor a nonce. Fresh-wallet must not fire on that (age stays unknown).
+    if (earliestActivityAt === null) {
       return {
         ageSeconds: 0,
         activityAgeKnown: false,
@@ -189,7 +191,7 @@ export class AlchemyWalletProfiler {
       };
     }
 
-    const firstActivityAt = earliestActivityAt ?? new Date(this.now());
+    const firstActivityAt = earliestActivityAt;
     const ageSeconds = Math.max(0, Math.floor((this.now() - firstActivityAt.getTime()) / 1000));
     return {
       ageSeconds,

@@ -62,6 +62,7 @@ export class ActiveMarketCatalog {
           question: market.question,
           marketSlug: market.marketSlug,
           dailyVolumeUsd: market.dailyVolumeUsd,
+          gameStartTime: market.gameStartTime ?? null,
           volumeUsd: market.volumeUsd,
           liquidityUsd: market.liquidityUsd,
         }
@@ -92,6 +93,7 @@ export class ActiveMarketCatalog {
           question: market.question,
           marketSlug: market.marketSlug,
           dailyVolumeUsd: market.dailyVolumeUsd,
+          gameStartTime: market.gameStartTime ?? null,
           volumeUsd: market.volumeUsd,
           liquidityUsd: market.liquidityUsd,
         });

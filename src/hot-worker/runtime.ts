@@ -5,6 +5,8 @@ import { isTelegramEnabledForTier } from '../alerts/telegram.js';
 import { parentPort, workerData } from 'node:worker_threads';
 import { createFundingGraphRebuildJobQueue } from '../cold-path/queue.js';
 import type { AppConfig } from '../config/schema.js';
+import { MarketVolumeRefiner } from '../markets/volume.js';
+import { deriveWalletAge, mergeProxyAndController } from '../profiling/wallet-age.js';
 import { resolveWalletChainProfile } from './chain-profile.js';
 import { ActiveMarketCatalog } from '../markets/catalog.js';
 import { createDbPool } from '../persistence/db.js';
@@ -83,6 +85,7 @@ const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey, {
   },
 });
 const marketCatalog = new ActiveMarketCatalog();
+const volumeRefiner = new MarketVolumeRefiner();
 const coldPathQueue = createFundingGraphRebuildJobQueue(config);
 const queue: FillRecord[] = [];
 const queuedFillIds = new Set<string>();
@@ -265,7 +268,16 @@ async function processFill(fill: FillRecord): Promise<void> {
     });
   }
 
-  const market = await marketCatalog.getMarket(fill.marketId);
+  const catalogMarket = await marketCatalog.getMarket(fill.marketId);
+  // Gamma's volume24hr lags; full-mode fills (the ones that can trip volume-relative signals) also read the
+  // market's own 24h trade tape and use the larger figure.
+  const market =
+    catalogMarket && mode === 'full'
+      ? await (async () => {
+          const refined = await volumeRefiner.dailyVolumeUsd(catalogMarket.id, catalogMarket.dailyVolumeUsd, fill.timestamp);
+          return { ...catalogMarket, dailyVolumeUsd: refined.value, dailyVolumeSource: refined.source };
+        })()
+      : catalogMarket;
   // Persisted profiles are already effective (controller-resolved); light mode never resolves controllers.
   const effectiveChainProfile =
     chainFromCache || mode === 'light' ? chainProfile : await buildEffectiveChainProfile(fill.walletAddress, chainProfile);
@@ -274,17 +286,26 @@ async function processFill(fill: FillRecord): Promise<void> {
   }
   const cluster = await buildFundingClusterContext(fill, signalContext);
 
+  const walletAge = deriveWalletAge({
+    chain: effectiveChainProfile,
+    fundingFirstAt: signalContext.fundingFirstAt ?? null,
+    fundingInboundCount: signalContext.fundingInboundCount ?? 0,
+    firstSeenAt: signalContext.firstSeenAt ?? null,
+    priorFills: aggregateStats.totalFills,
+    now: fill.timestamp,
+    freshWindowHours: config.detection.freshWallet.elevatedAgeHours,
+  });
   const baseWallet: WalletProfile = {
     address: fill.walletAddress,
-    ageSeconds: effectiveChainProfile.ageSeconds,
-    activityAgeKnown: effectiveChainProfile.activityAgeKnown,
-    totalTransactions: effectiveChainProfile.totalTransactions,
-    isContract: effectiveChainProfile.isContract,
-    controllerAddress: effectiveChainProfile.controllerAddress,
-    freshnessAgeSeconds: effectiveChainProfile.freshnessAgeSeconds,
-    freshnessActivityAgeKnown: effectiveChainProfile.freshnessActivityAgeKnown,
-    freshnessTotalTransactions: effectiveChainProfile.freshnessTotalTransactions,
-    firstSeenAt: effectiveChainProfile.firstActivityAt ?? fill.timestamp,
+    ageSeconds: walletAge.ageSeconds,
+    activityAgeKnown: walletAge.activityAgeKnown,
+    totalTransactions: walletAge.totalTransactions,
+    isContract: walletAge.isContract,
+    controllerAddress: walletAge.controllerAddress,
+    freshnessAgeSeconds: walletAge.freshnessAgeSeconds,
+    freshnessActivityAgeKnown: walletAge.freshnessActivityAgeKnown,
+    freshnessTotalTransactions: walletAge.freshnessTotalTransactions,
+    firstSeenAt: walletAge.firstActivityAt ?? signalContext.firstSeenAt ?? fill.timestamp,
     lastActiveAt: fill.timestamp,
     totalMarkets: aggregateStats.totalMarkets,
     totalFills: aggregateStats.totalFills,
@@ -510,15 +531,8 @@ async function buildEffectiveChainProfile(
     walletAddress: controllerAddress,
     profiler: walletProfiler,
   });
-  const controllerProfile = resolvedControllerProfile.profile;
-  return {
-    ...controllerProfile,
-    isContract: true,
-    controllerAddress,
-    freshnessAgeSeconds: controllerProfile.freshnessAgeSeconds,
-    freshnessActivityAgeKnown: controllerProfile.freshnessActivityAgeKnown,
-    freshnessTotalTransactions: controllerProfile.freshnessTotalTransactions,
-  };
+  // The proxy's own first transfer (e.g. its first USDC deposit) counts too: the controller EOA is often gasless.
+  return mergeProxyAndController(chainProfile, resolvedControllerProfile.profile, controllerAddress);
 }
 
 async function buildFundingClusterContext(

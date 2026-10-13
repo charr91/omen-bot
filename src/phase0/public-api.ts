@@ -86,13 +86,30 @@ function mapGammaMarket(market: JsonObject): ActiveMarket[] {
       eventSlug: extractEventSlug(market),
       marketSlug: getString(market, ['slug', 'market_slug']),
       question: getString(market, ['question', 'title']) ?? 'Unknown market',
+      // Larger of the two: either can lag the other.
       dailyVolumeUsd: formatNumericString(
-        getNumber(market, ['volume24hrClob', 'volume24hr']) ?? 0,
+        Math.max(getNumber(market, ['volume24hrClob']) ?? 0, getNumber(market, ['volume24hr']) ?? 0),
       ),
+      gameStartTime: extractGameStartTime(market),
       volumeUsd: formatNumericString(getNumber(market, ['volumeNum', 'volume']) ?? 0),
       liquidityUsd: formatNumericString(getNumber(market, ['liquidityNum', 'liquidity']) ?? 0),
     },
   ];
+}
+
+/** Sports: Gamma's market `gameStartTime` ("2026-10-13 00:00:00+00"), else the event's `startTime`. */
+export function extractGameStartTime(market: JsonObject): string | null {
+  const raw = getString(market, ['gameStartTime']);
+  const events = Array.isArray(market.events) ? (market.events as unknown[]) : [];
+  const event = events[0] && typeof events[0] === 'object' ? (events[0] as JsonObject) : null;
+  const fallback = event ? getString(event, ['startTime']) : null;
+  for (const candidate of [raw, fallback]) {
+    if (!candidate) continue;
+    const iso = candidate.replace(' ', 'T').replace(/\+00$/, 'Z');
+    const ms = Date.parse(iso);
+    if (Number.isFinite(ms)) return new Date(ms).toISOString();
+  }
+  return null;
 }
 
 export async function fetchMarketsByConditionIds(conditionIds: string[]): Promise<ActiveMarket[]> {
@@ -143,7 +160,9 @@ export async function fetchOrderBooks(assetIds: string[]): Promise<JsonObject[]>
 }
 
 async function fetchJson(url: URL, init?: RequestInit): Promise<unknown> {
-  const response = await polymarketRestCircuitBreaker.execute(async () => fetch(url, init));
+  const response = await polymarketRestCircuitBreaker.execute(async () =>
+    fetch(url, { ...init, signal: init?.signal ?? AbortSignal.timeout(20_000) }),
+  );
 
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status} ${response.statusText} for ${url}`);
