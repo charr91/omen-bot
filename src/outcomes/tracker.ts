@@ -5,12 +5,20 @@ import type { Horizon, TradeOutcomeStore } from './store.js';
 import { fetchMarketsByConditionIds } from '../phase0/public-api.js';
 
 /** Gamma game start per condition id (lower-cased); markets Gamma did not return are absent. */
-export async function fetchGameStarts(conditionIds: string[]): Promise<Map<string, string | null>> {
+export async function fetchGameStarts(
+  conditionIds: string[],
+  lookup: typeof fetchMarketsByConditionIds = fetchMarketsByConditionIds,
+): Promise<Map<string, string | null>> {
   const out = new Map<string, string | null>();
+  const record = (markets: Awaited<ReturnType<typeof fetchMarketsByConditionIds>>) => {
+    for (const market of markets) out.set(market.conditionId.toLowerCase(), market.gameStartTime ?? null);
+  };
   for (let i = 0; i < conditionIds.length; i += 20) {
-    for (const market of await fetchMarketsByConditionIds(conditionIds.slice(i, i + 20))) {
-      out.set(market.conditionId.toLowerCase(), market.gameStartTime ?? null);
-    }
+    const batch = conditionIds.slice(i, i + 20);
+    record(await lookup(batch));
+    // Settled markets (most scored rows) only come back with closed=true.
+    const missing = batch.filter((id) => !out.has(id.toLowerCase()));
+    if (missing.length > 0) record(await lookup(missing, { closed: true }));
   }
   return out;
 }

@@ -39,3 +39,16 @@ describe('game phase', () => {
     expect(report.bySignal[0]?.signal.total).toBe(2);
   });
 });
+
+describe('fetchGameStarts', () => {
+  it('retries markets Gamma did not return as closed markets', async () => {
+    const { fetchGameStarts } = await import('../../../src/outcomes/tracker.js');
+    const lookup = async (ids: string[], options: { closed?: boolean } = {}) =>
+      ids
+        .filter((id) => (id === '0xOPEN') !== Boolean(options.closed))
+        .map((id) => ({ conditionId: id, gameStartTime: id === '0xOPEN' ? null : '2026-10-11T15:30:00.000Z' }) as never);
+    const out = await fetchGameStarts(['0xOPEN', '0xCLOSED'], lookup as never);
+    expect(out.get('0xopen')).toBeNull();
+    expect(out.get('0xclosed')).toBe('2026-10-11T15:30:00.000Z');
+  });
+});

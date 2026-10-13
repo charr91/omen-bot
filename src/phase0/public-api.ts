@@ -112,7 +112,8 @@ export function extractGameStartTime(market: JsonObject): string | null {
   return null;
 }
 
-export async function fetchMarketsByConditionIds(conditionIds: string[]): Promise<ActiveMarket[]> {
+/** `closed: true` is needed for settled markets: Gamma's condition_ids lookup returns [] for them otherwise. */
+export async function fetchMarketsByConditionIds(conditionIds: string[], options: { closed?: boolean } = {}): Promise<ActiveMarket[]> {
   if (conditionIds.length === 0) {
     return [];
   }
@@ -121,6 +122,7 @@ export async function fetchMarketsByConditionIds(conditionIds: string[]): Promis
     url.searchParams.append('condition_ids', conditionId);
   }
   url.searchParams.set('limit', String(conditionIds.length));
+  if (options.closed) url.searchParams.set('closed', 'true');
   const payload = await fetchJson(url);
   return jsonArraySchema
     .parse(payload)
