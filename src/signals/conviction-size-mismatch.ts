@@ -1,5 +1,6 @@
 import type { AppConfig } from '../config/schema.js';
 import type { FillRecord } from '../types/fill.js';
+import { effectivePosition } from './effective-position.js';
 import { SignalId, type TriggeredSignal } from '../types/signal.js';
 import type { WalletProfile } from '../types/wallet.js';
 
@@ -20,9 +21,16 @@ export function evaluateConvictionSizeMismatch(
   }
 
   const walletTotalVolumeUsd = Number(context.wallet.totalVolumeUsd);
-  const fillSizeUsd = Number(context.fill.sizeUsd);
-  const fillPrice = Number(context.fill.price);
-  const priorWalletTotalVolumeUsd = Math.max(0, walletTotalVolumeUsd - fillSizeUsd);
+  // Effective side and price: a SELL of YES at 0.24 is a NO position at 0.76 (not a longshot), and the stake at
+  // risk is shares x 0.76.
+  const position = effectivePosition(context.fill);
+  if (position === null) {
+    return null;
+  }
+  const fillSizeUsd = position.stakeUsd;
+  const fillPrice = position.price;
+  // Wallet volume is stored as fill notional, so remove this fill's notional (not its effective stake).
+  const priorWalletTotalVolumeUsd = Math.max(0, walletTotalVolumeUsd - Number(context.fill.sizeUsd));
   const priorWalletFillCount = Math.max(0, context.wallet.totalFills - 1);
   if (
     !Number.isFinite(walletTotalVolumeUsd) ||
@@ -80,7 +88,13 @@ export function evaluateConvictionSizeMismatch(
         field: 'fill_price',
         value: Number(fillPrice.toFixed(4)),
         threshold: `< ${context.config.detection.convictionSizeMismatch.longshotMaxPrice}`,
-        description: 'The wallet is taking a large swing on longshot pricing.',
+        description: 'The wallet is taking a large swing on longshot pricing (effective price of the side it now holds).',
+      },
+      {
+        field: 'effective_outcome',
+        value: position.outcome,
+        threshold: 'informational',
+        description: 'The outcome the trader is effectively long after this fill (a SELL of YES is long NO).',
       },
       {
         field: 'wallet_age_hours',

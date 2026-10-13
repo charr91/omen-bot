@@ -70,7 +70,15 @@ export function formatAlertTradeAction(
 
   const base = `${alert.fillSide === 'BUY' ? 'Bought' : 'Sold'} ${alert.fillOutcome}`;
   const price = formatAlertPrice(alert.fillPrice);
-  return price === null ? base : `${base} @ ${price}`;
+  if (price === null) return base;
+  if (alert.fillSide === 'SELL') {
+    // Selling YES at p is effectively long NO at 1 - p.
+    const raw = Number(alert.fillPrice);
+    const other = alert.fillOutcome === 'YES' ? 'NO' : 'YES';
+    const effective = Number.isFinite(raw) ? formatAlertPrice(String(1 - raw)) : null;
+    return effective === null ? `${base} @ ${price}` : `${base} @ ${price} (≈ long ${other} @ ${effective})`;
+  }
+  return `${base} @ ${price}`;
 }
 
 export function getAlertFillSize(
