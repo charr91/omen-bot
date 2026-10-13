@@ -72,3 +72,34 @@ Once a component reaches its share, the hot worker serves cached profiles and gi
 uncached wallets the conservative profile (fresh-wallet signals can't fire), and the cold
 path skips rebuilds (`reason: "daily-budget"`) until 00:00 UTC.
 Check it by hand with `redis-cli hgetall omen:alchemy:cu:$(date -u +%F)`.
+
+## Box restart / auto-start (`scripts/box-boot.sh`)
+
+The box keeps `/workspace` and `$HOME` across a restart but not system packages: after the 2026-10-12 20:40 PT
+restart, apt Postgres 17 + Redis (and their data under `/var/lib/postgresql`, `/var/lib/redis`), cron, nvm/node 22
+and `node_modules` were all gone. Everything omen had stored in Postgres before then (fills, alerts, outcomes) was lost.
+
+Postgres on `127.0.0.1:5432` is the Docker container `smart-money-feed-pg` (postgres:16-alpine, superuser `feed`).
+It is managed outside the box's view: the box has no docker CLI or socket, and the listener's cgroup is
+`docker.service`. omen (`omen` DB, user `omen`) and the feed (`smart_money_feed` DB, user `feed`) both use it.
+Don't run apt Postgres on 5432 alongside it. If the apt cluster is installed, keep it stopped.
+
+`scripts/box-boot.sh` is idempotent. It:
+1. reinstalls nvm + node 22.23.3 and runs `npm ci` if they are missing, and reinstalls redis-server, cron and the postgres client;
+2. starts Redis and cron. If nothing answers on 5432, it installs and starts apt Postgres on 5432 instead;
+3. creates the `omen`/`feed` roles and DBs if they are missing;
+4. installs the `@reboot` crontab line (`>> logs/box-boot.log`);
+5. runs `scripts/box-run.sh start` (omen dry run);
+6. runs `smart-money-feed migrate` and starts `smart-money-feed run` (pid `../smart-money-feed/logs/feed.pid`,
+   log `../smart-money-feed/logs/feed.log`), using omen's `.env` and then the feed's gitignored `.env`.
+
+Since cron itself is wiped by a box restart, the `@reboot` line may not survive one. After a restart, run
+`scripts/box-boot.sh` once by hand (or from an agent). It brings everything back and reinstalls the hook.
+
+### Feed delivery (Telegram test channel)
+
+omen publishes every promoted alert to the feed even with `OMEN_OPERATIONAL_DRY_RUN=true`, and with
+`[feed] disable_legacy_channels = true` it never sends on its own Telegram/Discord. The feed process alone owns
+delivery. Its `.env` holds `FEED_TELEGRAM_BOT_TOKEN`, `FEED_TELEGRAM_CHAT_ID`, `FEED_MIN_SEVERITY=medium` (LOW/INFO are
+marked `dry_run`, never sent) and `FEED_MESSAGE_PREFIX="🧪 TEST"`. Sending is live only with `FEED_DRY_RUN=false`
+there, then restart the feed (kill the pid in `feed.pid`, remove the file, run `scripts/box-boot.sh`).
