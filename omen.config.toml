@@ -87,8 +87,8 @@ persisted_profile_ttl_ms = 604_800_000
 # Daily CU budget (UTC day). 1M/day ~= 30M/month (free tier). Hot gets hot_budget_share, cold the rest.
 # Over budget: hot uses the conservative profile (fresh-wallet signals can't fire), cold skips rebuilds.
 daily_cu_budget = 1_000_000
-# Cold dropped to ~flat after the rebuild gating (only $500+ / signaled wallets), so hot gets the larger share.
-hot_budget_share = 0.6
+# Owner-approved 2026-10-16: hot 40%, cold path 60%.
+hot_budget_share = 0.4
 
 [outcomes]
 # Grade every signal fill at +1h, +24h and market resolution against ordinary same-market fills of similar size.
