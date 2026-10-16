@@ -75,7 +75,7 @@ describe('evaluateSybilCluster', () => {
     });
 
     expect(signal?.signalId).toBe('SYBIL_CLUSTER');
-    expect(signal?.score).toBe(30);
+    expect(signal?.score).toBe(35);
     expect(signal?.confidence).toBe(0.9);
   });
 
@@ -119,7 +119,7 @@ describe('evaluateSybilCluster', () => {
     });
 
     expect(signal?.signalId).toBe('SYBIL_CLUSTER');
-    expect(signal?.score).toBe(15);
+    expect(signal?.score).toBe(20);
     expect(signal?.confidence).toBe(0.8);
   });
 
@@ -135,7 +135,7 @@ describe('evaluateSybilCluster', () => {
     });
 
     expect(signal?.signalId).toBe('SYBIL_CLUSTER');
-    expect(signal?.score).toBe(30);
+    expect(signal?.score).toBe(35);
     expect(signal?.confidence).toBe(0.9);
   });
 });

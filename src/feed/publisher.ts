@@ -55,6 +55,7 @@ export function liveAlertEnvelope(alert: StoredAlert): AlertEnvelopeInput {
 
 interface OutcomeSyncRow {
   fill_id: string;
+  feed_synced_at?: Date | null;
   kind: 'signal' | 'baseline';
   ref_fill_id: string | null;
   signal_ids: string[];
@@ -74,10 +75,26 @@ interface OutcomeSyncRow {
 export const FEED_SYNC_SCHEMA_SQL = 'alter table trade_outcomes add column if not exists feed_synced_at timestamptz;';
 
 /** Mirrors M1 trade_outcomes (signals + baselines, all venues) into the feed: envelope + outcome, incrementally. */
-export async function syncOutcomesToFeed(omenDb: Pick<Pool, 'query'>, feed: FeedClient, limit = 500): Promise<number> {
+export interface OutcomeSyncOptions {
+  /** Default true: Kalshi rows are stored/graded only (deliver=false, severity info). */
+  muteKalshi?: boolean;
+  now?: Date;
+}
+
+/** Only a fresh (< 1h old, first sync) Kalshi signal may be delivered, and only when Kalshi is unmuted. */
+const KALSHI_DELIVER_MAX_AGE_MS = 3_600_000;
+
+export async function syncOutcomesToFeed(
+  omenDb: Pick<Pool, 'query'>,
+  feed: FeedClient,
+  limit = 500,
+  options: OutcomeSyncOptions = {},
+): Promise<number> {
+  const muteKalshi = options.muteKalshi ?? true;
+  const now = options.now ?? new Date();
   const result = await omenDb.query<OutcomeSyncRow>(
     `
-      select o.fill_id, o.kind, o.ref_fill_id, coalesce(r.signal_ids, o.signal_ids) as signal_ids,
+      select o.fill_id, o.kind, o.feed_synced_at, o.ref_fill_id, coalesce(r.signal_ids, o.signal_ids) as signal_ids,
         coalesce(o.delivery_tier, r.delivery_tier) as delivery_tier, o.venue, o.market_id, o.token_id, o.side,
         o.size_usd::text, o.alert_at, o.price_at_alert::text, o.price_1h::text, o.price_24h::text, o.resolution_price::text
       from trade_outcomes o
@@ -93,6 +110,12 @@ export async function syncOutcomesToFeed(omenDb: Pick<Pool, 'query'>, feed: Feed
   for (const row of result.rows) {
     if (row.signal_ids.length === 0) continue;
     const isKalshi = row.venue === 'kalshi';
+    const deliverKalshi =
+      isKalshi &&
+      !muteKalshi &&
+      row.kind === 'signal' &&
+      !row.feed_synced_at &&
+      now.getTime() - new Date(row.alert_at).getTime() <= KALSHI_DELIVER_MAX_AGE_MS;
     await feed.publish({
       schemaVersion: 1,
       sourceApp: 'omen',
@@ -104,11 +127,11 @@ export async function syncOutcomesToFeed(omenDb: Pick<Pool, 'query'>, feed: Feed
       direction: row.side === 'SELL' ? 'short' : 'long',
       priceAtAlert: Number(row.price_at_alert),
       sizeUsd: finiteOrNull(row.size_usd),
-      severity: row.kind === 'baseline' ? 'info' : severityForTier(row.delivery_tier),
+      severity: row.kind === 'baseline' ? 'info' : deliverKalshi ? 'medium' : severityForTier(row.delivery_tier),
       signals: row.signal_ids,
       appTier: row.delivery_tier,
       alertAt: row.alert_at,
-      deliver: false,
+      deliver: deliverKalshi,
       scoreBy: 'app',
     });
     await feed.recordOutcome('omen', row.fill_id, {

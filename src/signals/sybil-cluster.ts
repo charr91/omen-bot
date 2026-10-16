@@ -14,9 +14,11 @@ interface SybilClusterSignalContext {
   config: Pick<AppConfig, 'detection'>;
 }
 
-const SYBIL_CLUSTER_BASE_SCORE = 15;
+// Weighted up 2026-10-16 (7d outcomes: SYBIL_CLUSTER +12.7pp vs baseline, n=1187). 20/35 keeps a lone SYBIL hit
+// below MEDIUM (40) so Telegram volume barely moves; base-only hits now reach LOW and enter outcome tracking.
+const SYBIL_CLUSTER_BASE_SCORE = 20;
 const SYBIL_CLUSTER_BASE_CONFIDENCE = 0.8;
-const SYBIL_CLUSTER_ELEVATED_SCORE = 30;
+const SYBIL_CLUSTER_ELEVATED_SCORE = 35;
 const SYBIL_CLUSTER_ELEVATED_CONFIDENCE = 0.9;
 
 export function evaluateSybilCluster(context: SybilClusterSignalContext): TriggeredSignal | null {

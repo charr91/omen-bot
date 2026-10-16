@@ -121,6 +121,9 @@ publish_live_alerts = true
 sync_outcomes = true
 # Skip omen's own Telegram/Discord while the feed delivers live alerts (needs enabled + FEED_DATABASE_URL + publish_live_alerts).
 disable_legacy_channels = true
+# Kalshi signals are ingested, enrolled in trade_outcomes and graded, but never delivered (owner decision 2026-10-16:
+# 7d Kalshi signals ~-13pp vs baseline). Set false to let fresh Kalshi signals reach the feed's Telegram again.
+mute_kalshi = true
 # M4: X context for MEDIUM+ alerts via the shared Grok Bot bridge (only while x.source = grokbot).
 x_enrich = true
 x_min_tier = "MEDIUM"

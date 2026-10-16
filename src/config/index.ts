@@ -159,6 +159,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       xEnrich: fileConfig.feed.x_enrich,
       xMinTier: fileConfig.feed.x_min_tier,
       xAnnotateIntervalMs: fileConfig.feed.x_annotate_interval_ms,
+      muteKalshi: fileConfig.feed.mute_kalshi,
     },
     kalshi: {
       enabled: fileConfig.kalshi.enabled,

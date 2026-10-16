@@ -133,6 +133,7 @@ export const fileConfigSchema = z
         x_enrich: z.boolean().optional(),
         x_min_tier: z.enum(['MEDIUM', 'HIGH', 'CRITICAL']).optional(),
         x_annotate_interval_ms: z.number().int().positive().optional(),
+        mute_kalshi: z.boolean().optional(),
       })
       .optional(),
     kalshi: z
@@ -248,6 +249,7 @@ export const fileConfigSchema = z
       x_enrich: value.feed?.x_enrich ?? true,
       x_min_tier: value.feed?.x_min_tier ?? 'MEDIUM',
       x_annotate_interval_ms: value.feed?.x_annotate_interval_ms ?? 60_000,
+      mute_kalshi: value.feed?.mute_kalshi ?? true,
     },
     kalshi: {
       enabled: value.kalshi?.enabled ?? false,
@@ -418,6 +420,8 @@ export interface AppConfig {
     xEnrich: boolean;
     xMinTier: 'MEDIUM' | 'HIGH' | 'CRITICAL';
     xAnnotateIntervalMs: number;
+    /** Kalshi signals are still ingested, enrolled and graded, but never marked deliverable (default true: muted). */
+    muteKalshi: boolean;
   };
   /** M2: Kalshi public REST ingest + market-level signals (stored and graded only, never dispatched). */
   kalshi: {

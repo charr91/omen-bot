@@ -358,7 +358,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
         outcomeTracker
           .runOnce()
           .then(async (result) => {
-            const feedSynced = feed && config.feed.syncOutcomes ? await syncOutcomesToFeed(pool, feed) : null;
+            const feedSynced = feed && config.feed.syncOutcomes ? await syncOutcomesToFeed(pool, feed, 500, { muteKalshi: config.feed.muteKalshi }) : null;
             emitStructuredLog(logger, { type: 'outcome-tracker', ...result, feedSynced });
           })
           .catch((error) => {
