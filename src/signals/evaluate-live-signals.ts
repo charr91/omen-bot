@@ -2,6 +2,7 @@ import type { AppConfig } from '../config/schema.js';
 import { clampSuspicionScore } from './scoring.js';
 import { evaluateConvictionSizeMismatch } from './conviction-size-mismatch.js';
 import { evaluateFreshWalletLargePosition } from './fresh-wallet-large-position.js';
+import { deliverableSignals, evaluateFreshWalletLongshot } from './fresh-wallet-longshot.js';
 import { evaluateLumpEntry } from './lump-entry.js';
 import { evaluateNicheMarketEntry } from './niche-market-entry.js';
 import { evaluateOutsizedPosition } from './outsized-position.js';
@@ -89,9 +90,19 @@ export function evaluateLiveSignals(context: EvaluateLiveSignalsContext): Trigge
     signals.push(freshWalletLargePosition);
   }
 
+  const freshWalletLongshot = evaluateFreshWalletLongshot({ fill: context.fill, wallet: context.wallet, config: context.config });
+  if (freshWalletLongshot) {
+    signals.push(freshWalletLongshot);
+  }
+
   return signals;
 }
 
 export function computeCompositeLiveScore(signals: TriggeredSignal[]): number {
   return clampSuspicionScore(signals.reduce((total, signal) => total + signal.score, 0));
+}
+
+/** Composite score of the signals that may be delivered (shadow-mode signals excluded). */
+export function computeDeliverableLiveScore(signals: TriggeredSignal[]): number {
+  return computeCompositeLiveScore(deliverableSignals(signals));
 }

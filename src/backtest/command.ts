@@ -1,10 +1,10 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { loadAppConfig } from '../config/index.js';
 import { BACKTEST_CASES } from './cases.js';
 import { BacktestDataSource, mapLimit } from './data.js';
-import { renderMarkdown, summarizeCase, totals, type CaseSummary } from './report.js';
+import { mergeFindings, renderMarkdown, summarizeCase, totals, type CaseSummary } from './report.js';
 import { candidateWallets, replayCase, type ReplayConfig, type WalletHistoryPair } from './replay.js';
 
 export interface BacktestOptions {
@@ -55,6 +55,7 @@ export async function runBacktestCommand(options: BacktestOptions, log: (line: s
   const cases = options.only.length ? BACKTEST_CASES.filter((c) => options.only.includes(c.id)) : BACKTEST_CASES;
   const summaries: CaseSummary[] = [];
   const variantSummaries: CaseSummary[] = [];
+  const longshotSummaries: CaseSummary[] = [];
   for (const testCase of cases) {
     const start = Math.floor(Date.parse(testCase.windowStart) / 1000) - 86_400;
     const end = Math.floor(Date.parse(testCase.newsAt) / 1000);
@@ -78,15 +79,28 @@ export async function runBacktestCommand(options: BacktestOptions, log: (line: s
     // What-if (not shipped): fresh-wallet without its niche-market gate, on the same data.
     const variant: ReplayConfig = { ...config, detection: { ...config.detection, market: { ...config.detection.market, nicheMaxVolume: Number.POSITIVE_INFINITY } } };
     variantSummaries.push(summarizeCase(testCase, replayCase({ testCase, market, trades, histories, config: variant })));
+    // FRESH_WALLET_LONGSHOT runs in shadow mode live; this replay delivers it to measure what it would add.
+    if (config.detection.freshWalletLongshot) {
+      const delivered: ReplayConfig = { ...config, detection: { ...config.detection, freshWalletLongshot: { ...config.detection.freshWalletLongshot, enabled: true, deliver: true } } };
+      longshotSummaries.push(summarizeCase(testCase, replayCase({ testCase, market, trades, histories, config: delivered })));
+    }
   }
-  const markdown = renderMarkdown(summaries, { generatedAt: new Date().toISOString(), configPath: 'omen.config.toml', variants: [{ label: 'FRESH_WALLET without the niche gate (detection.market.niche_max_volume = ∞)', summaries: variantSummaries }] });
+  const generated = renderMarkdown(summaries, {
+    generatedAt: new Date().toISOString(),
+    configPath: 'omen.config.toml',
+    variants: [{ label: 'FRESH_WALLET without the niche gate (detection.market.niche_max_volume = ∞)', summaries: variantSummaries }],
+    shadow: longshotSummaries.length ? { signalId: 'FRESH_WALLET_LONGSHOT', summaries: longshotSummaries } : undefined,
+  });
+  // Keep the hand-written Findings block of the existing report across regenerations.
+  const previous = await readFile(resolve(options.out), 'utf8').catch(() => null);
+  const markdown = mergeFindings(generated, previous);
   await mkdir(dirname(resolve(options.out)), { recursive: true });
   await writeFile(resolve(options.out), `${markdown}\n`);
   if (options.json) {
     await mkdir(dirname(resolve(options.json)), { recursive: true });
     await writeFile(
       resolve(options.json),
-      JSON.stringify({ totals: totals(summaries), variantTotals: totals(variantSummaries), cases: summaries.map((s) => ({ ...s, result: { ...s.result, alerts: s.result.alerts.filter((a) => a.tier !== 'CLEAN') } })) }, null, 2),
+      JSON.stringify({ totals: totals(summaries), variantTotals: totals(variantSummaries), longshotDeliveredTotals: longshotSummaries.length ? totals(longshotSummaries) : null, cases: summaries.map((s) => ({ ...s, result: { ...s.result, alerts: s.result.alerts.filter((a) => a.tier !== 'CLEAN') } })) }, null, 2),
     );
   }
   return markdown;

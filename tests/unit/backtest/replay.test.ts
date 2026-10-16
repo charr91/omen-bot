@@ -182,3 +182,14 @@ describe('backtest data source', () => {
     await expect(offline.market('0xnope')).rejects.toThrow(/offline/);
   });
 });
+
+describe('mergeFindings', () => {
+  it('keeps the marker-delimited findings block and migrates a legacy ## Findings section', async () => {
+    const { mergeFindings, FINDINGS_START, FINDINGS_END } = await import('../../../src/backtest/report.js');
+    const legacy = '# R\n\nold\n\n## Findings\n\n1. hand\n';
+    const first = mergeFindings('# R\n\nnew', legacy);
+    expect(first).toBe(`# R\n\nnew\n\n${FINDINGS_START}\n## Findings\n\n1. hand\n${FINDINGS_END}`);
+    expect(mergeFindings('# R\n\nnewer', first)).toBe(first.replace('new\n', 'newer\n'));
+    expect(mergeFindings('# R', null)).toBe(`# R\n\n${FINDINGS_START}\n${FINDINGS_END}`);
+  });
+});

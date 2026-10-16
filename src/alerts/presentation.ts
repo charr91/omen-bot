@@ -138,6 +138,8 @@ export function formatAlertMeaning(alert: PresentableAlert): string | null {
       return formatFreshWalletMeaning(alert);
     case SignalId.SYBIL_CLUSTER:
       return formatSybilClusterMeaning(alert);
+    case SignalId.FRESH_WALLET_LONGSHOT:
+      return formatFreshWalletLongshotMeaning(alert);
     default:
       return null;
   }
@@ -225,6 +227,15 @@ function formatFreshWalletMeaning(alert: PresentableAlert): string {
   }
 
   return 'A very fresh, low-activity wallet just made a large trade in a niche market.';
+}
+
+function formatFreshWalletLongshotMeaning(alert: PresentableAlert): string {
+  const ageHours = getEvidenceValue(alert, 'wallet_age_hours');
+  const price = getEvidenceValue(alert, 'effective_price');
+  if (ageHours !== undefined && price !== undefined) {
+    return `A wallet about ${formatPlainNumber(ageHours)} hours old just put a large stake on a longshot at ${formatPlainNumber(price)}.`;
+  }
+  return 'A brand-new wallet just put a large stake on a longshot.';
 }
 
 function formatSybilClusterMeaning(alert: PresentableAlert): string {

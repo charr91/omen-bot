@@ -2,7 +2,7 @@ import type { AppConfig } from '../config/schema.js';
 import { parseTradeToFill } from '../ingestion/polymarket-client.js';
 import { deriveWalletAge } from '../profiling/wallet-age.js';
 import { effectivePosition } from '../signals/effective-position.js';
-import { computeCompositeLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
+import { computeDeliverableLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
 import { calculateMarketMakerScore } from '../signals/market-maker.js';
 import { deriveAlertTier } from '../signals/scoring.js';
 import type { FillRecord } from '../types/fill.js';
@@ -285,7 +285,8 @@ export function replayCase(input: {
     const evaluated = evaluateLiveSignals({ fill, wallet: point.profile, market: marketAt, config, cluster: null });
     const isMm = evaluated.length > 0 && config.marketMaker.filterEnabled && point.marketMakerScore >= config.marketMaker.minScore;
     const signals = isMm ? [] : evaluated;
-    const score = computeCompositeLiveScore(signals);
+    // Shadow-mode signals (deliver = false) are not delivered live, so they do not count toward the delivered tier.
+    const score = computeDeliverableLiveScore(signals);
     const tier = deriveAlertTier(score, config);
     const position = effectivePosition(fill);
     const effectiveOutcome = position?.outcome ?? fill.outcome;

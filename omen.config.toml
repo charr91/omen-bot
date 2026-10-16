@@ -97,6 +97,19 @@ interval_ms = 300_000
 baseline_per_signal = 3
 baseline_window_hours = 6
 
+# M2 backtest recommendation (docs/backtests/m2-insider-cases.md): wallet < 24h old, <= max_txns, effective price
+# < max_price, stake >= min_stake_usd, any market size. score 40 = MEDIUM on its own. deliver = false is SHADOW mode:
+# signal events + alerts are stored and graded in trade_outcomes, but never sent to Telegram/Discord or the feed's
+# live delivery. Grade it in M1 outcomes for ~2 weeks before setting deliver = true.
+[signals.fresh_wallet_longshot]
+enabled = true
+deliver = false
+max_age_hours = 24
+max_txns = 10
+max_price = 0.30
+min_stake_usd = 5_000
+score = 40
+
 [market_maker]
 # insider-poly-bot heuristic (frequency 30 + buy/sell balance 40 + markets 20 + days active 10).
 # Likely MMs (score >= min_score) get no live signals and are excluded from baselines.

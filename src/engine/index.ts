@@ -24,6 +24,7 @@ import { FeedClient, XBridge, loadXOptions } from '@charr91/smart-money-feed';
 import { annotatePendingAlerts, recordXRequest, xRequestForAlert } from '../feed/x-enrich.js';
 import { Pool as PgPool } from 'pg';
 import { liveAlertEnvelope, syncOutcomesToFeed } from '../feed/publisher.js';
+import { isShadowSignal } from '../signals/fresh-wallet-longshot.js';
 import { KalshiClient } from '../kalshi/client.js';
 import { KalshiService } from '../kalshi/service.js';
 import { createKalshiStore } from '../kalshi/store.js';
@@ -604,6 +605,12 @@ async function handleSignalPreview(options: {
   }
 
   const storedAlert = await resolveStoredAlert(promotedAlert, alertStore, alertDispatcher);
+  // Shadow-mode signals are stored (above) and graded via trade_outcomes (the outcome sync mirrors them to the feed
+  // with deliver=false), but never published as a live alert, X-enriched or dispatched.
+  if (isShadowSignal(preview.signal)) {
+    dashboard?.addSignalPreview(preview);
+    return;
+  }
   if (options.feed) {
     // The feed owns delivery (dry run unless the feed process is explicitly live); a feed outage never blocks omen.
     try {
@@ -850,7 +857,7 @@ async function resolveStoredAlert(
 ): Promise<StoredAlert> {
   const storedAlert = await alertStore.upsertPromotedAlert(
     promotedAlert,
-    !promotedAlert.dryRun && alertDispatcher.getEnabledChannels(promotedAlert.deliveryTier).length > 0,
+    !promotedAlert.dryRun && !isShadowSignal(promotedAlert.signal) && alertDispatcher.getEnabledChannels(promotedAlert.deliveryTier).length > 0,
   );
 
   return {

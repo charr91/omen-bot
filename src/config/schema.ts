@@ -151,6 +151,21 @@ export const fileConfigSchema = z
         book_watchlist_size: z.number().int().nonnegative().optional(),
       })
       .optional(),
+    signals: z
+      .object({
+        fresh_wallet_longshot: z
+          .object({
+            enabled: z.boolean().optional(),
+            deliver: z.boolean().optional(),
+            max_age_hours: z.number().positive().optional(),
+            max_txns: z.number().int().nonnegative().optional(),
+            max_price: z.number().positive().max(1).optional(),
+            min_stake_usd: z.number().positive().optional(),
+            score: z.number().int().min(0).max(100).optional(),
+          })
+          .optional(),
+      })
+      .optional(),
     market_maker: z
       .object({
         filter_enabled: z.boolean().optional(),
@@ -200,6 +215,17 @@ export const fileConfigSchema = z
         max_rpc_calls: value.detection?.cluster?.max_rpc_calls ?? 200,
         same_market_same_side_window_ms:
           value.detection?.cluster?.same_market_same_side_window_ms ?? 60 * 60_000,
+      },
+    },
+    signals: {
+      fresh_wallet_longshot: {
+        enabled: value.signals?.fresh_wallet_longshot?.enabled ?? true,
+        deliver: value.signals?.fresh_wallet_longshot?.deliver ?? false,
+        max_age_hours: value.signals?.fresh_wallet_longshot?.max_age_hours ?? 24,
+        max_txns: value.signals?.fresh_wallet_longshot?.max_txns ?? value.detection?.fresh_wallet?.max_txns ?? 10,
+        max_price: value.signals?.fresh_wallet_longshot?.max_price ?? 0.3,
+        min_stake_usd: value.signals?.fresh_wallet_longshot?.min_stake_usd ?? 5_000,
+        score: value.signals?.fresh_wallet_longshot?.score ?? 40,
       },
     },
     alerts: {
@@ -360,6 +386,17 @@ export interface AppConfig {
       fanoutLimit: number;
       maxRpcCalls: number;
       sameMarketSameSideWindowMs: number;
+    };
+    /** [signals.fresh_wallet_longshot]; optional so partial test configs keep it off. */
+    freshWalletLongshot?: {
+      enabled: boolean;
+      /** false = shadow mode: stored + outcome-graded, never delivered. */
+      deliver: boolean;
+      maxAgeHours: number;
+      maxTransactions: number;
+      maxPrice: number;
+      minStakeUsd: number;
+      score: number;
     };
   };
   alerts: {

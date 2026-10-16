@@ -23,7 +23,8 @@ import { createMarketMakerStore } from '../persistence/queries/market-maker.js';
 import { AlchemyDailyBudget, startCuMeterFlush } from '../resilience/cu-meter.js';
 import { isSettledChainProfile, profileModeForFill } from './profile-gate.js';
 import { buildConservativeChainProfile } from './chain-profile.js';
-import { computeCompositeLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
+import { computeCompositeLiveScore, computeDeliverableLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
+import { isShadowSignal } from '../signals/fresh-wallet-longshot.js';
 import type { LiveClusterSignalContext } from '../signals/sybil-cluster.js';
 import { deriveAlertTier } from '../signals/scoring.js';
 import type { FillRecord } from '../types/fill.js';
@@ -337,8 +338,12 @@ async function processFill(fill: FillRecord): Promise<void> {
     });
   }
 
-  const liveScore = computeCompositeLiveScore(triggeredSignals);
+  // Shadow-mode signals (e.g. FRESH_WALLET_LONGSHOT with deliver = false) never lift the wallet's live score or any
+  // delivered alert's tier; their own alert carries the full score so it is graded at the tier it would have had.
+  const liveScore = computeDeliverableLiveScore(triggeredSignals);
   const liveTier = deriveAlertTier(liveScore, config);
+  const shadowScore = computeCompositeLiveScore(triggeredSignals);
+  const shadowTier = deriveAlertTier(shadowScore, config);
   const walletProfile: WalletProfile = {
     ...baseWallet,
     liveSuspicionScore: liveScore,
@@ -371,8 +376,8 @@ async function processFill(fill: FillRecord): Promise<void> {
           fillPrice: fill.price,
           fillSizeUsd: fill.sizeUsd,
           fillTimestamp: fill.timestamp.toISOString(),
-          walletLiveScore: walletProfile.liveSuspicionScore,
-          walletLiveTier: walletProfile.liveTier,
+          walletLiveScore: isShadowSignal(signal) ? shadowScore : walletProfile.liveSuspicionScore,
+          walletLiveTier: isShadowSignal(signal) ? shadowTier : walletProfile.liveTier,
           signal,
           promotedAlertId: null,
           promotedAt: null,
@@ -384,7 +389,7 @@ async function processFill(fill: FillRecord): Promise<void> {
             ? null
             : await alertStore.upsertPromotedAlert(
                 promotedAlert,
-                isAlertDispatchEligible(config, promotedAlert.deliveryTier),
+                !isShadowSignal(signal) && isAlertDispatchEligible(config, promotedAlert.deliveryTier),
               );
 
         postMessage({

@@ -105,6 +105,15 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
         maxRpcCalls: fileConfig.detection.cluster.max_rpc_calls,
         sameMarketSameSideWindowMs: fileConfig.detection.cluster.same_market_same_side_window_ms,
       },
+      freshWalletLongshot: {
+        enabled: fileConfig.signals.fresh_wallet_longshot.enabled,
+        deliver: fileConfig.signals.fresh_wallet_longshot.deliver,
+        maxAgeHours: fileConfig.signals.fresh_wallet_longshot.max_age_hours,
+        maxTransactions: fileConfig.signals.fresh_wallet_longshot.max_txns,
+        maxPrice: fileConfig.signals.fresh_wallet_longshot.max_price,
+        minStakeUsd: fileConfig.signals.fresh_wallet_longshot.min_stake_usd,
+        score: fileConfig.signals.fresh_wallet_longshot.score,
+      },
     },
     alerts: {
       criticalMinScore: fileConfig.alerts.critical_min_score,

@@ -8,6 +8,7 @@ export enum SignalId {
   CONVICTION_SIZE_MISMATCH = 'CONVICTION_SIZE_MISMATCH',
   LUMP_ENTRY = 'LUMP_ENTRY',
   SYBIL_CLUSTER = 'SYBIL_CLUSTER',
+  FRESH_WALLET_LONGSHOT = 'FRESH_WALLET_LONGSHOT',
 }
 
 export interface SignalEvidence {
@@ -24,4 +25,6 @@ export interface TriggeredSignal {
   confidence: number;
   evidence: SignalEvidence[];
   triggeredAt: Date;
+  /** Shadow mode: recorded + outcome-graded but never delivered (Telegram/Discord/feed). */
+  shadow?: boolean;
 }

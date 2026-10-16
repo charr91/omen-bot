@@ -102,7 +102,13 @@ const iso = (s: number): string => new Date(s * 1000).toISOString().slice(0, 16)
 
 export function renderMarkdown(
   summaries: CaseSummary[],
-  meta: { generatedAt: string; configPath: string; variants?: { label: string; summaries: CaseSummary[] }[] },
+  meta: {
+    generatedAt: string;
+    configPath: string;
+    variants?: { label: string; summaries: CaseSummary[] }[];
+    /** A shadow-mode signal replayed as if delivered: its standalone record and the combined headline. */
+    shadow?: { signalId: string; summaries: CaseSummary[] };
+  },
 ): string {
   const t = totals(summaries);
   const lines: string[] = [];
@@ -168,6 +174,7 @@ export function renderMarkdown(
     }
     lines.push('');
   }
+  if (meta.shadow) lines.push(...renderShadowSection(meta.shadow.signalId, meta.shadow.summaries));
   lines.push('### What-if probe (not shipped): fresh wallet (< 24 h, ≤ max_txns) longshot (< 0.30) at any market size');
   lines.push('');
   lines.push('Counts of probe fills before the news, winning side / losing side, by minimum stake. Lead = news minus first winning-side probe fill.');
@@ -219,4 +226,95 @@ export function renderMarkdown(
     }
   }
   return lines.join('\n');
+}
+
+
+export interface ShadowSignalTotals {
+  insiderCases: number;
+  hits: number;
+  medianLeadHours: number | null;
+  controls: number;
+  controlsWithAlert: number;
+  insiderLosingSideCases: number;
+}
+
+/** Standalone record of one signal: winning-side alert carrying it before the news = hit; any alert on a control = FP. */
+export function shadowSignalTotals(signalId: string, summaries: CaseSummary[]): ShadowSignalTotals {
+  const leads: number[] = [];
+  let hits = 0;
+  let controlsWithAlert = 0;
+  let insiderLosingSideCases = 0;
+  for (const s of summaries) {
+    const fired = s.result.alerts.filter((a) => !a.suppressedAsMarketMaker && (a.signals as string[]).includes(signalId));
+    const win = fired.filter((a) => a.winningSide);
+    if (s.testCase.kind === 'insider') {
+      if (win.length) {
+        hits += 1;
+        leads.push((Date.parse(s.testCase.newsAt) / 1000 - Math.min(...win.map((a) => a.timestamp))) / 3600);
+      }
+      if (fired.length > win.length) insiderLosingSideCases += 1;
+    } else if (fired.length) {
+      controlsWithAlert += 1;
+    }
+  }
+  return {
+    insiderCases: summaries.filter((s) => s.testCase.kind === 'insider').length,
+    hits,
+    medianLeadHours: median(leads),
+    controls: summaries.filter((s) => s.testCase.kind !== 'insider').length,
+    controlsWithAlert,
+    insiderLosingSideCases,
+  };
+}
+
+function renderShadowSection(signalId: string, summaries: CaseSummary[]): string[] {
+  const st = shadowSignalTotals(signalId, summaries);
+  const ct = totals(summaries);
+  const fmt = (h: number | null) => (h === null ? '—' : `${h.toFixed(1)} h`);
+  const lines: string[] = [];
+  lines.push(`### Shadow signal: ${signalId} (recorded + graded live, not delivered; replayed here as if delivered)`);
+  lines.push('');
+  lines.push(
+    `- On its own: fired on the winning side before the news in **${st.hits}/${st.insiderCases}** insider cases (median lead ${fmt(st.medianLeadHours)}); ` +
+      `fired on **${st.controlsWithAlert}/${st.controls}** controls; fired on the losing side in ${st.insiderLosingSideCases} insider case(s).`,
+  );
+  lines.push(
+    `- Combined with the shipped signals, if delivered: **${ct.hits}/${ct.insiderCases}** hits, median lead ${fmt(ct.medianLeadHours)}, ` +
+      `controls with a ${DELIVERY_MIN_TIER}+ alert **${ct.controlsWithAlert}/${ct.controls}**.`,
+  );
+  lines.push('');
+  lines.push('| Case | Kind | Fired (winning / losing) | Lead (first winning) | Combined hit if delivered |');
+  lines.push('|---|---|---|---|---|');
+  for (const s of summaries) {
+    const fired = s.result.alerts.filter((a) => !a.suppressedAsMarketMaker && (a.signals as string[]).includes(signalId));
+    const win = fired.filter((a) => a.winningSide);
+    const lead = win.length ? (Date.parse(s.testCase.newsAt) / 1000 - Math.min(...win.map((a) => a.timestamp))) / 3600 : null;
+    const combined = s.testCase.kind === 'insider' ? (s.hit ? '**HIT**' : 'miss') : s.result.alerts.some((a) => atLeast(a, DELIVERY_MIN_TIER)) ? 'FP' : 'clean';
+    lines.push(`| ${s.testCase.id} | ${s.testCase.kind} | ${win.length} / ${fired.length - win.length} | ${fmt(lead)} | ${combined} |`);
+  }
+  lines.push('');
+  return lines;
+}
+
+export const FINDINGS_START = '<!-- findings:start (hand-written; `omen backtest` keeps this block) -->';
+export const FINDINGS_END = '<!-- findings:end -->';
+
+/**
+ * Appends the hand-written Findings block from the previous report to freshly generated markdown. The block is the
+ * text between FINDINGS_START/FINDINGS_END; a legacy report without markers keeps everything from its
+ * `## Findings` heading on. With no previous findings, an empty marker block is added for the next edit.
+ */
+export function mergeFindings(generated: string, previous: string | null): string {
+  let findings: string | null = null;
+  if (previous) {
+    const start = previous.indexOf(FINDINGS_START);
+    const end = previous.indexOf(FINDINGS_END);
+    if (start >= 0 && end > start) {
+      findings = previous.slice(start + FINDINGS_START.length, end).trim();
+    } else {
+      const heading = previous.search(/^## Findings/m);
+      if (heading >= 0) findings = previous.slice(heading).trim();
+    }
+  }
+  return `${generated.trimEnd()}\n\n${FINDINGS_START}\n${findings ? `${findings}\n` : ''}${FINDINGS_END}`;
 }

@@ -1,6 +1,6 @@
 # M2 backtest: omen signals on reported Polymarket insider cases
 
-Generated 2026-10-16T11:45:40.656Z by `omen backtest` (config `omen.config.toml`). Offline replay: no DB, Redis, Telegram, feed or Alchemy.
+Generated 2026-10-16T11:49:07.029Z by `omen backtest` (config `omen.config.toml`). Offline replay: no DB, Redis, Telegram, feed or Alchemy.
 
 ## Headline
 
@@ -23,10 +23,10 @@ Generated 2026-10-16T11:45:40.656Z by `omen backtest` (config `omen.config.toml`
 | Case | Kind | Window trades / volume | Hit | Best winning-side tier | Lead (first hit) | Lead (first any alert) | Delivered alerts by tier (C/H/M/L) | Signals fired | Reported wallet flagged |
 |---|---|---|---|---|---|---|---|---|---|
 | nobel-machado-2025 | insider | 3,093 / $983,839 | **HIT** | HIGH | 10.2 h | 10.2 h | 0/1/0/5 | OUTSIZED_POSITION×6, NICHE_MARKET_ENTRY×3, CONVICTION_SIZE_MISMATCH×1, FRESH_WALLET_LARGE_POSITION×1, LUMP_ENTRY×5 | n/a |
-| openai-browser-oct31 | insider | 6,457 / $1,527,679 | **HIT** | MEDIUM | 38.7 h | 82.2 h | 0/0/3/14 | OUTSIZED_POSITION×10, NICHE_MARKET_ENTRY×4, LUMP_ENTRY×15, FRESH_WALLET_LARGE_POSITION×3, CONVICTION_SIZE_MISMATCH×7 | n/a |
+| openai-browser-oct31 | insider | 6,457 / $1,527,679 | **HIT** | MEDIUM | 38.7 h | 82.2 h | 0/0/3/14 | OUTSIZED_POSITION×10, NICHE_MARKET_ENTRY×4, LUMP_ENTRY×15, FRESH_WALLET_LARGE_POSITION×3, CONVICTION_SIZE_MISMATCH×7, FRESH_WALLET_LONGSHOT×1 | n/a |
 | d4vd-year-in-search | insider | 4,044 / $1,815,360 | miss | LOW | — | 14.9 h | 0/0/0/4 | LUMP_ENTRY×4, CONVICTION_SIZE_MISMATCH×3, OUTSIZED_POSITION×1 | not found in tape |
 | maduro-out-jan31 | insider | 1,818 / $612,323 | miss | LOW | — | 87.1 h | 0/0/0/5 | LUMP_ENTRY×5, CONVICTION_SIZE_MISMATCH×4, OUTSIZED_POSITION×2 | no |
-| us-strikes-iran-feb28 | insider | 23,778 / $10,490,941 | miss | LOW | — | 57.8 h | 0/0/0/34 | LUMP_ENTRY×34, CONVICTION_SIZE_MISMATCH×33, OUTSIZED_POSITION×1 | no |
+| us-strikes-iran-feb28 | insider | 23,778 / $10,490,941 | miss | LOW | — | 57.8 h | 0/0/0/34 | LUMP_ENTRY×34, CONVICTION_SIZE_MISMATCH×33, OUTSIZED_POSITION×1, FRESH_WALLET_LONGSHOT×1 | no |
 | us-iran-ceasefire-apr7 | insider | 18,651 / $5,625,905 | miss | LOW | — | 42.3 h | 0/0/0/4 | LUMP_ENTRY×4, CONVICTION_SIZE_MISMATCH×4 | n/a |
 | us-action-iran-jun21 | insider | 2,245 / $904,453 | miss | LOW | — | 37.4 h | 0/0/1/5 | OUTSIZED_POSITION×2, NICHE_MARKET_ENTRY×2, FRESH_WALLET_LARGE_POSITION×1, LUMP_ENTRY×5, CONVICTION_SIZE_MISMATCH×4 | n/a |
 | ctl-maduro-out-2025 | control | 3,860 / $2,047,555 | clean | CLEAN | — | 20.5 h | 0/0/0/1 | LUMP_ENTRY×1, CONVICTION_SIZE_MISMATCH×1 | n/a |
@@ -55,6 +55,27 @@ Hits **4/7**, median lead 16.1 h, controls with a MEDIUM+ alert **2/6** (0.14/ma
 | ctl-trump-nobel-2025 | FP | MEDIUM | 19.6 h | 1 / 0 |
 | ctl-us-strikes-iran-jan31 | FP | MEDIUM | 73.2 h | 2 / 0 |
 | ctl-us-iran-ceasefire-mar31 | clean | CLEAN | — | 0 / 0 |
+
+### Shadow signal: FRESH_WALLET_LONGSHOT (recorded + graded live, not delivered; replayed here as if delivered)
+
+- On its own: fired on the winning side before the news in **4/7** insider cases (median lead 19.2 h); fired on **1/6** controls; fired on the losing side in 1 insider case(s).
+- Combined with the shipped signals, if delivered: **6/7** hits, median lead 19.2 h, controls with a MEDIUM+ alert **1/6**.
+
+| Case | Kind | Fired (winning / losing) | Lead (first winning) | Combined hit if delivered |
+|---|---|---|---|---|
+| nobel-machado-2025 | insider | 0 / 0 | — | **HIT** |
+| openai-browser-oct31 | insider | 0 / 1 | — | **HIT** |
+| d4vd-year-in-search | insider | 0 / 0 | — | miss |
+| maduro-out-jan31 | insider | 2 / 0 | 8.3 h | **HIT** |
+| us-strikes-iran-feb28 | insider | 13 / 0 | 56.8 h | **HIT** |
+| us-iran-ceasefire-apr7 | insider | 2 / 0 | 16.6 h | **HIT** |
+| us-action-iran-jun21 | insider | 1 / 0 | 21.9 h | **HIT** |
+| ctl-maduro-out-2025 | control | 0 / 0 | — | clean |
+| ctl-maduro-out-nov30 | control | 0 / 0 | — | clean |
+| ctl-openai-browser-sep30 | control | 0 / 0 | — | clean |
+| ctl-trump-nobel-2025 | control | 0 / 1 | — | FP |
+| ctl-us-strikes-iran-jan31 | control | 0 / 0 | — | clean |
+| ctl-us-iran-ceasefire-mar31 | control | 0 / 0 | — | clean |
 
 ### What-if probe (not shipped): fresh wallet (< 24 h, ≤ max_txns) longshot (< 0.30) at any market size
 
@@ -254,12 +275,16 @@ Counts of probe fills before the news, winning side / losing side, by minimum st
 | 2026-03-31 01:16 | 0x436f969D99c90191fBC2c629e6B7a1B754402c7F-1772236065502 | YES @ 0.008 | $75,031 | $885,310 | 234.5 h | 20 / LOW | OUTSIZED_POSITION, LUMP_ENTRY |
 | 2026-03-31 22:13 | kylez41 | YES @ 0.004 | $24,306 | $919,596 | 442.2 h | 20 / LOW | OUTSIZED_POSITION, LUMP_ENTRY |
 
-## Findings (hand-written, 2026-10-16; `omen backtest` regenerates everything above)
+<!-- findings:start (hand-written; `omen backtest` keeps this block) -->
+## Findings (hand-written, 2026-10-16; `omen backtest` regenerates everything above and keeps this block)
 
 1. **Shipped config: 2/7 hits, median lead 24.4 h, 0/6 control FPs.** Hits are the two low-liquidity markets (Nobel/Machado: HIGH, 10.2 h before the announcement, from a 0.1 h-old wallet buying YES at 0.10 on $5.8k of 24 h volume; OpenAI browser: MEDIUM, 38.7 h). Misses are the liquid geopolitical markets (Maduro, Iran ×2, ceasefire) and d4vd.
 2. **Why the liquid cases miss.** `FRESH_WALLET_LARGE_POSITION` only runs below `niche_max_volume` ($100k/24 h), and its size bar is max($1k, 2% of 24 h volume) — $25-60k in the Iran/ceasefire markets. The reported fresh wallets bet $0.5-3k per fill (Iran: Lettucehead718 / suffix-295 stayed CLEAN). `LUMP_ENTRY` and `CONVICTION_SIZE_MISMATCH` need prior volume, so a brand-new wallet's first bet cannot trigger them. What fires there is LUMP+CONVICTION = 22 (LOW), which shows up just as often on controls (33 LOW alerts across 5/6 controls, all on the losing side). It flags longshot buyers in general, not informed ones.
 3. **Reported wallets.** The Maduro wallet (Burdensome-Mix) reached LOW 87 h before the news ($5k YES at 0.068: outsized + lump + conviction = 34). It stayed below MEDIUM because the market was not niche, so fresh-wallet could not add points, and because the wallet was 4-6 days old. AlphaRaccoon (d4vd) was renamed and cannot be matched by name in the tape.
-4. **What-ifs on the same data.** (a) Dropping the niche gate gives 4/7 hits but 2/6 control FPs, which is not worth it. (b) A fresh-wallet longshot probe: wallet < 24 h old, ≤ 10 txns, effective price < 0.30, stake ≥ $5k, any market size. It fired on the winning side in 4/7 cases (Maduro 8.3 h, Iran Feb 28 56.8 h, ceasefire 16.6 h, Iran Jun 21 21.9 h lead) and only once on a control (Trump-Nobel, losing side). It never fired on the losing side in an insider market.
+4. **What-ifs on the same data.** (a) Dropping the niche gate gives 4/7 hits but 2/6 control FPs, which is not worth it. (b) A fresh-wallet longshot probe: wallet < 24 h old, ≤ 10 txns, effective price < 0.30, stake ≥ $5k, any market size. It fired on the winning side in 4/7 cases (Maduro 8.3 h, Iran Feb 28 56.8 h, ceasefire 16.6 h, Iran Jun 21 21.9 h lead) and only once on a control (Trump-Nobel, losing side). It fired on the losing side once in an insider market (OpenAI browser, a $5k+ NO).
 5. **Gaps.** Sybil/funding clusters are not replayed (they need Alchemy), and they are the documented pattern in the Iran Feb 28 and ceasefire cases. Wallet age here comes from Polymarket activity, not on-chain data. n is small (7 + 6), so treat the rates as directional.
 
-**Recommended next step:** add a `FRESH_WALLET_LONGSHOT` live signal using the probe above (stake ≥ $5k, age < 24 h, ≤ max_txns, effective price < 0.30, no niche or relative-size gate) scored high enough to reach MEDIUM on its own. Re-run `omen backtest`, and grade it in M1 outcomes for 2 weeks before raising it to Telegram.
+6. **Shipped in shadow mode (2026-10-16).** `FRESH_WALLET_LONGSHOT` is live with `[signals.fresh_wallet_longshot] deliver = false` (score 40 = MEDIUM alone). Replayed as if delivered (section "Shadow signal" above): on its own 4/7 winning-side hits (median lead 19.2 h) and 1/6 controls (Trump-Nobel, losing side); combined with the shipped signals 6/7 hits and 1/6 control FPs. The shipped headline is unchanged (2/7, 0/6) because shadow signals do not count toward delivery.
+
+**Recommended next step (done, shadow):** add a `FRESH_WALLET_LONGSHOT` live signal using the probe above (stake ≥ $5k, age < 24 h, ≤ max_txns, effective price < 0.30, no niche or relative-size gate) scored high enough to reach MEDIUM on its own. Re-run `omen backtest`, and grade it in M1 outcomes for 2 weeks before raising it to Telegram.
+<!-- findings:end -->
