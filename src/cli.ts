@@ -11,6 +11,7 @@ import { sendTestTelegramAlert } from './alerts/test-telegram.js';
 import { runColdWorkerCommand } from './cold-path/runtime.js';
 import { parseStatsOptions, runStatsCommand } from './outcomes/command.js';
 import { runKalshiMapCommand } from './kalshi/command.js';
+import { parseBacktestOptions, runBacktestCommand } from './backtest/command.js';
 import { runHealthCommand, runReplayCommand, runStartCommand } from './engine/index.js';
 import { loadEnvironment } from './env.js';
 import { runPhase0Analysis } from './phase0/analyze.js';
@@ -40,6 +41,7 @@ Usage:
   omen [--env-file .env] replay
   omen [--env-file .env] health
   omen [--env-file .env] stats [--days 7] [--json] [--refresh]
+  omen backtest [--out docs/backtests/m2-insider-cases.md] [--json f] [--offline] [--refresh] [--only <case-id>]
   omen [--env-file .env] kalshi-map <list|add|remove|suggest [--auto] [--min 0.6]> [...]
   omen [--env-file .env] test-telegram
   omen [--env-file .env] cold-worker
@@ -71,6 +73,11 @@ async function main(): Promise<void> {
 
   if (scope === 'replay' && rest.length === 0) {
     await runReplayCommand();
+    return;
+  }
+
+  if (scope === 'backtest') {
+    await runBacktestCommand(parseBacktestOptions(rest));
     return;
   }
 

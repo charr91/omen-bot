@@ -1,0 +1,3936 @@
+{
+  "totals": {
+    "insiderCases": 7,
+    "hits": 2,
+    "medianLeadHours": 24.444166666666668,
+    "controls": 6,
+    "controlsWithAlert": 0,
+    "falsePositiveRate": 0,
+    "controlAlertsPerDay": 0,
+    "insiderWrongSideShare": 0.4
+  },
+  "variantTotals": {
+    "insiderCases": 7,
+    "hits": 4,
+    "medianLeadHours": 16.06388888888889,
+    "controls": 6,
+    "controlsWithAlert": 2,
+    "falsePositiveRate": 0.3333333333333333,
+    "controlAlertsPerDay": 0.1363722457225835,
+    "insiderWrongSideShare": 0.2857142857142857
+  },
+  "cases": [
+    {
+      "testCase": {
+        "id": "nobel-machado-2025",
+        "kind": "insider",
+        "title": "Will María Corina Machado win the Nobel Peace Prize in 2025?",
+        "conditionId": "0x14a3dfeba8b22a32feb0f10763db68bc4d2abeb5bff90e9ae20de53793b35a1d",
+        "winningOutcome": "YES",
+        "windowStart": "2025-10-07T09:00:00Z",
+        "newsAt": "2025-10-10T09:00:00Z",
+        "newsNote": "Oslo announcement 11:00 CEST; bets spiked shortly after midnight Norwegian time",
+        "sources": [
+          {
+            "label": "Guardian, 2025-10-10",
+            "url": "https://www.theguardian.com/world/2025/oct/10/nobel-peace-prize-bets-polymarket"
+          },
+          {
+            "label": "Reuters, 2026-01-30",
+            "url": "https://www.reuters.com/world/americas/nobel-committee-says-peace-prize-winner-likely-revealed-early-by-digital-spying-2026-01-30/"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "nobel-machado-2025",
+        "tradesInWindow": 3093,
+        "volumeInWindowUsd": 983838.7811830404,
+        "candidatesEvaluated": 621,
+        "walletsProfiled": 261,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1760050009,
+            "wallet": "0xa430506774f9efaf39903ee7e0db1351f66891ca",
+            "name": "6741",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.1,
+            "sizeUsd": 1500,
+            "marketDailyVolumeUsd": 5793.963431340999,
+            "walletAgeHours": 0.06444444444444444,
+            "priorWalletVolumeUsd": 2006.60504,
+            "score": 63,
+            "tier": "HIGH",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "CONVICTION_SIZE_MISMATCH",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760052479,
+            "wallet": "0xd33cd756d9e2a9190248d830d12b68dc7eb72ab5",
+            "name": "Chilyn",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.4,
+            "sizeUsd": 3870.804,
+            "marketDailyVolumeUsd": 55327.77438316709,
+            "walletAgeHours": 1267.721388888889,
+            "priorWalletVolumeUsd": 2356.919994,
+            "score": 27,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760054201,
+            "wallet": "0xf48ab6dff8ee0e7facef2ab56bb161dcb4173594",
+            "name": "Riskmaximized",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.772124,
+            "sizeUsd": 9999.999997,
+            "marketDailyVolumeUsd": 82423.48860499896,
+            "walletAgeHours": 680.5094444444444,
+            "priorWalletVolumeUsd": 9147.018185999998,
+            "score": 27,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760059141,
+            "wallet": "0xa9c57a20cb8433a269976bb35eb872bd11380bd9",
+            "name": "striketheboats",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.598067,
+            "sizeUsd": 9514.056,
+            "marketDailyVolumeUsd": 211682.15641856275,
+            "walletAgeHours": 0.10555555555555556,
+            "priorWalletVolumeUsd": 1825.8313039999998,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760060029,
+            "wallet": "0x4bac00c61a02275d681f3857cdc5ae315f1f7075",
+            "name": "aenews0",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.652338,
+            "sizeUsd": 7953.66728,
+            "marketDailyVolumeUsd": 241019.6381938137,
+            "walletAgeHours": 0.0005555555555555556,
+            "priorWalletVolumeUsd": 23.976,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760066609,
+            "wallet": "0x2612496ab8f1d774f116f28b50769971936c92de",
+            "name": "pinkuniforms",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.654681,
+            "sizeUsd": 19216.71517,
+            "marketDailyVolumeUsd": 435866.7961710036,
+            "walletAgeHours": 0.025555555555555557,
+            "priorWalletVolumeUsd": 983.6,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1760050009,
+            "stakeUsd": 1500,
+            "effectivePrice": 0.1,
+            "winningSide": true,
+            "ageHours": 0.06444444444444444
+          }
+        ],
+        "reportedFills": []
+      },
+      "hit": true,
+      "bestWinningTier": "HIGH",
+      "firstHitAt": 1760050009,
+      "leadHours": 10.219722222222222,
+      "firstAnyAlertLeadHours": 10.219722222222222,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 6,
+        "NICHE_MARKET_ENTRY": 3,
+        "CONVICTION_SIZE_MISMATCH": 1,
+        "FRESH_WALLET_LARGE_POSITION": 1,
+        "LUMP_ENTRY": 5
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 1,
+        "MEDIUM": 0,
+        "LOW": 5,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "openai-browser-oct31",
+        "kind": "insider",
+        "title": "OpenAI browser by October 31?",
+        "conditionId": "0xc25e15f39f776813870ee363ed483451add1c55dad163b18bdb2df653be2c90c",
+        "winningOutcome": "YES",
+        "windowStart": "2025-10-17T00:00:00Z",
+        "newsAt": "2025-10-21T16:00:00Z",
+        "newsNote": "ChatGPT Atlas launch livestream 2025-10-21 10:00 PT (cut-off 1h earlier for the teaser)",
+        "sources": [
+          {
+            "label": "King & Spalding (new user bet $40k)",
+            "url": "https://www.kslaw.com/insights/articles/new-trick-same-crime-insider-trading-on-prediction-markets"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "openai-browser-oct31",
+        "tradesInWindow": 6457,
+        "volumeInWindowUsd": 1527679.4012741188,
+        "candidatesEvaluated": 1116,
+        "walletsProfiled": 491,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1760766486,
+            "wallet": "0x41de6f63a1ea2c4aebabef285b0a46d26b8b9886",
+            "name": "ughiuyfgiuuy",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.418437,
+            "sizeUsd": 1976.5234,
+            "marketDailyVolumeUsd": 20120.96738888269,
+            "walletAgeHours": 6493.299722222222,
+            "priorWalletVolumeUsd": 1005.8179999999999,
+            "score": 27,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760923193,
+            "wallet": "0x48a2a98ccb80f58e84965bad05c8f5fde980d069",
+            "name": "darda412",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.408162,
+            "sizeUsd": 1326.079999,
+            "marketDailyVolumeUsd": 25965.228314821074,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 49,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760927939,
+            "wallet": "0x79475acbb782588d9dffc91f2819eb6b67d7eb3d",
+            "name": "0x79475AcbB782588D9dffC91f2819Eb6b67d7eb3d-1759866677948",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.396291,
+            "sizeUsd": 1499.419999,
+            "marketDailyVolumeUsd": 31616.49391083485,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 49,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760952943,
+            "wallet": "0x8245e70dcf5c2bd5125d0c3a45d3568e28c94f87",
+            "name": "0x8245E70DCF5C2bD5125d0c3a45D3568E28C94F87-1760736824219",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.358983,
+            "sizeUsd": 1712.3478,
+            "marketDailyVolumeUsd": 85146.85724994748,
+            "walletAgeHours": 40.030277777777776,
+            "priorWalletVolumeUsd": 1868.0988,
+            "score": 45,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760970443,
+            "wallet": "0x66f60eb8f8244aad31523a89a7f5376e6f854fcb",
+            "name": "justinsidoor",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.452063,
+            "sizeUsd": 2998.499999,
+            "marketDailyVolumeUsd": 120480.25721918578,
+            "walletAgeHours": 3.036111111111111,
+            "priorWalletVolumeUsd": 999.489999,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761012566,
+            "wallet": "0x5c4f24744a150378d06273f50e8bd68dd7f3f8cd",
+            "name": "Wu-neh-su",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.46612,
+            "sizeUsd": 24772.34,
+            "marketDailyVolumeUsd": 250222.17982925635,
+            "walletAgeHours": 0.04833333333333333,
+            "priorWalletVolumeUsd": 217.411445,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761016006,
+            "wallet": "0x7f6a661c9e9bdee40a5c405cf720aa9a579948e2",
+            "name": "lih062",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.702531,
+            "sizeUsd": 9999.999998,
+            "marketDailyVolumeUsd": 335936.02488107316,
+            "walletAgeHours": 0.006111111111111111,
+            "priorWalletVolumeUsd": 9999.999998,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761016674,
+            "wallet": "0x61b26ff3c5b629735385125fb874086378d6cc7a",
+            "name": "0x61B26ff3C5B629735385125fB874086378D6cC7a-1761016098286",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.877744,
+            "sizeUsd": 9616.669997,
+            "marketDailyVolumeUsd": 404764.8822157217,
+            "walletAgeHours": 0.028333333333333332,
+            "priorWalletVolumeUsd": 9.379997,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761028410,
+            "wallet": "0x7b51f66adda5b39a5fc2bd114ce7b72652855868",
+            "name": "scalpgoblin",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.145166,
+            "sizeUsd": 1299.58,
+            "marketDailyVolumeUsd": 594499.1165298624,
+            "walletAgeHours": 54.19277777777778,
+            "priorWalletVolumeUsd": 723.90438,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761031400,
+            "wallet": "0x1e334b3bfbd9722f6c1f0b6f2bd1db76ea0dbf4d",
+            "name": "UptoberAD",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.11622,
+            "sizeUsd": 552.309999,
+            "marketDailyVolumeUsd": 725538.5955598691,
+            "walletAgeHours": 11273.635833333334,
+            "priorWalletVolumeUsd": 420.02959500000003,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761035876,
+            "wallet": "0x7363047096335ec9dce85671a255cff0ee94cadc",
+            "name": "otise",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.134266,
+            "sizeUsd": 1405.06,
+            "marketDailyVolumeUsd": 840526.1140050903,
+            "walletAgeHours": 0.5744444444444444,
+            "priorWalletVolumeUsd": 95.859999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761037820,
+            "wallet": "0x4da178c55716c53241fa8db3ea347d2ab43ff3c5",
+            "name": "Jeffrey0723a",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.18,
+            "sizeUsd": 999.999999,
+            "marketDailyVolumeUsd": 866414.9494252674,
+            "walletAgeHours": 0.013888888888888888,
+            "priorWalletVolumeUsd": 199.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761037830,
+            "wallet": "0x4da178c55716c53241fa8db3ea347d2ab43ff3c5",
+            "name": "Jeffrey0723a",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.199849,
+            "sizeUsd": 1000,
+            "marketDailyVolumeUsd": 865943.8398234441,
+            "walletAgeHours": 0.016666666666666666,
+            "priorWalletVolumeUsd": 1199.999998,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": false,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761043276,
+            "wallet": "0xba0f6cc63d86def741245f3cd25bb02212b639a1",
+            "name": "abstractor",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.25,
+            "sizeUsd": 500,
+            "marketDailyVolumeUsd": 906702.6022327228,
+            "walletAgeHours": 258.1988888888889,
+            "priorWalletVolumeUsd": 69.999998,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761057457,
+            "wallet": "0x5445c3454b6b78ae4da69bdc2c6549c048b0964d",
+            "name": "MartinLutherprince",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.234444,
+            "sizeUsd": 748,
+            "marketDailyVolumeUsd": 989358.5440325757,
+            "walletAgeHours": 15.607222222222223,
+            "priorWalletVolumeUsd": 398.99998300000004,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761058195,
+            "wallet": "0x5445c3454b6b78ae4da69bdc2c6549c048b0964d",
+            "name": "MartinLutherprince",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.259579,
+            "sizeUsd": 1995.999999,
+            "marketDailyVolumeUsd": 996165.0289255284,
+            "walletAgeHours": 15.812222222222223,
+            "priorWalletVolumeUsd": 1146.9999830000002,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": false,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761058857,
+            "wallet": "0xa506ddd113f3da895cb4c97855c6c81b96c66e9e",
+            "name": "hehehdklsfnjvbhfsaji",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.903904,
+            "sizeUsd": 23507.069999,
+            "marketDailyVolumeUsd": 1065335.903401476,
+            "walletAgeHours": 0.005,
+            "priorWalletVolumeUsd": 16478.2796,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761061785,
+            "wallet": "0xf84c603cfd69c2a9299f64e3237788eb888a8748",
+            "name": "facetimehi",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.069195,
+            "sizeUsd": 71614.478037,
+            "marketDailyVolumeUsd": 1233607.2556481287,
+            "walletAgeHours": 8.295277777777779,
+            "priorWalletVolumeUsd": 69999.999994,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1761062209,
+            "wallet": "0x0041f585897bc7a3010c608012cd8c1650016bc3",
+            "name": "osyed",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.077589,
+            "sizeUsd": 1000,
+            "marketDailyVolumeUsd": 1314273.978101743,
+            "walletAgeHours": 1001.0941666666666,
+            "priorWalletVolumeUsd": 12.942799,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1761035876,
+            "stakeUsd": 1405.055328055544,
+            "effectivePrice": 0.134266,
+            "winningSide": false,
+            "ageHours": 0.5744444444444444
+          },
+          {
+            "timestamp": 1761054857,
+            "stakeUsd": 1107.529278192,
+            "effectivePrice": 0.248526,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1761058195,
+            "stakeUsd": 1995.9996737570889,
+            "effectivePrice": 0.259579,
+            "winningSide": false,
+            "ageHours": 15.812222222222223
+          },
+          {
+            "timestamp": 1761061785,
+            "stakeUsd": 5323.739440950001,
+            "effectivePrice": 0.069195,
+            "winningSide": false,
+            "ageHours": 8.295277777777779
+          }
+        ],
+        "reportedFills": []
+      },
+      "hit": true,
+      "bestWinningTier": "MEDIUM",
+      "firstHitAt": 1760923193,
+      "leadHours": 38.66861111111111,
+      "firstAnyAlertLeadHours": 82.19833333333334,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 10,
+        "NICHE_MARKET_ENTRY": 4,
+        "LUMP_ENTRY": 15,
+        "FRESH_WALLET_LARGE_POSITION": 3,
+        "CONVICTION_SIZE_MISMATCH": 7
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 3,
+        "LOW": 14,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 1,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "d4vd-year-in-search",
+        "kind": "insider",
+        "title": "Will d4vd be the #1 searched person on Google this year?",
+        "conditionId": "0xea17b1284d10617a57f910b2ea63bdef481b1724a4b899d454ff104bea67b657",
+        "winningOutcome": "YES",
+        "windowStart": "2025-11-26T00:00:00Z",
+        "newsAt": "2025-12-04T08:00:00Z",
+        "newsNote": "Year in Search 2025 published 2025-12-04 (cut-off 00:00 PT); AlphaRaccoon entered 2025-11-27",
+        "reportedWallets": [
+          "AlphaRaccoon"
+        ],
+        "sources": [
+          {
+            "label": "Rolling Stone, 2026-05-28",
+            "url": "https://www.rollingstone.com/music/music-news/google-staffer-insider-data-win-d4vd-bet-online-1235569669/"
+          },
+          {
+            "label": "CFTC complaint 26-cv-4419",
+            "url": "https://storage.courtlistener.com/recap/gov.uscourts.nysd.664905/gov.uscourts.nysd.664905.1.0.pdf"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "d4vd-year-in-search",
+        "tradesInWindow": 4044,
+        "volumeInWindowUsd": 1815360.429147499,
+        "candidatesEvaluated": 1138,
+        "walletsProfiled": 404,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1764781631,
+            "wallet": "0x873331f6f8d127624d2eab32154ebf43a039ee86",
+            "name": "strawberrycliff",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.118,
+            "sizeUsd": 670.12449,
+            "marketDailyVolumeUsd": 56050.88361035068,
+            "walletAgeHours": 11.717222222222222,
+            "priorWalletVolumeUsd": 634.73376,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1764818633,
+            "wallet": "0x1026f57a8c836a402e184a867173dd5e0703460c",
+            "name": "hh-betting",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.92806,
+            "sizeUsd": 17495.299981,
+            "marketDailyVolumeUsd": 135180.0419567095,
+            "walletAgeHours": 7134.812222222222,
+            "priorWalletVolumeUsd": 3330.645886,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1764824367,
+            "wallet": "0x6b592c31f9a267ffeea69b889ab4b212320ad12a",
+            "name": "fgrnkj",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.060369000000000006,
+            "sizeUsd": 15597.870661,
+            "marketDailyVolumeUsd": 873649.2646584116,
+            "walletAgeHours": null,
+            "priorWalletVolumeUsd": 841.8399999999997,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1764831101,
+            "wallet": "0x8b245f1d581dfec27babc595711a601a885a8435",
+            "name": "debankd",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.03032,
+            "sizeUsd": 796.739998,
+            "marketDailyVolumeUsd": 1254498.1275219624,
+            "walletAgeHours": 1.3933333333333333,
+            "priorWalletVolumeUsd": 300,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": []
+      },
+      "hit": false,
+      "bestWinningTier": "LOW",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 14.880277777777778,
+      "signalsFired": {
+        "LUMP_ENTRY": 4,
+        "CONVICTION_SIZE_MISMATCH": 3,
+        "OUTSIZED_POSITION": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 4,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "maduro-out-jan31",
+        "kind": "insider",
+        "title": "Maduro out by January 31, 2026?",
+        "conditionId": "0x580adc1327de9bf7c179ef5aaffa3377bb5cb252b7d6390b027172d43fd6f993",
+        "winningOutcome": "YES",
+        "windowStart": "2025-12-30T00:00:00Z",
+        "newsAt": "2026-01-03T06:00:00Z",
+        "newsNote": "Strikes on Caracas reported ~02:00 local (06:00 UTC); Trump post 09:21 UTC",
+        "reportedWallets": [
+          "Burdensome-Mix"
+        ],
+        "sources": [
+          {
+            "label": "CBS News",
+            "url": "https://www.cbsnews.com/news/polymarket-maduro-capture-bet-400000/"
+          },
+          {
+            "label": "NPR, 2026-01-05",
+            "url": "https://www.npr.org/2026/01/05/nx-s1-5667232/polymarket-maduro-bet-insider-trading"
+          },
+          {
+            "label": "Protos",
+            "url": "https://protos.com/maduro-polymarket-bet-raises-insider-trading-concerns/"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "maduro-out-jan31",
+        "tradesInWindow": 1818,
+        "volumeInWindowUsd": 612323.1785870737,
+        "candidatesEvaluated": 344,
+        "walletsProfiled": 197,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1767106363,
+            "wallet": "0xbf32f7a77ccea8bba647fea63d438ce1778b1762",
+            "name": "154x838hjd6",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.074276,
+            "sizeUsd": 1389.9,
+            "marketDailyVolumeUsd": 148984.01143788247,
+            "walletAgeHours": 11.075555555555555,
+            "priorWalletVolumeUsd": 1544.7099240000002,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1767140415,
+            "wallet": "0x31a56e9e690c621ed21de08cb559e9524cdb8ed9",
+            "name": "0x31a56e9E61eD21De08Cbe9524Cdb8eD9-0765984",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.089935,
+            "sizeUsd": 1238.339999,
+            "marketDailyVolumeUsd": 140154.67155587324,
+            "walletAgeHours": 91.24277777777777,
+            "priorWalletVolumeUsd": 96,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": true,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1767167081,
+            "wallet": "0x5fe10daab0c49a775a882dbec4f48a68c93033e4",
+            "name": null,
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.1,
+            "sizeUsd": 2000,
+            "marketDailyVolumeUsd": 137511.78034270843,
+            "walletAgeHours": 109.75611111111111,
+            "priorWalletVolumeUsd": 1061.3559989999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1767311875,
+            "wallet": "0x31a56e9e690c621ed21de08cb559e9524cdb8ed9",
+            "name": "0x31a56e9E61eD21De08Cbe9524Cdb8eD9-0765984",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.067856,
+            "sizeUsd": 5000.000002,
+            "marketDailyVolumeUsd": 165117.14181921963,
+            "walletAgeHours": 138.87055555555557,
+            "priorWalletVolumeUsd": 2519.339997,
+            "score": 34,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": true,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1767400401,
+            "wallet": "0x1c587df39ecbf4883c076605097712a3cad67aeb",
+            "name": "babymoore",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.94,
+            "sizeUsd": 5362.999985,
+            "marketDailyVolumeUsd": 118995.26588402658,
+            "walletAgeHours": 200.9188888888889,
+            "priorWalletVolumeUsd": 2986.3317970000003,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1767390261,
+            "stakeUsd": 5782.68902855875,
+            "effectivePrice": 0.071599,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1767411721,
+            "stakeUsd": 9999.960387035975,
+            "effectivePrice": 0.113079,
+            "winningSide": true,
+            "ageHours": 0
+          }
+        ],
+        "reportedFills": [
+          {
+            "timestamp": 1767140415,
+            "name": "0x31a56e9E61eD21De08Cbe9524Cdb8eD9-0765984",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 1238.339999,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ]
+          },
+          {
+            "timestamp": 1767150151,
+            "name": "0x31a56e9E61eD21De08Cbe9524Cdb8eD9-0765984",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 85,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1767311875,
+            "name": "0x31a56e9E61eD21De08Cbe9524Cdb8eD9-0765984",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 5000.000002,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ]
+          },
+          {
+            "timestamp": 1767372569,
+            "name": "0x31a56e9E61eD21De08Cbe9524Cdb8eD9-0765984",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 5999.999997,
+            "tier": "CLEAN",
+            "signals": [
+              "OUTSIZED_POSITION"
+            ]
+          },
+          {
+            "timestamp": 1767404315,
+            "name": "0x31a56e9E61eD21De08Cbe9524Cdb8eD9-0765984",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 6000,
+            "tier": "CLEAN",
+            "signals": [
+              "OUTSIZED_POSITION"
+            ]
+          },
+          {
+            "timestamp": 1767406505,
+            "name": "0x31a56e9E61eD21De08Cbe9524Cdb8eD9-0765984",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 7000,
+            "tier": "CLEAN",
+            "signals": [
+              "OUTSIZED_POSITION"
+            ]
+          },
+          {
+            "timestamp": 1767409105,
+            "name": "0x31a56e9E61eD21De08Cbe9524Cdb8eD9-0765984",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 7214.999999,
+            "tier": "CLEAN",
+            "signals": [
+              "OUTSIZED_POSITION"
+            ]
+          }
+        ]
+      },
+      "hit": false,
+      "bestWinningTier": "LOW",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 87.12138888888889,
+      "signalsFired": {
+        "LUMP_ENTRY": 5,
+        "CONVICTION_SIZE_MISMATCH": 4,
+        "OUTSIZED_POSITION": 2
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 5,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": false
+    },
+    {
+      "testCase": {
+        "id": "us-strikes-iran-feb28",
+        "kind": "insider",
+        "title": "US strikes Iran by February 28, 2026?",
+        "conditionId": "0x3488f31e6449f9803f99a8b5dd232c7ad883637f1c86e6953305a2ef19c77f20",
+        "winningOutcome": "YES",
+        "windowStart": "2026-02-25T06:30:00Z",
+        "newsAt": "2026-02-28T06:30:00Z",
+        "newsNote": "First strike reports ~06:30 UTC (CENTCOM 06:35 UTC)",
+        "reportedWallets": [
+          "Lettucehead718",
+          "suffix-295"
+        ],
+        "sources": [
+          {
+            "label": "Forbes, 2026-03-02",
+            "url": "https://www.forbes.com/sites/boazsobrado/2026/03/02/fresh-wallets-made-12m-on-polymarket-hours-before-iran-airstrikes/"
+          },
+          {
+            "label": "CoinDesk, 2026-02-28",
+            "url": "https://www.coindesk.com/markets/2026/02/28/suspected-insiders-make-over-usd1-2-million-on-polymarket-ahead-of-u-s-strike-on-iran"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "us-strikes-iran-feb28",
+        "tradesInWindow": 23778,
+        "volumeInWindowUsd": 10490941.089420449,
+        "candidatesEvaluated": 5488,
+        "walletsProfiled": 2413,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1772052140,
+            "wallet": "0xdaefcd102d9f3e1626cf49302b65c9073d5ee647",
+            "name": "0xDAEfCd102d9F3E1626CF49302b65c9073d5EE647-1772047421723",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.11,
+            "sizeUsd": 2000,
+            "marketDailyVolumeUsd": 1551562.814964635,
+            "walletAgeHours": 0.4122222222222222,
+            "priorWalletVolumeUsd": 508.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772119234,
+            "wallet": "0x7f0cdf90d28aa41f40c273760e0cccf6d668160c",
+            "name": "Charles0987",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.08999999999999997,
+            "sizeUsd": 51087.8459,
+            "marketDailyVolumeUsd": 1309547.966736545,
+            "walletAgeHours": 286.5075,
+            "priorWalletVolumeUsd": 49965.036100000005,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772130130,
+            "wallet": "0x59e2c246af4aba08b3271cb11d7a856bf1c2f74f",
+            "name": "SHA1024",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.16,
+            "sizeUsd": 1337.52,
+            "marketDailyVolumeUsd": 1276880.8458191087,
+            "walletAgeHours": 1.0394444444444444,
+            "priorWalletVolumeUsd": 270.065142,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772130916,
+            "wallet": "0x7f1dfbeaeb9b4e10dd5dd92282bbcb6a86b2cd48",
+            "name": "Gdruid",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.16,
+            "sizeUsd": 500,
+            "marketDailyVolumeUsd": 1290134.4620760675,
+            "walletAgeHours": 0.11722222222222223,
+            "priorWalletVolumeUsd": 499.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772142288,
+            "wallet": "0x38745db27f7360a287f6ca3c9b6a6a9c76149801",
+            "name": "Planktonbets",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.1,
+            "sizeUsd": 6000,
+            "marketDailyVolumeUsd": 1966016.9746615824,
+            "walletAgeHours": 208.20777777777778,
+            "priorWalletVolumeUsd": 1595.053636,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772191797,
+            "wallet": "0x43886f07460ab4fd9a54b569e8aedc0df47be9a1",
+            "name": "Harpouching",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.16,
+            "sizeUsd": 980,
+            "marketDailyVolumeUsd": 2786806.962639699,
+            "walletAgeHours": 71.4225,
+            "priorWalletVolumeUsd": 205.450216,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772191869,
+            "wallet": "0x9aec7caebac3baa4078f2b2c27552910a6b09ecd",
+            "name": "0x9AEc7CAebAc3bAa4078F2b2C27552910A6B09ecD-1768683214218",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.16,
+            "sizeUsd": 500,
+            "marketDailyVolumeUsd": 2798888.683837704,
+            "walletAgeHours": 0.027777777777777776,
+            "priorWalletVolumeUsd": 498.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772192123,
+            "wallet": "0x9b3b7d67e5d4a8429950846189761e4416a86bc3",
+            "name": "0x9B3b7D67e5d4A8429950846189761e4416A86BC3-1765574476654",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.19,
+            "sizeUsd": 1900,
+            "marketDailyVolumeUsd": 2828002.329213565,
+            "walletAgeHours": 0.28055555555555556,
+            "priorWalletVolumeUsd": 749.9987639999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772196531,
+            "wallet": "0x402f4d0cbcee0805bbdef26ab28ce4ed95bad57f",
+            "name": "0x402f4D0cbcee0805BBdEf26ab28Ce4ed95BAd57F-1762975922274",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.256701,
+            "sizeUsd": 699.999999,
+            "marketDailyVolumeUsd": 3004259.216006985,
+            "walletAgeHours": 443.9477777777778,
+            "priorWalletVolumeUsd": 9.899999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772197925,
+            "wallet": "0xa1bdc34845c82e1d03341ca4434c32821664de99",
+            "name": "7SignalFlow4",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.198248,
+            "sizeUsd": 2500,
+            "marketDailyVolumeUsd": 3081796.2064656042,
+            "walletAgeHours": 119.21694444444445,
+            "priorWalletVolumeUsd": 102.99999600000001,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772198811,
+            "wallet": "0x10664bef1e3a0a5b578e14fbf8f2daec63d84ddb",
+            "name": "0x10664BEf1e3a0a5B578e14fBf8f2daec63D84ddb-1772136791748",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.22,
+            "sizeUsd": 500.519999,
+            "marketDailyVolumeUsd": 3178355.061642159,
+            "walletAgeHours": 17.145833333333332,
+            "priorWalletVolumeUsd": 99,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772198899,
+            "wallet": "0x214794a6351c65ba074ac980bdf1eaabfd4c4699",
+            "name": "nqez",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.23,
+            "sizeUsd": 851,
+            "marketDailyVolumeUsd": 3184837.5185272153,
+            "walletAgeHours": 6.246111111111111,
+            "priorWalletVolumeUsd": 231.074699,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772202083,
+            "wallet": "0xc96e557873286623605c61fdae361d656ae88594",
+            "name": "0xc96E557873286623605c61FDae361d656aE88594-1768248086782",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.27,
+            "sizeUsd": 699.999999,
+            "marketDailyVolumeUsd": 3449073.1137165106,
+            "walletAgeHours": 807.7975,
+            "priorWalletVolumeUsd": 549.659996,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772203859,
+            "wallet": "0x2e6778c95038779b43af80f612e339c7b0c7996e",
+            "name": "liorlan",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.23,
+            "sizeUsd": 999.35,
+            "marketDailyVolumeUsd": 3602650.0054822327,
+            "walletAgeHours": 11244.957777777778,
+            "priorWalletVolumeUsd": 641.913882,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772204069,
+            "wallet": "0x813d2086c453fe0d692ce2a5659da0c0cd2e5157",
+            "name": "jshams26",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.239112,
+            "sizeUsd": 2499.999999,
+            "marketDailyVolumeUsd": 3611106.521339169,
+            "walletAgeHours": 0.08611111111111111,
+            "priorWalletVolumeUsd": 2500,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772205239,
+            "wallet": "0x3daf05f0a4d5ffd781aa2a18b0851a320936b0de",
+            "name": "0x3DaF05F0a4d5fFD781AA2A18b0851a320936B0De-1769781407414",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.22,
+            "sizeUsd": 2999.999998,
+            "marketDailyVolumeUsd": 3687875.0622340343,
+            "walletAgeHours": 671.4308333333333,
+            "priorWalletVolumeUsd": 3161.638398,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772205939,
+            "wallet": "0xb0773f669af5e32ea19f66f4a701c0ab46198a20",
+            "name": "Michael1615",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.21,
+            "sizeUsd": 799.999999,
+            "marketDailyVolumeUsd": 3691853.407174811,
+            "walletAgeHours": 933.8891666666667,
+            "priorWalletVolumeUsd": 444.999974,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772218217,
+            "wallet": "0xfe240aa6f08533c1aa8cfb39839cf6cce19fff73",
+            "name": "axiscapital28",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.15,
+            "sizeUsd": 999.999999,
+            "marketDailyVolumeUsd": 3989783.8849952947,
+            "walletAgeHours": 1.8077777777777777,
+            "priorWalletVolumeUsd": 799.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772218519,
+            "wallet": "0x8a71e4ed91cbab726800827dd7cb4ee40a682f9c",
+            "name": "isdanield",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.15,
+            "sizeUsd": 999.999999,
+            "marketDailyVolumeUsd": 3975241.653425342,
+            "walletAgeHours": 0.4661111111111111,
+            "priorWalletVolumeUsd": 5,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772225167,
+            "wallet": "0x18bbf3c90b986ed25739d1e28a98bb03fc88d280",
+            "name": "Littlefish1",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.18,
+            "sizeUsd": 7500,
+            "marketDailyVolumeUsd": 3917186.910305613,
+            "walletAgeHours": 3405.5383333333334,
+            "priorWalletVolumeUsd": 2614.682519,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772227059,
+            "wallet": "0xb3e21595c54ed4741af2f5bb108211a798e434d5",
+            "name": "Hezik",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.17,
+            "sizeUsd": 1299.999999,
+            "marketDailyVolumeUsd": 4121246.474324864,
+            "walletAgeHours": 0.005555555555555556,
+            "priorWalletVolumeUsd": 147.88,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772227601,
+            "wallet": "0x131bcf98856e2ac178509b3a5e7a891ac06597c3",
+            "name": "Tk2025",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.18,
+            "sizeUsd": 999.999999,
+            "marketDailyVolumeUsd": 4134694.870211754,
+            "walletAgeHours": 0.14277777777777778,
+            "priorWalletVolumeUsd": 1000,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772228219,
+            "wallet": "0xca886a7ed635c3b770fccfd251c86eec34967caa",
+            "name": "Mdb2303",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.18,
+            "sizeUsd": 6000,
+            "marketDailyVolumeUsd": 4137106.6291894796,
+            "walletAgeHours": 630.7219444444445,
+            "priorWalletVolumeUsd": 1816.7152079999996,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772229205,
+            "wallet": "0x83d6df1c91111ced5c389a07d9c7368899b5984c",
+            "name": "Mecregor1",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.18,
+            "sizeUsd": 4997.99,
+            "marketDailyVolumeUsd": 4157287.4135579737,
+            "walletAgeHours": 5654.0975,
+            "priorWalletVolumeUsd": 2854.6293340000007,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772243613,
+            "wallet": "0xe622d93778f0a02bd376029d39c96c86eb448ae4",
+            "name": "orocko",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.19,
+            "sizeUsd": 950,
+            "marketDailyVolumeUsd": 4610670.271998933,
+            "walletAgeHours": 11.028333333333334,
+            "priorWalletVolumeUsd": 798.794665,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772247935,
+            "wallet": "0x5ff872bf119684f4f5fb1ad46d55d8f4c62d54ad",
+            "name": "0x5fF872Bf119684F4F5fB1Ad46D55d8f4C62d54ad-1773595841462",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.17,
+            "sizeUsd": 9300,
+            "marketDailyVolumeUsd": 4701077.871903831,
+            "walletAgeHours": 3.19,
+            "priorWalletVolumeUsd": 3349.9999989999997,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772250683,
+            "wallet": "0x55dbfaefb030207f98ee6cccf1663986a8fc2031",
+            "name": "D33pCynic",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.143675,
+            "sizeUsd": 7500.000001,
+            "marketDailyVolumeUsd": 5035098.539896907,
+            "walletAgeHours": 146.8825,
+            "priorWalletVolumeUsd": 4561.999997,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772253741,
+            "wallet": "0x626fe96c20d742606089aa06c5b9c79283fdc1c5",
+            "name": "zaoan",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.12,
+            "sizeUsd": 2454.12,
+            "marketDailyVolumeUsd": 5429058.626297298,
+            "walletAgeHours": 39.643055555555556,
+            "priorWalletVolumeUsd": 1349.999116,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772254749,
+            "wallet": "0xb0cf67e3b628d5bf3cf1bab4eae52002e4cccf8e",
+            "name": "RG1883",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.147554,
+            "sizeUsd": 4155.000001,
+            "marketDailyVolumeUsd": 5461441.972336947,
+            "walletAgeHours": 328.6622222222222,
+            "priorWalletVolumeUsd": 2230.242087,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772254983,
+            "wallet": "0x2cf5d189cd35f84c3779def393b2942e91a91c08",
+            "name": "janeskjn",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.155905,
+            "sizeUsd": 1000,
+            "marketDailyVolumeUsd": 5471387.873417357,
+            "walletAgeHours": 10.523888888888889,
+            "priorWalletVolumeUsd": 0.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772254997,
+            "wallet": "0xe4e1095da07f9924cf007a99bc0103f4027ff038",
+            "name": "0xE4E1095Da07f9924cF007a99BC0103F4027fF038-1768418108423",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.16,
+            "sizeUsd": 3000,
+            "marketDailyVolumeUsd": 5472325.819417231,
+            "walletAgeHours": 1065.5836111111112,
+            "priorWalletVolumeUsd": 3389.1476880000005,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772255115,
+            "wallet": "0x9ca482e8a7c868a17d3d8fb110b364738ec4e698",
+            "name": "sid213sd",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.15,
+            "sizeUsd": 999.999999,
+            "marketDailyVolumeUsd": 5485076.430314283,
+            "walletAgeHours": 10.343333333333334,
+            "priorWalletVolumeUsd": 0.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772255953,
+            "wallet": "0x2e38023cc45c4d4b6d247011e2481fcc54aa5130",
+            "name": "0x2E38023Cc45C4D4b6d247011e2481fCc54Aa5130-1768318087565",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.160818,
+            "sizeUsd": 809.999999,
+            "marketDailyVolumeUsd": 5611676.348818182,
+            "walletAgeHours": 3.5344444444444445,
+            "priorWalletVolumeUsd": 994.829999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772257061,
+            "wallet": "0x0e00ce71d933fd3ad48928911ef95c7327c8d1ff",
+            "name": "luckyAugust1975",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.217845,
+            "sizeUsd": 3103.7852,
+            "marketDailyVolumeUsd": 5841777.671686847,
+            "walletAgeHours": 134.13861111111112,
+            "priorWalletVolumeUsd": 3874.5630030000007,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1772052140,
+            "stakeUsd": 1999.9999997999998,
+            "effectivePrice": 0.11,
+            "winningSide": true,
+            "ageHours": 0.4122222222222222
+          },
+          {
+            "timestamp": 1772055606,
+            "stakeUsd": 7197.57,
+            "effectivePrice": 0.1,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772055864,
+            "stakeUsd": 8800.947182226917,
+            "effectivePrice": 0.101406,
+            "winningSide": true,
+            "ageHours": 0.07166666666666667
+          },
+          {
+            "timestamp": 1772123062,
+            "stakeUsd": 15336.162122400001,
+            "effectivePrice": 0.104496,
+            "winningSide": true,
+            "ageHours": 18.73777777777778
+          },
+          {
+            "timestamp": 1772130130,
+            "stakeUsd": 1337.52,
+            "effectivePrice": 0.16,
+            "winningSide": true,
+            "ageHours": 1.0394444444444444
+          },
+          {
+            "timestamp": 1772132134,
+            "stakeUsd": 12642.978045968135,
+            "effectivePrice": 0.112023,
+            "winningSide": true,
+            "ageHours": 21.25777777777778
+          },
+          {
+            "timestamp": 1772140012,
+            "stakeUsd": 5250,
+            "effectivePrice": 0.08,
+            "winningSide": true,
+            "ageHours": 23.44611111111111
+          },
+          {
+            "timestamp": 1772146430,
+            "stakeUsd": 9883.75,
+            "effectivePrice": 0.1,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772190193,
+            "stakeUsd": 2303.73999972,
+            "effectivePrice": 0.18,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772191655,
+            "stakeUsd": 1515.9999997500001,
+            "effectivePrice": 0.15,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772192123,
+            "stakeUsd": 1900,
+            "effectivePrice": 0.19,
+            "winningSide": true,
+            "ageHours": 0.28055555555555556
+          },
+          {
+            "timestamp": 1772204069,
+            "stakeUsd": 2500.00333511148,
+            "effectivePrice": 0.239112,
+            "winningSide": true,
+            "ageHours": 0.08611111111111111
+          },
+          {
+            "timestamp": 1772208567,
+            "stakeUsd": 1999.9960609199998,
+            "effectivePrice": 0.184028,
+            "winningSide": true,
+            "ageHours": 16.470277777777778
+          },
+          {
+            "timestamp": 1772209455,
+            "stakeUsd": 1199.9999996800002,
+            "effectivePrice": 0.19,
+            "winningSide": true,
+            "ageHours": 16.716944444444444
+          },
+          {
+            "timestamp": 1772218569,
+            "stakeUsd": 4999.9999998,
+            "effectivePrice": 0.15,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772227059,
+            "stakeUsd": 1299.99999974,
+            "effectivePrice": 0.17,
+            "winningSide": true,
+            "ageHours": 0.005555555555555556
+          },
+          {
+            "timestamp": 1772228073,
+            "stakeUsd": 2073.8399997300003,
+            "effectivePrice": 0.19,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772232181,
+            "stakeUsd": 9999.99999972,
+            "effectivePrice": 0.18,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772232769,
+            "stakeUsd": 14999.970840938175,
+            "effectivePrice": 0.197279,
+            "winningSide": true,
+            "ageHours": 11.879444444444445
+          },
+          {
+            "timestamp": 1772237235,
+            "stakeUsd": 11271.99,
+            "effectivePrice": 0.2,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772239823,
+            "stakeUsd": 3992.008760658,
+            "effectivePrice": 0.190599,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772240143,
+            "stakeUsd": 4086.5238,
+            "effectivePrice": 0.19,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772247935,
+            "stakeUsd": 9299.99999967,
+            "effectivePrice": 0.17,
+            "winningSide": true,
+            "ageHours": 3.19
+          },
+          {
+            "timestamp": 1772254955,
+            "stakeUsd": 1125.99999975,
+            "effectivePrice": 0.15,
+            "winningSide": true,
+            "ageHours": 0.5788888888888889
+          },
+          {
+            "timestamp": 1772254983,
+            "stakeUsd": 1000.0026354593749,
+            "effectivePrice": 0.155905,
+            "winningSide": true,
+            "ageHours": 10.523888888888889
+          },
+          {
+            "timestamp": 1772255699,
+            "stakeUsd": 1000.001319081414,
+            "effectivePrice": 0.163514,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772255761,
+            "stakeUsd": 2106,
+            "effectivePrice": 0.16,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772255923,
+            "stakeUsd": 3959.84,
+            "effectivePrice": 0.16,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772256045,
+            "stakeUsd": 1000.0008251573549,
+            "effectivePrice": 0.188115,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772256465,
+            "stakeUsd": 2175.856,
+            "effectivePrice": 0.2,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772256571,
+            "stakeUsd": 8500.009932622386,
+            "effectivePrice": 0.224646,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772257735,
+            "stakeUsd": 5707.64620781355,
+            "effectivePrice": 0.225134,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772258131,
+            "stakeUsd": 5999.9964823295995,
+            "effectivePrice": 0.241023,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772258227,
+            "stakeUsd": 1671.1607999999999,
+            "effectivePrice": 0.24,
+            "winningSide": true,
+            "ageHours": 0.013888888888888888
+          }
+        ],
+        "reportedFills": [
+          {
+            "timestamp": 1772053150,
+            "name": "suffix-295",
+            "effectiveOutcome": "NO",
+            "sizeUsd": 1782,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1772053150,
+            "name": "Lettucehead718",
+            "effectiveOutcome": "NO",
+            "sizeUsd": 1359.9,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1772151224,
+            "name": "Lettucehead718",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 2522.52,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1772151224,
+            "name": "suffix-295",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 2824.64,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1772226589,
+            "name": "suffix-295",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 1040.8,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1772226593,
+            "name": "Lettucehead718",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 976.8,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1772256241,
+            "name": "suffix-295",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 488.3,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1772256243,
+            "name": "Lettucehead718",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 858.1426,
+            "tier": "CLEAN",
+            "signals": []
+          }
+        ]
+      },
+      "hit": false,
+      "bestWinningTier": "LOW",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 57.794444444444444,
+      "signalsFired": {
+        "LUMP_ENTRY": 34,
+        "CONVICTION_SIZE_MISMATCH": 33,
+        "OUTSIZED_POSITION": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 34,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": false
+    },
+    {
+      "testCase": {
+        "id": "us-iran-ceasefire-apr7",
+        "kind": "insider",
+        "title": "US x Iran ceasefire by April 7?",
+        "conditionId": "0x4c5701bcde0b8fb7d7f48c8e9d20245a6caa58c61a77f981fad98f2bfa0b1bc7",
+        "winningOutcome": "YES",
+        "windowStart": "2026-04-05T22:30:00Z",
+        "newsAt": "2026-04-07T22:30:00Z",
+        "newsNote": "Trump Truth Social post ~18:30 ET",
+        "sources": [
+          {
+            "label": "AP News",
+            "url": "https://apnews.com/article/polymarket-iran-trump-ceasefire-prediction-markets-350d9fe5ffefa74080ff5dd973aef48b"
+          },
+          {
+            "label": "Reuters factbox, 2026-04-08",
+            "url": "https://www.reuters.com/sustainability/boards-policy-regulation/some-trades-ahead-trump-policy-moves-raise-questions-2026-04-08/"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "us-iran-ceasefire-apr7",
+        "tradesInWindow": 18651,
+        "volumeInWindowUsd": 5625905.2923772745,
+        "candidatesEvaluated": 4549,
+        "walletsProfiled": 1745,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1775448645,
+            "wallet": "0x1fce4555b1283f10048a78e72c465dd7b850a7c8",
+            "name": "pronigga",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.05629,
+            "sizeUsd": 2999.999999,
+            "marketDailyVolumeUsd": 1108750.6942445685,
+            "walletAgeHours": 13736.714722222223,
+            "priorWalletVolumeUsd": 507.10999899999996,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1775509667,
+            "wallet": "0x755519c3a4a69469f488197fbd39b12f70b3ecc5",
+            "name": "0x755519c3A4a69469F488197fBD39B12f70B3EcC5-1775507911807",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.031772,
+            "sizeUsd": 1466.909632,
+            "marketDailyVolumeUsd": 1733449.469837208,
+            "walletAgeHours": 0.2861111111111111,
+            "priorWalletVolumeUsd": 69.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1775509667,
+            "wallet": "0x755519c3a4a69469f488197fbd39b12f70b3ecc5",
+            "name": "0x755519c3A4a69469F488197fBD39B12f70B3EcC5-1775507911807",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.027377,
+            "sizeUsd": 1533.090371,
+            "marketDailyVolumeUsd": 1733449.469837208,
+            "walletAgeHours": 0.2861111111111111,
+            "priorWalletVolumeUsd": 69.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": false,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1775570809,
+            "wallet": "0x68558d37cafd9e6612ab32863f55ccdd798f655a",
+            "name": "The-insider-formerly-known-as-25xp",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.043242,
+            "sizeUsd": 4168.237712,
+            "marketDailyVolumeUsd": 1517227.5045113508,
+            "walletAgeHours": 0.11722222222222223,
+            "priorWalletVolumeUsd": 185.159344,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1775591395,
+            "wallet": "0x8d810bc07d568ab3783a4652e6eb916e711b06ed",
+            "name": "Zaneraza13",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.145918,
+            "sizeUsd": 2894.689999,
+            "marketDailyVolumeUsd": 1813171.981731088,
+            "walletAgeHours": 48.66,
+            "priorWalletVolumeUsd": 1407.462398,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1775509667,
+            "stakeUsd": 1466.898029155,
+            "effectivePrice": 0.031772,
+            "winningSide": true,
+            "ageHours": 0.2861111111111111
+          },
+          {
+            "timestamp": 1775509667,
+            "stakeUsd": 1533.0983115,
+            "effectivePrice": 0.027377,
+            "winningSide": true,
+            "ageHours": 0.2861111111111111
+          },
+          {
+            "timestamp": 1775541389,
+            "stakeUsd": 5000.025668845674,
+            "effectivePrice": 0.039891,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1775556105,
+            "stakeUsd": 9999.944082201,
+            "effectivePrice": 0.05935,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1775590897,
+            "stakeUsd": 1000.0063632140649,
+            "effectivePrice": 0.071585,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1775592609,
+            "stakeUsd": 1800.005001035421,
+            "effectivePrice": 0.135347,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1775596577,
+            "stakeUsd": 2699.100791557768,
+            "effectivePrice": 0.249496,
+            "winningSide": true,
+            "ageHours": 11.242222222222223
+          }
+        ],
+        "reportedFills": []
+      },
+      "hit": false,
+      "bestWinningTier": "LOW",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 42.32083333333333,
+      "signalsFired": {
+        "LUMP_ENTRY": 4,
+        "CONVICTION_SIZE_MISMATCH": 4
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 4,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "us-action-iran-jun21",
+        "kind": "insider",
+        "title": "US military action against Iran by Saturday? (2025-06-21)",
+        "conditionId": "0x6c6cff89b135f5684f5a25a98fd0335814d1bc411d08bfcf0be400db76ce511a",
+        "winningOutcome": "YES",
+        "windowStart": "2025-06-18T23:50:00Z",
+        "newsAt": "2025-06-21T23:50:00Z",
+        "newsNote": "Trump announced the Fordow/Natanz strikes ~19:50 ET",
+        "sources": [
+          {
+            "label": "ACDC, Insider Risks in Polymarket Political Markets (Apr 2026)",
+            "url": "https://acdatacollective.org/wp-content/uploads/2026/04/Insider_Risks_in_Polymarket_Political_Markets_ACDC.pdf"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "us-action-iran-jun21",
+        "tradesInWindow": 2245,
+        "volumeInWindowUsd": 904453.4291234065,
+        "candidatesEvaluated": 851,
+        "walletsProfiled": 357,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1750415141,
+            "wallet": "0x8b21b91e61527908444f550398fa0d2ac229e8d1",
+            "name": "Lupaed67",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.94,
+            "sizeUsd": 1155.999999,
+            "marketDailyVolumeUsd": 19700.386467110246,
+            "walletAgeHours": 22.243055555555557,
+            "priorWalletVolumeUsd": 2136.488008,
+            "score": 49,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1750426683,
+            "wallet": "0x106a02704be68e88c53e47212a14ada44fd8e57d",
+            "name": "xiri",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.92,
+            "sizeUsd": 1199.539999,
+            "marketDailyVolumeUsd": 36247.90234141467,
+            "walletAgeHours": 4059.444722222222,
+            "priorWalletVolumeUsd": 405.849957,
+            "score": 27,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1750487049,
+            "wallet": "0x8545d1ec0d9ac54b45c15ef528062614e09eada5",
+            "name": "B2twarminius",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.070091,
+            "sizeUsd": 609.3,
+            "marketDailyVolumeUsd": 174905.43090761575,
+            "walletAgeHours": 0.19055555555555556,
+            "priorWalletVolumeUsd": 319.169996,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1750516446,
+            "wallet": "0x53af93e7fb9a9d731821848ba19e7a0cbedf629f",
+            "name": "Lol123555",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.124484,
+            "sizeUsd": 5804.509996,
+            "marketDailyVolumeUsd": 303858.565806458,
+            "walletAgeHours": 214.3163888888889,
+            "priorWalletVolumeUsd": 1417.271382,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1750541029,
+            "wallet": "0x146d2e945e427d219ab4f1d779d77ff5b3409307",
+            "name": "0x146d2E945e427d219aB4f1d779D77Ff5B3409307-1750251652381",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.102385,
+            "sizeUsd": 3997.027541,
+            "marketDailyVolumeUsd": 555807.0960955332,
+            "walletAgeHours": 78.9413888888889,
+            "priorWalletVolumeUsd": 51.88,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1750547237,
+            "wallet": "0x70206b375d931aaaf99392187d89d0e2735cfd20",
+            "name": "ChrisMoltisanti",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.070429,
+            "sizeUsd": 999.999999,
+            "marketDailyVolumeUsd": 710544.2903518713,
+            "walletAgeHours": 0.20777777777777778,
+            "priorWalletVolumeUsd": 495,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1750470931,
+            "stakeUsd": 6999.995475183305,
+            "effectivePrice": 0.201091,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1750503374,
+            "stakeUsd": 1999.9944964949998,
+            "effectivePrice": 0.051743,
+            "winningSide": true,
+            "ageHours": 9.011944444444444
+          },
+          {
+            "timestamp": 1750547237,
+            "stakeUsd": 1000.001322751289,
+            "effectivePrice": 0.070429,
+            "winningSide": true,
+            "ageHours": 0.20777777777777778
+          },
+          {
+            "timestamp": 1750548181,
+            "stakeUsd": 1000.0056448526401,
+            "effectivePrice": 0.07272,
+            "winningSide": true,
+            "ageHours": 0.47
+          }
+        ],
+        "reportedFills": []
+      },
+      "hit": false,
+      "bestWinningTier": "LOW",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 37.405277777777776,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 2,
+        "NICHE_MARKET_ENTRY": 2,
+        "FRESH_WALLET_LARGE_POSITION": 1,
+        "LUMP_ENTRY": 5,
+        "CONVICTION_SIZE_MISMATCH": 4
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 1,
+        "LOW": 5,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 1,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-maduro-out-2025",
+        "kind": "control",
+        "title": "Maduro out in 2025?",
+        "conditionId": "0xafc235557ace53ff0b0d2e93392314a7c3f3daab26a79050e985c11282f66df7",
+        "winningOutcome": "NO",
+        "windowStart": "2025-12-28T00:00:00Z",
+        "newsAt": "2026-01-01T00:00:00Z",
+        "newsNote": "Expired No at year end",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/maduro-out-in-2025"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-maduro-out-2025",
+        "tradesInWindow": 3860,
+        "volumeInWindowUsd": 2047554.982768058,
+        "candidatesEvaluated": 851,
+        "walletsProfiled": 506,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1767151695,
+            "wallet": "0x7b2e0880807cc19f553c9569c873f23a770b36fd",
+            "name": "Rough-Tigerflow",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.007172,
+            "sizeUsd": 706.360002,
+            "marketDailyVolumeUsd": 751358.666146295,
+            "walletAgeHours": 0.1622222222222222,
+            "priorWalletVolumeUsd": 299.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": []
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 20.529166666666665,
+      "signalsFired": {
+        "LUMP_ENTRY": 1,
+        "CONVICTION_SIZE_MISMATCH": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 1,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-maduro-out-nov30",
+        "kind": "control",
+        "title": "Maduro out by November 30, 2025?",
+        "conditionId": "0xa953bea944d7264285c0a2cc1f92809a7d9db78138b1c3de9cc23d8917f14d6a",
+        "winningOutcome": "NO",
+        "windowStart": "2025-11-27T00:00:00Z",
+        "newsAt": "2025-12-01T00:00:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/maduro-out-in-2025"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-maduro-out-nov30",
+        "tradesInWindow": 2185,
+        "volumeInWindowUsd": 1141876.5369282837,
+        "candidatesEvaluated": 613,
+        "walletsProfiled": 405,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1764220583,
+            "wallet": "0x333fd997959bb781bc12bfba4402521b2635fec2",
+            "name": "tgk7iu7gtiu87",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.988,
+            "sizeUsd": 5584.53168,
+            "marketDailyVolumeUsd": 86197.7576778893,
+            "walletAgeHours": 469.6738888888889,
+            "priorWalletVolumeUsd": 1915.8035329999993,
+            "score": 27,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": []
+      },
+      "hit": false,
+      "bestWinningTier": "LOW",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 90.72694444444444,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 1,
+        "NICHE_MARKET_ENTRY": 1,
+        "LUMP_ENTRY": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 1,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-openai-browser-sep30",
+        "kind": "control",
+        "title": "OpenAI browser by September 30?",
+        "conditionId": "0x097be0fa66524b5de5893630d4cb2f44a379e9c2d8b9b1372227e7f46e288b40",
+        "winningOutcome": "NO",
+        "windowStart": "2025-09-26T00:00:00Z",
+        "newsAt": "2025-09-30T23:59:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/openai-browser-by-september-30"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-openai-browser-sep30",
+        "tradesInWindow": 320,
+        "volumeInWindowUsd": 48609.66058001261,
+        "candidatesEvaluated": 47,
+        "walletsProfiled": 26,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": []
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-trump-nobel-2025",
+        "kind": "control",
+        "title": "Will Donald Trump win the Nobel Peace Prize in 2025?",
+        "conditionId": "0x200369a7fc4dad910665c5a77e1c0c0d16237f79c637928bf0c5112cac2db708",
+        "winningOutcome": "NO",
+        "windowStart": "2025-10-07T09:00:00Z",
+        "newsAt": "2025-10-10T09:00:00Z",
+        "newsNote": "Same event and window as the Machado case",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/nobel-peace-prize-winner-2025"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-trump-nobel-2025",
+        "tradesInWindow": 4825,
+        "volumeInWindowUsd": 1998819.800819207,
+        "candidatesEvaluated": 1756,
+        "walletsProfiled": 988,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1759843716,
+            "wallet": "0xfebb4b3d8a3b330ffbe5320fef63b770d0374016",
+            "name": "0xFEbb4b3d8a3B330ffBE5320FEF63B770d0374016-1759842762347",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.026887,
+            "sizeUsd": 500,
+            "marketDailyVolumeUsd": 212546.79936142787,
+            "walletAgeHours": 0.06944444444444445,
+            "priorWalletVolumeUsd": 549.999998,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1759944207,
+            "wallet": "0x4297ae1887b21035048c49e7bc21e5e79e12175c",
+            "name": "ivan",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.028288,
+            "sizeUsd": 1000,
+            "marketDailyVolumeUsd": 146174.5898561694,
+            "walletAgeHours": 11957.315555555555,
+            "priorWalletVolumeUsd": 1122.428292,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760005039,
+            "wallet": "0xe1c13e13e5209f2fbe5121f91861bf41c735ae78",
+            "name": "0xe1C13e13e5209F2FBe5121F91861BF41c735aE78-1759861090207",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.065836,
+            "sizeUsd": 500.649999,
+            "marketDailyVolumeUsd": 299687.56451011676,
+            "walletAgeHours": 0.6244444444444445,
+            "priorWalletVolumeUsd": 498.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760015431,
+            "wallet": "0xff38679e95148fb404df17d6d7e9b50498de5756",
+            "name": "moeks",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.066607,
+            "sizeUsd": 1237.999999,
+            "marketDailyVolumeUsd": 466964.86020310083,
+            "walletAgeHours": 261.0888888888889,
+            "priorWalletVolumeUsd": 1249.229999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760017153,
+            "wallet": "0x8d9388e0805387b6521ebd1edf06f0f202bd93d3",
+            "name": "Dorius",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.057437,
+            "sizeUsd": 1000,
+            "marketDailyVolumeUsd": 874083.7748796301,
+            "walletAgeHours": 0.014444444444444444,
+            "priorWalletVolumeUsd": 299.999998,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760039959,
+            "wallet": "0x14de27cced9e6e0816240869f97350194c6f8924",
+            "name": "DaniX",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.045,
+            "sizeUsd": 635,
+            "marketDailyVolumeUsd": 1085960.7416534508,
+            "walletAgeHours": 4062.2027777777776,
+            "priorWalletVolumeUsd": 82.24399700000001,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760066363,
+            "wallet": "0x36e67d76f744d6f2658b229880b72921f4a46894",
+            "name": "IHYLAYMAD",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.03008,
+            "sizeUsd": 2100.000003,
+            "marketDailyVolumeUsd": 1315371.4736697185,
+            "walletAgeHours": 2.7822222222222224,
+            "priorWalletVolumeUsd": 2099.999998,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760079159,
+            "wallet": "0x6758ddc2760cf459f6eaf8b0b0606740b61c07b9",
+            "name": "Paleologos",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.044642,
+            "sizeUsd": 1345.57,
+            "marketDailyVolumeUsd": 1366787.5288342421,
+            "walletAgeHours": 3939.130833333333,
+            "priorWalletVolumeUsd": 342.145267,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760084784,
+            "wallet": "0xcf6685740b565db0ead980fec266a22f2210a178",
+            "name": "0xCF6685740B565db0Ead980FEC266a22f2210A178-1760080353853",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.056269,
+            "sizeUsd": 992.29,
+            "marketDailyVolumeUsd": 1472392.484492155,
+            "walletAgeHours": 0.6602777777777777,
+            "priorWalletVolumeUsd": 19.581119,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1759965229,
+            "stakeUsd": 1999.9915189842602,
+            "effectivePrice": 0.060678,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1759982565,
+            "stakeUsd": 2499.99454291158,
+            "effectivePrice": 0.062361,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760002965,
+            "stakeUsd": 2199.9965585890463,
+            "effectivePrice": 0.065402,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760005323,
+            "stakeUsd": 1038.572144134985,
+            "effectivePrice": 0.067105,
+            "winningSide": false,
+            "ageHours": 0.655
+          },
+          {
+            "timestamp": 1760009717,
+            "stakeUsd": 2150.5845607641104,
+            "effectivePrice": 0.06761,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760011195,
+            "stakeUsd": 1750.012869341724,
+            "effectivePrice": 0.067119,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760014175,
+            "stakeUsd": 2999.983568375,
+            "effectivePrice": 0.069325,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760014617,
+            "stakeUsd": 2003.156274454385,
+            "effectivePrice": 0.071119,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760017153,
+            "stakeUsd": 1000.0026859495841,
+            "effectivePrice": 0.057437,
+            "winningSide": false,
+            "ageHours": 0.014444444444444444
+          },
+          {
+            "timestamp": 1760038587,
+            "stakeUsd": 1499.982610045864,
+            "effectivePrice": 0.042998,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760039209,
+            "stakeUsd": 1517.740340528686,
+            "effectivePrice": 0.044578,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760039223,
+            "stakeUsd": 1000.1810771120001,
+            "effectivePrice": 0.044996,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760062179,
+            "stakeUsd": 1432.16043109138,
+            "effectivePrice": 0.035788,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760066363,
+            "stakeUsd": 2100.0169264,
+            "effectivePrice": 0.03008,
+            "winningSide": false,
+            "ageHours": 2.7822222222222224
+          },
+          {
+            "timestamp": 1760073939,
+            "stakeUsd": 3706.9824298,
+            "effectivePrice": 0.029999,
+            "winningSide": false,
+            "ageHours": 4.886666666666667
+          },
+          {
+            "timestamp": 1760074243,
+            "stakeUsd": 1000.01443596375,
+            "effectivePrice": 0.031362,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760084718,
+            "stakeUsd": 10394.969089392791,
+            "effectivePrice": 0.042102,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760085018,
+            "stakeUsd": 1135.53903720375,
+            "effectivePrice": 0.039405,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1760085926,
+            "stakeUsd": 3999.9630121181854,
+            "effectivePrice": 0.045689,
+            "winningSide": false,
+            "ageHours": 0
+          }
+        ],
+        "reportedFills": []
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 67.52333333333333,
+      "signalsFired": {
+        "LUMP_ENTRY": 9,
+        "CONVICTION_SIZE_MISMATCH": 9
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 9,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-us-strikes-iran-jan31",
+        "kind": "control",
+        "title": "US strikes Iran by January 31, 2026?",
+        "conditionId": "0xabb86b080e9858dcb3f46954010e49b6f539c20036856c7f999395bfd58d01e6",
+        "winningOutcome": "NO",
+        "windowStart": "2026-01-28T00:00:00Z",
+        "newsAt": "2026-01-31T23:59:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/us-strikes-iran-by"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-us-strikes-iran-jan31",
+        "tradesInWindow": 15375,
+        "volumeInWindowUsd": 5503078.670821603,
+        "candidatesEvaluated": 4438,
+        "walletsProfiled": 2327,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1769570041,
+            "wallet": "0x8517b5eebdb3bab195c44d52cd3c92285f5b7328",
+            "name": null,
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.1,
+            "sizeUsd": 551,
+            "marketDailyVolumeUsd": 481167.3881752462,
+            "walletAgeHours": 217.09583333333333,
+            "priorWalletVolumeUsd": 210.849994,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769571373,
+            "wallet": "0x8517b5eebdb3bab195c44d52cd3c92285f5b7328",
+            "name": null,
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.1,
+            "sizeUsd": 1000,
+            "marketDailyVolumeUsd": 485527.9369764571,
+            "walletAgeHours": 217.46583333333334,
+            "priorWalletVolumeUsd": 989.849994,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": false,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769571389,
+            "wallet": "0x8517b5eebdb3bab195c44d52cd3c92285f5b7328",
+            "name": null,
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.1,
+            "sizeUsd": 2000,
+            "marketDailyVolumeUsd": 486982.9369764571,
+            "walletAgeHours": 217.47027777777777,
+            "priorWalletVolumeUsd": 1989.849994,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": false,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769630996,
+            "wallet": "0xdb17adfafa23aa7a8d3626f28103dfc15cf474cf",
+            "name": "0xdB17adfafA23aA7a8D3626f28103DFC15cF474Cf-1768332930153",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.10999999999999999,
+            "sizeUsd": 14939.3175,
+            "marketDailyVolumeUsd": 533172.4766910906,
+            "walletAgeHours": 358.6761111111111,
+            "priorWalletVolumeUsd": 17004.144941,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769631292,
+            "wallet": "0x66bc890e17cd3ecc855ed99ee5695fa75cc225c9",
+            "name": "AbsoluteDestroyer",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.12,
+            "sizeUsd": 1497.999999,
+            "marketDailyVolumeUsd": 548227.2939870902,
+            "walletAgeHours": 0.010555555555555556,
+            "priorWalletVolumeUsd": 999.999998,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769648362,
+            "wallet": "0x2d38899142018da33379cc4388f2463c9d6abb69",
+            "name": "butteredbiscuit",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.11,
+            "sizeUsd": 924.009999,
+            "marketDailyVolumeUsd": 671236.4568860512,
+            "walletAgeHours": 12837.203611111112,
+            "priorWalletVolumeUsd": 519.8437339999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769691428,
+            "wallet": "0xa26bffac4052b65a1bc175f09ef96b807889d049",
+            "name": "Amarmic",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.1,
+            "sizeUsd": 500,
+            "marketDailyVolumeUsd": 748123.7477730372,
+            "walletAgeHours": 0.0033333333333333335,
+            "priorWalletVolumeUsd": 499.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769700842,
+            "wallet": "0x4f5d95dfd7573467df6f8c676e7494386036ea9e",
+            "name": "0x4f5D95DFd7573467dF6F8C676e7494386036EA9e-1769371728094",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.149968,
+            "sizeUsd": 2000,
+            "marketDailyVolumeUsd": 701635.6486461347,
+            "walletAgeHours": 91.0188888888889,
+            "priorWalletVolumeUsd": 960,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769706254,
+            "wallet": "0x6b33a0f291d9427ea4e392ef84892a18d4197a95",
+            "name": "vrt484",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.15,
+            "sizeUsd": 1498.999999,
+            "marketDailyVolumeUsd": 804108.84980587,
+            "walletAgeHours": 4010.123888888889,
+            "priorWalletVolumeUsd": 34.75,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769716362,
+            "wallet": "0x071522a935aaaefb2254ba0e1ce2759be4576b58",
+            "name": "Clodveani",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.14,
+            "sizeUsd": 509.999999,
+            "marketDailyVolumeUsd": 915915.1437776114,
+            "walletAgeHours": 70.13416666666667,
+            "priorWalletVolumeUsd": 197.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769727626,
+            "wallet": "0xa81eefec9c08fa157d855f1ac5caf8feab1903dc",
+            "name": "Snow-White",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.16000000000000003,
+            "sizeUsd": 2355.1332,
+            "marketDailyVolumeUsd": 939133.3398783274,
+            "walletAgeHours": null,
+            "priorWalletVolumeUsd": 23.55,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769730078,
+            "wallet": "0xbf1d5d736931bb93123233dff3b8e9820048e0ad",
+            "name": "0xbf1d5d736931bB93123233dFF3b8E9820048E0AD-1768689360998",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.179984,
+            "sizeUsd": 571,
+            "marketDailyVolumeUsd": 956529.02385939,
+            "walletAgeHours": 288.31444444444446,
+            "priorWalletVolumeUsd": 318.999998,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769769014,
+            "wallet": "0xb612835a1935391f4770f312e8891a2704ebec4c",
+            "name": "mrobergl01",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.12,
+            "sizeUsd": 998.469999,
+            "marketDailyVolumeUsd": 1010512.4653121084,
+            "walletAgeHours": 40.044444444444444,
+            "priorWalletVolumeUsd": 9,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769788172,
+            "wallet": "0x7f50c9d2003eb5c65045f835c0119287d6a9bb6a",
+            "name": "Burgerman123",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.106808,
+            "sizeUsd": 1628.399998,
+            "marketDailyVolumeUsd": 1093153.9906147642,
+            "walletAgeHours": 0.5622222222222222,
+            "priorWalletVolumeUsd": 29,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769788486,
+            "wallet": "0x4be9adaae11ea33f9d704ecca46a5361ab331442",
+            "name": "Homeless26",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.112467,
+            "sizeUsd": 2000,
+            "marketDailyVolumeUsd": 1087850.566427486,
+            "walletAgeHours": 0.18444444444444444,
+            "priorWalletVolumeUsd": 950,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769799272,
+            "wallet": "0xd421a2322e62df98fedd2e054251a71996aa7266",
+            "name": "0xd421A2322E62dF98fEDD2e054251a71996Aa7266-1768378613859",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.07967,
+            "sizeUsd": 2000,
+            "marketDailyVolumeUsd": 1057873.1992746033,
+            "walletAgeHours": 393.81055555555554,
+            "priorWalletVolumeUsd": 18.299999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769802260,
+            "wallet": "0x3cb7b738e941226bbac40eac1d1c5e91174d6765",
+            "name": "0x3Cb7B738e941226BBac40eAC1D1c5e91174D6765-1769796039606",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.06,
+            "sizeUsd": 987.259998,
+            "marketDailyVolumeUsd": 1151315.2028975228,
+            "walletAgeHours": 0.013888888888888888,
+            "priorWalletVolumeUsd": 999.999999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769811828,
+            "wallet": "0xe4b96323bee40252f3231b1a4f99a076a4cfcdcc",
+            "name": "0xE4b96323Bee40252F3231b1A4F99a076A4cFcdCc-1768897225693",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.091502,
+            "sizeUsd": 5000,
+            "marketDailyVolumeUsd": 1240169.695180353,
+            "walletAgeHours": 2.0927777777777776,
+            "priorWalletVolumeUsd": 2985.87,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769832448,
+            "wallet": "0x5b196a3f4bc9338c703085ff5f84f7da77a9683d",
+            "name": "DarkKnightttt",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.06,
+            "sizeUsd": 1352.29,
+            "marketDailyVolumeUsd": 1146846.2838038118,
+            "walletAgeHours": 0.20944444444444443,
+            "priorWalletVolumeUsd": 11.959999,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769835072,
+            "wallet": "0x0ce461b2063b81cea783a270c6604fc194ea5a91",
+            "name": null,
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.066465,
+            "sizeUsd": 1825.999998,
+            "marketDailyVolumeUsd": 1161084.6333168054,
+            "walletAgeHours": 51.34444444444444,
+            "priorWalletVolumeUsd": 23.487897,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769860992,
+            "wallet": "0xf18c1b46e4f9c9b4a383e02f5f530531b1b7847e",
+            "name": "thebotguy8",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.05,
+            "sizeUsd": 694.79,
+            "marketDailyVolumeUsd": 1429509.9869132268,
+            "walletAgeHours": 13.901111111111112,
+            "priorWalletVolumeUsd": 666.2108000000001,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769865780,
+            "wallet": "0x93c3dd7c446cf36406c984c4b21a2f4aef4dbc02",
+            "name": "0x93c3DD7C446CF36406c984C4B21A2f4aeF4Dbc02-1769623078000",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.1,
+            "sizeUsd": 750.26,
+            "marketDailyVolumeUsd": 1715776.9012261867,
+            "walletAgeHours": 66.9661111111111,
+            "priorWalletVolumeUsd": 10.9,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1769606931,
+            "stakeUsd": 1499.24,
+            "effectivePrice": 0.1,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769627052,
+            "stakeUsd": 4982.017526730676,
+            "effectivePrice": 0.107505,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769631292,
+            "stakeUsd": 1497.9999998399999,
+            "effectivePrice": 0.12,
+            "winningSide": false,
+            "ageHours": 0.010555555555555556
+          },
+          {
+            "timestamp": 1769638226,
+            "stakeUsd": 1199.9974409384163,
+            "effectivePrice": 0.128787,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769641584,
+            "stakeUsd": 1421.9231000000002,
+            "effectivePrice": 0.13,
+            "winningSide": false,
+            "ageHours": 0.008333333333333333
+          },
+          {
+            "timestamp": 1769677874,
+            "stakeUsd": 2000,
+            "effectivePrice": 0.1,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769682142,
+            "stakeUsd": 1000,
+            "effectivePrice": 0.1,
+            "winningSide": false,
+            "ageHours": 0.0044444444444444444
+          },
+          {
+            "timestamp": 1769698464,
+            "stakeUsd": 1999.9999998,
+            "effectivePrice": 0.12,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769699374,
+            "stakeUsd": 1000.000427272875,
+            "effectivePrice": 0.126105,
+            "winningSide": false,
+            "ageHours": 5.972222222222222
+          },
+          {
+            "timestamp": 1769701910,
+            "stakeUsd": 1599.9999997800003,
+            "effectivePrice": 0.14,
+            "winningSide": false,
+            "ageHours": 2.756111111111111
+          },
+          {
+            "timestamp": 1769718280,
+            "stakeUsd": 2069.37,
+            "effectivePrice": 0.15,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769769924,
+            "stakeUsd": 1999.9999998,
+            "effectivePrice": 0.12,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769788172,
+            "stakeUsd": 1628.39670976944,
+            "effectivePrice": 0.106808,
+            "winningSide": false,
+            "ageHours": 0.5622222222222222
+          },
+          {
+            "timestamp": 1769788486,
+            "stakeUsd": 2000.0044097500438,
+            "effectivePrice": 0.112467,
+            "winningSide": false,
+            "ageHours": 0.18444444444444444
+          },
+          {
+            "timestamp": 1769788566,
+            "stakeUsd": 4997.346030570321,
+            "effectivePrice": 0.123134,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769789230,
+            "stakeUsd": 2209.05724082,
+            "effectivePrice": 0.136294,
+            "winningSide": false,
+            "ageHours": 0.39111111111111113
+          },
+          {
+            "timestamp": 1769799516,
+            "stakeUsd": 2256.61,
+            "effectivePrice": 0.05,
+            "winningSide": false,
+            "ageHours": 22.565555555555555
+          },
+          {
+            "timestamp": 1769804294,
+            "stakeUsd": 2985.860849375,
+            "effectivePrice": 0.075235,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769808416,
+            "stakeUsd": 4985.772057320222,
+            "effectivePrice": 0.084461,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769811756,
+            "stakeUsd": 3660.6536,
+            "effectivePrice": 0.08,
+            "winningSide": false,
+            "ageHours": 0.9277777777777778
+          },
+          {
+            "timestamp": 1769811828,
+            "stakeUsd": 4999.992465064,
+            "effectivePrice": 0.091502,
+            "winningSide": false,
+            "ageHours": 2.0927777777777776
+          },
+          {
+            "timestamp": 1769832448,
+            "stakeUsd": 1352.2899998999999,
+            "effectivePrice": 0.06,
+            "winningSide": false,
+            "ageHours": 0.20944444444444443
+          },
+          {
+            "timestamp": 1769863974,
+            "stakeUsd": 1000,
+            "effectivePrice": 0.08,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1769864582,
+            "stakeUsd": 2000,
+            "effectivePrice": 0.1,
+            "winningSide": false,
+            "ageHours": 21.787222222222223
+          },
+          {
+            "timestamp": 1769864594,
+            "stakeUsd": 2000.008498106833,
+            "effectivePrice": 0.107623,
+            "winningSide": false,
+            "ageHours": 21.790555555555557
+          },
+          {
+            "timestamp": 1769866374,
+            "stakeUsd": 1869.9918827561921,
+            "effectivePrice": 0.105118,
+            "winningSide": false,
+            "ageHours": 0
+          }
+        ],
+        "reportedFills": []
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 92.74972222222222,
+      "signalsFired": {
+        "LUMP_ENTRY": 20,
+        "CONVICTION_SIZE_MISMATCH": 19,
+        "OUTSIZED_POSITION": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 20,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-us-iran-ceasefire-mar31",
+        "kind": "control",
+        "title": "US x Iran ceasefire by March 31?",
+        "conditionId": "0x3c6bcb7da14ea576e5af25547dbd96f2bb24ac34e748e76aecff2ee9195dd1ac",
+        "winningOutcome": "NO",
+        "windowStart": "2026-03-29T23:59:00Z",
+        "newsAt": "2026-03-31T23:59:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/us-x-iran-ceasefire-by"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-us-iran-ceasefire-mar31",
+        "tradesInWindow": 2724,
+        "volumeInWindowUsd": 1888021.5068770207,
+        "candidatesEvaluated": 937,
+        "walletsProfiled": 578,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1774919805,
+            "wallet": "0x436f969d99c90191fbc2c629e6b7a1b754402c7f",
+            "name": "0x436f969D99c90191fBC2c629e6B7a1B754402c7F-1772236065502",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.008000000000000007,
+            "sizeUsd": 75031.408,
+            "marketDailyVolumeUsd": 885310.0044722097,
+            "walletAgeHours": 234.52,
+            "priorWalletVolumeUsd": 86737.66217099987,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1774995229,
+            "wallet": "0xc59805ad5d60e6235ea062b327fbe73d96ba845a",
+            "name": "kylez41",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.003858000000000028,
+            "sizeUsd": 24306.128539,
+            "marketDailyVolumeUsd": 919595.7470288603,
+            "walletAgeHours": 442.15722222222223,
+            "priorWalletVolumeUsd": 25922.38076499999,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": []
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 22.704166666666666,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 2,
+        "LUMP_ENTRY": 2
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 2,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    }
+  ]
+}
