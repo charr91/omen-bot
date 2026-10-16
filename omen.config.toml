@@ -103,7 +103,7 @@ baseline_window_hours = 6
 # live delivery. Grade it in M1 outcomes for ~2 weeks before setting deliver = true.
 [signals.fresh_wallet_longshot]
 enabled = true
-deliver = false
+deliver = true
 max_age_hours = 24
 max_txns = 10
 max_price = 0.30
