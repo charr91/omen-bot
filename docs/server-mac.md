@@ -67,5 +67,5 @@ createdb -h localhost -p 5433 restore_test && pg_restore --no-owner -d restore_t
 
 ## Needs the owner (sudo)
 
-The Mac currently reports `SleepDisabled 1` / `sleep 0` but that is held by another app's assertion. To make it permanent:
+Sleep is already off: `pmset` custom settings have `sleep 0` and `SleepDisabled 1` (checked 2026-10-16). Optional hardening (sudo):
 `sudo pmset -a sleep 0 disksleep 0 standby 0 autorestart 1` (and enable auto-login for `bot` so LaunchAgents start after a power cut).
