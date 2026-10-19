@@ -41,10 +41,32 @@ export interface HorizonStats {
   avgReturn: number | null;
 }
 
+export interface HorizonSet {
+  h1: HorizonStats;
+  h24: HorizonStats;
+  resolution: HorizonStats;
+}
+
 export interface GroupStats {
   group: string;
-  signal: { total: number; h1: HorizonStats; h24: HorizonStats; resolution: HorizonStats };
-  baseline: { total: number; h1: HorizonStats; h24: HorizonStats; resolution: HorizonStats };
+  signal: { total: number } & HorizonSet;
+  baseline: { total: number } & HorizonSet;
+  /**
+   * Baseline matched on effective entry-price band: per band, all baseline fills' hit rate / avg return, weighted
+   * by this group's priced signal fills in that band (bands with no baseline are left out). n/hits = baseline fills used.
+   */
+  bandBaseline?: HorizonSet;
+}
+
+/** Effective entry price of the position: BUY pays the price, SELL is a position on the other side at 1 - price. */
+export function effectiveEntryPrice(side: TradeSide, priceAtAlert: number): number {
+  return side === 'BUY' ? priceAtAlert : 1 - priceAtAlert;
+}
+
+/** 20-cent effective entry-price bands: 0-20¢, 20-40¢, 40-60¢, 60-80¢, 80-100¢. */
+export function entryPriceBand(side: TradeSide, priceAtAlert: number): string {
+  const index = Math.min(4, Math.max(0, Math.floor(effectiveEntryPrice(side, priceAtAlert) * 5)));
+  return `${index * 20}-${(index + 1) * 20}¢`;
 }
 
 function horizon(rows: OutcomeRow[], pick: (row: OutcomeRow) => number | null): HorizonStats {
@@ -76,15 +98,61 @@ function summarize(rows: OutcomeRow[]) {
   };
 }
 
-/** Rows must already carry their group (signal id or tier); baseline rows are matched to the same group. */
-export function aggregateOutcomes(rows: OutcomeRow[]): GroupStats[] {
+function bandMatchedHorizon(
+  signals: OutcomeRow[],
+  baselinesByBand: Map<string, OutcomeRow[]>,
+  pick: (row: OutcomeRow) => number | null,
+): HorizonStats {
+  const signalsByBand = new Map<string, OutcomeRow[]>();
+  for (const row of signals) {
+    const band = entryPriceBand(row.side, row.priceAtAlert);
+    signalsByBand.set(band, [...(signalsByBand.get(band) ?? []), row]);
+  }
+  let weight = 0;
+  let hitRate = 0;
+  let avgReturn = 0;
+  const used: HorizonStats = { n: 0, flat: 0, hits: 0, hitRate: null, avgReturn: null };
+  for (const [band, bandSignals] of signalsByBand) {
+    const signalN = horizon(bandSignals, pick).n;
+    const base = horizon(baselinesByBand.get(band) ?? [], pick);
+    if (signalN === 0 || base.hitRate === null || base.avgReturn === null) continue;
+    weight += signalN;
+    hitRate += signalN * base.hitRate;
+    avgReturn += signalN * base.avgReturn;
+    used.n += base.n;
+    used.flat += base.flat;
+    used.hits += base.hits;
+  }
+  return weight === 0 ? used : { ...used, hitRate: hitRate / weight, avgReturn: avgReturn / weight };
+}
+
+export function bandMatchedBaseline(signals: OutcomeRow[], baselinePool: OutcomeRow[]): HorizonSet {
+  const byBand = new Map<string, OutcomeRow[]>();
+  for (const row of baselinePool) {
+    const band = entryPriceBand(row.side, row.priceAtAlert);
+    byBand.set(band, [...(byBand.get(band) ?? []), row]);
+  }
+  return {
+    h1: bandMatchedHorizon(signals, byBand, (r) => r.price1h),
+    h24: bandMatchedHorizon(signals, byBand, (r) => r.price24h),
+    resolution: bandMatchedHorizon(signals, byBand, (r) => r.resolutionPrice),
+  };
+}
+
+/**
+ * Rows must already carry their group (signal id or tier); baseline rows are matched to the same group. With a
+ * baseline pool (each baseline fill once), every group also gets an entry-price-band matched baseline.
+ */
+export function aggregateOutcomes(rows: OutcomeRow[], bandBaselinePool?: OutcomeRow[]): GroupStats[] {
   const groups = [...new Set(rows.map((r) => r.group))].sort();
   return groups.map((group) => {
     const inGroup = rows.filter((r) => r.group === group);
+    const signals = inGroup.filter((r) => r.kind === 'signal');
     return {
       group,
-      signal: summarize(inGroup.filter((r) => r.kind === 'signal')),
+      signal: summarize(signals),
       baseline: summarize(inGroup.filter((r) => r.kind === 'baseline')),
+      ...(bandBaselinePool ? { bandBaseline: bandMatchedBaseline(signals, bandBaselinePool) } : {}),
     };
   });
 }

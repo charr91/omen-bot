@@ -59,7 +59,10 @@ export async function runStatsCommand(options: StatsCommandOptions): Promise<str
     return [
       `omen stats: last ${options.days} day(s) since ${since.toISOString()}`,
       `${signals} signal fills, ${baselines} baseline fills (same market, +/-${config.outcomes.baselineWindowHours}h, 0.5-2x size).`,
-      'hit = price moved in the trade direction (BUY up / SELL down); n = priced fills whose price moved (unchanged prices excluded); edge = signal minus baseline hit rate.',
+      'hit = price moved in the trade direction (BUY up / SELL down); avg move = mean directional price move in cents;',
+      'n = priced fills whose price moved (unchanged prices excluded); edge = signal minus baseline (hit pp, move ¢).',
+      'band-base = all baseline fills in the same effective entry-price band (BUY price, SELL 1 - price; 20¢ bands),',
+      'weighted by the signal fills per band; band-edge = signal minus band-base (controls for longshot/favourite drift).',
       '',
       formatStatsTable('By signal', report.bySignal),
       '',
@@ -68,6 +71,11 @@ export async function runStatsCommand(options: StatsCommandOptions): Promise<str
       formatStatsTable(
         'By signal and game phase (in-play = filled after kickoff; baselines matched on the same phase)',
         report.bySignalPhase,
+      ),
+      '',
+      formatStatsTable(
+        'By signal and entry-price band (band-base = all baselines in that band)',
+        report.bySignalPriceBand,
       ),
     ].join('\n');
   } finally {
