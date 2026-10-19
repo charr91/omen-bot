@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { OutcomeTracker } from '../../../src/outcomes/tracker.js';
+import { OutcomeTracker, splitPriceBudget } from '../../../src/outcomes/tracker.js';
 import type { TradeOutcomeStore } from '../../../src/outcomes/store.js';
 import { parseStatsOptions } from '../../../src/outcomes/command.js';
 
@@ -10,8 +10,8 @@ function makeStore(overrides: Partial<TradeOutcomeStore> = {}): TradeOutcomeStor
     listSignalRowsMissingContext: vi.fn().mockResolvedValue([]),
     listMarketHourlyVolume: vi.fn().mockResolvedValue([]),
     setVolumeContext: vi.fn(),
-    listPendingPrices: vi.fn(async (horizon: string) =>
-      horizon === '1h'
+    listPendingPrices: vi.fn(async (horizon: string, _now: Date, _retry: number, _limit: number, venue = 'polymarket') =>
+      horizon === '1h' && venue === 'polymarket'
         ? [
             { fillId: 'f1', tokenId: 't1', targetAt: new Date('2026-10-12T10:00:00Z') },
             { fillId: 'f2', tokenId: 't2', targetAt: new Date('2026-10-12T10:00:00Z') },
@@ -56,6 +56,34 @@ describe('OutcomeTracker', () => {
     expect(store.setPrice).toHaveBeenCalledWith('1h', 'f2', 0.61, now);
     expect(store.setResolution).toHaveBeenCalledWith('0xM', { t1: 1, t2: 0 }, now);
     expect(store.markMarketsChecked).toHaveBeenCalledWith(['0xM'], now);
+    expect(store.setPrice).toHaveBeenCalledTimes(2);
+  });
+
+  it('prices Polymarket and Kalshi from separate per-venue queries so a Kalshi backlog cannot starve Polymarket', async () => {
+    const now = new Date('2026-10-19T12:00:00Z');
+    const rows = (venue: string, n: number) =>
+      Array.from({ length: n }, (_, i) => ({ fillId: `${venue}-${i}`, tokenId: `${venue}-t${i}`, targetAt: now, venue }));
+    const store = makeStore({
+      listPendingPrices: vi.fn(async (horizon: string, _now: Date, _retry: number, limit: number, venue: string) =>
+        horizon === '1h' ? rows(venue, venue === 'kalshi' ? 500 : 30).slice(0, limit) : [],
+      ),
+      getKalshiEventTicker: vi.fn().mockResolvedValue('KXEV'),
+      findNearestKalshiPrice: vi.fn().mockResolvedValue(null),
+      listUnresolvedMarkets: vi.fn().mockResolvedValue([]),
+    });
+    const tracker = new OutcomeTracker({
+      store, marketMakers: { listLikelyMarketMakers: vi.fn().mockResolvedValue([]) }, baselinePerSignal: 3,
+      baselineWindowHours: 6, marketMakerMinScore: 70, now: () => now, batchSize: 20,
+      priceAt: vi.fn().mockResolvedValue(0.5),
+      kalshi: { priceAt: vi.fn().mockResolvedValue(0.4), settlements: vi.fn().mockResolvedValue({}) },
+    });
+    const result = await tracker.runOnce();
+    const priced = (store.setPrice as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0] === '1h').map((c) => c[1] as string);
+    expect(priced.filter((id) => id.startsWith('polymarket'))).toHaveLength(20); // 10 from the split + 10 backfill
+    expect(priced.filter((id) => id.startsWith('kalshi'))).toHaveLength(10);
+    expect(new Set(priced).size).toBe(priced.length);
+    expect(result.prices1h).toBe(30);
+    expect(store.listPendingPrices).toHaveBeenCalledWith('1h', now, expect.any(Number), 20, 'kalshi');
   });
 
   it('records the volume-spike context for the hour before a signal', async () => {
@@ -129,5 +157,17 @@ describe('parseStatsOptions', () => {
     expect(store.setGameStart).toHaveBeenCalledWith('0xPolitics', null, now);
     expect(store.setGameStart).toHaveBeenCalledTimes(2);
     expect(order).toEqual(['game', 'game', 'baseline']);
+  });
+});
+
+describe('splitPriceBudget', () => {
+  const n = (prefix: string, count: number) => Array.from({ length: count }, (_, i) => `${prefix}${i}`);
+
+  it('gives each venue half and hands unused share to the other', () => {
+    expect(splitPriceBudget(n('p', 50), n('k', 50), 50).filter((x) => x.startsWith('p'))).toHaveLength(25);
+    expect(splitPriceBudget(n('p', 5), n('k', 500), 50)).toEqual([...n('p', 5), ...n('k', 45)]);
+    expect(splitPriceBudget(n('p', 500), n('k', 3), 50)).toEqual([...n('p', 47), ...n('k', 3)]);
+    expect(splitPriceBudget(n('p', 500), [], 50)).toHaveLength(50);
+    expect(splitPriceBudget(n('p', 1), n('k', 1), 50)).toEqual(['p0', 'k0']);
   });
 });

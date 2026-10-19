@@ -166,20 +166,28 @@ export function createTradeOutcomeStore(pool: Pick<Pool, 'query'>) {
       return result.rowCount ?? 0;
     },
 
-    async listPendingPrices(horizon: Horizon, now: Date, retryAfterMs: number, limit: number): Promise<PendingPriceRow[]> {
+    /** Due, unpriced rows for one venue within the last 7 days, newest due first (fresh alerts are graded first). */
+    async listPendingPrices(
+      horizon: Horizon,
+      now: Date,
+      retryAfterMs: number,
+      limit: number,
+      venue: Venue = 'polymarket',
+    ): Promise<PendingPriceRow[]> {
       const offset = horizon === '1h' ? '1 hour' : '24 hours';
       const result = await pool.query<{ fill_id: string; token_id: string; target_at: Date; venue: Venue }>(
         `
           select fill_id, token_id, venue, alert_at + interval '${offset}' as target_at
           from trade_outcomes
           where price_${horizon} is null
+            and venue = $4
             and alert_at + interval '${offset}' <= $1
             and alert_at + interval '${offset}' >= $1 - interval '7 days'
             and (price_${horizon}_checked_at is null or price_${horizon}_checked_at <= $2)
-          order by alert_at
+          order by alert_at desc
           limit $3
         `,
-        [now, new Date(now.getTime() - retryAfterMs), limit],
+        [now, new Date(now.getTime() - retryAfterMs), limit, venue],
       );
       return result.rows.map((row) => ({ fillId: row.fill_id, tokenId: row.token_id, targetAt: row.target_at, venue: row.venue }));
     },

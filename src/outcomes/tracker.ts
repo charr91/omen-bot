@@ -1,7 +1,7 @@
 import { buildVolumeBaseline, detectVolumeSpike } from '../signals/volume-baseline.js';
 import type { MarketMakerStore } from '../persistence/queries/market-maker.js';
 import { fetchMarketResolutions, fetchTokenPriceAt, type MarketResolution } from './polymarket.js';
-import type { Horizon, TradeOutcomeStore } from './store.js';
+import type { Horizon, PendingPriceRow, TradeOutcomeStore } from './store.js';
 import { fetchMarketsByConditionIds } from '../phase0/public-api.js';
 
 /** Gamma game start per condition id (lower-cased); markets Gamma did not return are absent. */
@@ -31,6 +31,8 @@ export interface OutcomeTrackerOptions {
   marketMakerMinScore: number;
   enrollLookbackDays?: number;
   batchSize?: number;
+  /** Extra Polymarket-only pricing pass per horizon (newest due first) after the per-venue split; default batchSize. */
+  polymarketBackfillBatch?: number;
   now?: () => Date;
   priceAt?: (tokenId: string, at: Date) => Promise<number | null>;
   resolutions?: (conditionIds: string[]) => Promise<MarketResolution[]>;
@@ -59,6 +61,17 @@ const RESOLUTION_RETRY_MS = 60 * 60_000;
 const FILL_FALLBACK_WINDOW_MS = 30 * 60_000;
 const VOLUME_BASELINE_DAYS = 7;
 const MM_CACHE_MS = 60 * 60_000;
+
+/**
+ * Per-venue pricing budget: each venue gets half of `batch`; a venue with fewer due rows hands its unused share to
+ * the other, so a large Kalshi backlog can never starve Polymarket (or vice versa).
+ */
+export function splitPriceBudget<T>(polymarket: T[], kalshi: T[], batch: number): T[] {
+  const polymarketShare = Math.ceil(batch / 2);
+  const kalshiTake = Math.min(kalshi.length, Math.max(batch - polymarketShare, batch - polymarket.length));
+  const polymarketTake = Math.min(polymarket.length, batch - kalshiTake);
+  return [...polymarket.slice(0, polymarketTake), ...kalshi.slice(0, kalshiTake)];
+}
 
 /**
  * Grades signal fills and their same-market baseline fills: price at +1h and +24h, market resolution, and a
@@ -149,31 +162,22 @@ export class OutcomeTracker {
 
     for (const horizon of ['1h', '24h'] as Horizon[]) {
       await attempt(`price ${horizon}`, async () => {
-        for (const row of await store.listPendingPrices(horizon, now, PRICE_RETRY_MS, batch)) {
-          let price: number | null = null;
-          if (row.venue === 'kalshi') {
-            if (!this.options.kalshi) continue;
-            try {
-              const eventTicker = await store.getKalshiEventTicker(row.tokenId);
-              price = eventTicker ? await this.options.kalshi.priceAt(eventTicker, row.tokenId, row.targetAt) : null;
-            } catch {
-              price = null;
+        const polymarket = await store.listPendingPrices(horizon, now, PRICE_RETRY_MS, batch, 'polymarket');
+        const kalshi = this.options.kalshi ? await store.listPendingPrices(horizon, now, PRICE_RETRY_MS, batch, 'kalshi') : [];
+        const priced = new Set<string>();
+        const price = async (rows: PendingPriceRow[]) => {
+          for (const row of rows) {
+            if (priced.has(row.fillId)) continue;
+            priced.add(row.fillId);
+            if (await this.priceRow(horizon, row, now)) {
+              if (horizon === '1h') result.prices1h += 1;
+              else result.prices24h += 1;
             }
-            price ??= await store.findNearestKalshiPrice(row.tokenId, row.targetAt, FILL_FALLBACK_WINDOW_MS);
-          } else {
-            try {
-              price = await (this.options.priceAt ?? fetchTokenPriceAt)(row.tokenId, row.targetAt);
-            } catch {
-              price = null;
-            }
-            price ??= await store.findNearestFillPrice(row.tokenId, row.targetAt, FILL_FALLBACK_WINDOW_MS);
           }
-          await store.setPrice(horizon, row.fillId, price, now);
-          if (price !== null) {
-            if (horizon === '1h') result.prices1h += 1;
-            else result.prices24h += 1;
-          }
-        }
+        };
+        await price(splitPriceBudget(polymarket, kalshi, batch));
+        const backfill = this.options.polymarketBackfillBatch ?? batch;
+        if (backfill > 0) await price(await store.listPendingPrices(horizon, now, PRICE_RETRY_MS, backfill, 'polymarket'));
       });
     }
 
@@ -203,6 +207,31 @@ export class OutcomeTracker {
     }
 
     return result;
+  }
+
+  /** Prices one row (Kalshi candles or Polymarket price history, else the nearest fill); true when a price was found. */
+  private async priceRow(horizon: Horizon, row: PendingPriceRow, now: Date): Promise<boolean> {
+    const { store } = this.options;
+    let price: number | null = null;
+    if (row.venue === 'kalshi') {
+      if (!this.options.kalshi) return false;
+      try {
+        const eventTicker = await store.getKalshiEventTicker(row.tokenId);
+        price = eventTicker ? await this.options.kalshi.priceAt(eventTicker, row.tokenId, row.targetAt) : null;
+      } catch {
+        price = null;
+      }
+      price ??= await store.findNearestKalshiPrice(row.tokenId, row.targetAt, FILL_FALLBACK_WINDOW_MS);
+    } else {
+      try {
+        price = await (this.options.priceAt ?? fetchTokenPriceAt)(row.tokenId, row.targetAt);
+      } catch {
+        price = null;
+      }
+      price ??= await store.findNearestFillPrice(row.tokenId, row.targetAt, FILL_FALLBACK_WINDOW_MS);
+    }
+    await store.setPrice(horizon, row.fillId, price, now);
+    return price !== null;
   }
 
   private async likelyMarketMakers(now: Date): Promise<string[]> {
