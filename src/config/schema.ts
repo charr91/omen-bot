@@ -158,6 +158,13 @@ export const fileConfigSchema = z
       .optional(),
     signals: z
       .object({
+        sybil_cluster: z
+          .object({
+            deliver: z.boolean().optional(),
+            max_cluster_size: z.number().int().positive().optional(),
+            excluded_funders: z.array(z.string().min(1)).optional(),
+          })
+          .optional(),
         fresh_wallet_longshot: z
           .object({
             enabled: z.boolean().optional(),
@@ -223,6 +230,11 @@ export const fileConfigSchema = z
       },
     },
     signals: {
+      sybil_cluster: {
+        deliver: value.signals?.sybil_cluster?.deliver ?? false,
+        max_cluster_size: value.signals?.sybil_cluster?.max_cluster_size ?? 50,
+        excluded_funders: (value.signals?.sybil_cluster?.excluded_funders ?? []).map((a) => a.toLowerCase()),
+      },
       fresh_wallet_longshot: {
         enabled: value.signals?.fresh_wallet_longshot?.enabled ?? true,
         deliver: value.signals?.fresh_wallet_longshot?.deliver ?? false,
@@ -394,6 +406,15 @@ export interface AppConfig {
       fanoutLimit: number;
       maxRpcCalls: number;
       sameMarketSameSideWindowMs: number;
+    };
+    /** [signals.sybil_cluster]; optional so partial test configs keep the legacy behaviour (delivered, no size cap). */
+    sybilCluster?: {
+      /** false = shadow mode: stored + outcome-graded, never delivered, adds nothing to the deliverable score. */
+      deliver: boolean;
+      /** Clusters larger than this are exchange / hot-wallet fan-out, not sybils: ignored. */
+      maxClusterSize: number;
+      /** Funder addresses (lowercase) never used to form a cluster (known exchange / hot wallets). */
+      excludedFunders: string[];
     };
     /** [signals.fresh_wallet_longshot]; optional so partial test configs keep it off. */
     freshWalletLongshot?: {

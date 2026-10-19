@@ -105,6 +105,11 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
         maxRpcCalls: fileConfig.detection.cluster.max_rpc_calls,
         sameMarketSameSideWindowMs: fileConfig.detection.cluster.same_market_same_side_window_ms,
       },
+      sybilCluster: {
+        deliver: fileConfig.signals.sybil_cluster.deliver,
+        maxClusterSize: fileConfig.signals.sybil_cluster.max_cluster_size,
+        excludedFunders: fileConfig.signals.sybil_cluster.excluded_funders,
+      },
       freshWalletLongshot: {
         enabled: fileConfig.signals.fresh_wallet_longshot.enabled,
         deliver: fileConfig.signals.fresh_wallet_longshot.deliver,

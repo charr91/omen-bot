@@ -77,6 +77,8 @@ export async function executeFundingGraphRebuild(options: {
             [...new Set(rootEdges.map((edge) => edge.fromAddress))],
           ),
           minSize: options.config.detection.cluster.minSize,
+          maxSize: options.config.detection.sybilCluster?.maxClusterSize,
+          excludedFunders: new Set(options.config.detection.sybilCluster?.excludedFunders ?? []),
         });
 
   await applyClusterAssignments(

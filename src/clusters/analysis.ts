@@ -12,6 +12,9 @@ export function deriveBestClusterCandidate(options: {
   rootEdges: Pick<FundingEdge, 'fromAddress'>[];
   ancestorMemberships: AncestorMembership[];
   minSize: number;
+  /** Ancestors funding more wallets than this are exchange / hot-wallet fan-out, never a cluster. */
+  maxSize?: number;
+  excludedFunders?: ReadonlySet<string>;
 }): FundingClusterCandidate | null {
   const canonicalRootWallet = canonicalizeEvmAddress(options.rootWallet);
   const membershipsByAncestor = new Map<string, Set<string>>();
@@ -27,13 +30,13 @@ export function deriveBestClusterCandidate(options: {
   for (const rootEdge of options.rootEdges) {
     const ancestorAddress = canonicalizeEvmAddress(rootEdge.fromAddress);
     const wallets = membershipsByAncestor.get(ancestorAddress);
-    if (!wallets) {
+    if (!wallets || options.excludedFunders?.has(ancestorAddress)) {
       continue;
     }
 
     wallets.add(canonicalRootWallet);
     const candidateWallets = [...wallets].sort();
-    if (candidateWallets.length < options.minSize) {
+    if (candidateWallets.length < options.minSize || (options.maxSize !== undefined && candidateWallets.length > options.maxSize)) {
       continue;
     }
 

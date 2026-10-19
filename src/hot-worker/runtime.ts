@@ -32,7 +32,7 @@ import {
 import { classifyMarketExclusion } from '../signals/market-exclusion.js';
 import { bumpMarketExclusion } from '../markets/exclusion-stats.js';
 import { isShadowSignal } from '../signals/fresh-wallet-longshot.js';
-import type { LiveClusterSignalContext } from '../signals/sybil-cluster.js';
+import { keepFirstSybilPerClusterMarket, type LiveClusterSignalContext } from '../signals/sybil-cluster.js';
 import { deriveAlertTier } from '../signals/scoring.js';
 import type { FillRecord } from '../types/fill.js';
 import type { HotWorkerToMainMessage, MainToHotWorkerMessage } from '../types/thread-messages.js';
@@ -345,14 +345,19 @@ async function processFill(fill: FillRecord): Promise<void> {
     evaluatedSignals.length > 0 && config.marketMaker.filterEnabled
       ? await marketMakerStore.getScore(fill.walletAddress, fill.timestamp)
       : 0;
-  const triggeredSignals = marketMakerScore >= config.marketMaker.minScore ? [] : evaluatedSignals;
-  if (triggeredSignals.length !== evaluatedSignals.length) {
+  const nonMarketMakerSignals = marketMakerScore >= config.marketMaker.minScore ? [] : evaluatedSignals;
+  if (nonMarketMakerSignals.length !== evaluatedSignals.length) {
     postMessage({
       type: 'ERROR',
       fillId: fill.id,
       error: `[mm-filter] suppressed ${evaluatedSignals.length} signal(s) for likely market maker ${fill.walletAddress} (score ${marketMakerScore})`,
     });
   }
+  const triggeredSignals = await keepFirstSybilPerClusterMarket(
+    nonMarketMakerSignals,
+    { clusterId: cluster?.fundingClusterId ?? null, marketId: fill.marketId, fillId: fill.id },
+    redis,
+  );
 
   // Shadow-mode signals (e.g. FRESH_WALLET_LONGSHOT with deliver = false) never lift the wallet's live score or any
   // delivered alert's tier; their own alert carries the full score so it is graded at the tier it would have had.

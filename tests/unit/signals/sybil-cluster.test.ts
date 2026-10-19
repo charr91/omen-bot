@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { AppConfig } from '../../../src/config/schema.js';
-import { evaluateSybilCluster } from '../../../src/signals/sybil-cluster.js';
+import { computeDeliverableLiveScore } from '../../../src/signals/evaluate-live-signals.js';
+import { isShadowSignal } from '../../../src/signals/fresh-wallet-longshot.js';
+import { evaluateSybilCluster, keepFirstSybilPerClusterMarket, sybilClusterMarketKey } from '../../../src/signals/sybil-cluster.js';
+import { SignalId } from '../../../src/types/signal.js';
 import type { FillRecord } from '../../../src/types/fill.js';
 
 function makeConfig(): Pick<AppConfig, 'detection'> {
@@ -137,5 +140,61 @@ describe('evaluateSybilCluster', () => {
     expect(signal?.signalId).toBe('SYBIL_CLUSTER');
     expect(signal?.score).toBe(35);
     expect(signal?.confidence).toBe(0.9);
+  });
+});
+
+describe('SYBIL_CLUSTER delivery + mega-cluster settings', () => {
+  const withSybil = (deliver: boolean) => ({
+    detection: { ...makeConfig().detection, sybilCluster: { deliver, maxClusterSize: 50, excludedFunders: [] } },
+  });
+  const cluster = (clusterSize: number) => ({ fundingClusterId: 'fc:abc', clusterSize, sameMarketSameSideEntries: 2 });
+
+  it('ignores clusters larger than max_cluster_size', () => {
+    expect(evaluateSybilCluster({ fill: makeFill(), cluster: cluster(50), config: withSybil(true) })).not.toBeNull();
+    expect(evaluateSybilCluster({ fill: makeFill(), cluster: cluster(51), config: withSybil(true) })).toBeNull();
+  });
+
+  it('is shadow when deliver = false and contributes nothing to the deliverable score', () => {
+    const shadow = evaluateSybilCluster({ fill: makeFill(), cluster: cluster(5), config: withSybil(false) })!;
+    expect(isShadowSignal(shadow)).toBe(true);
+    expect(computeDeliverableLiveScore([shadow])).toBe(0);
+    expect(isShadowSignal(evaluateSybilCluster({ fill: makeFill(), cluster: cluster(5), config: withSybil(true) })!)).toBe(false);
+  });
+});
+
+describe('keepFirstSybilPerClusterMarket', () => {
+  function fakeRedis() {
+    const store = new Map<string, string>();
+    return {
+      store,
+      set: vi.fn(async (key: string, value: string, ..._args: unknown[]) => {
+        if (store.has(key)) return null;
+        store.set(key, value);
+        return 'OK';
+      }),
+      get: vi.fn(async (key: string) => store.get(key) ?? null),
+    };
+  }
+  const sybil = { signalId: SignalId.SYBIL_CLUSTER };
+  const other = { signalId: SignalId.CONVICTION_SIZE_MISMATCH };
+
+  it('keeps only the first SYBIL signal per cluster and market', async () => {
+    const redis = fakeRedis();
+    const first = await keepFirstSybilPerClusterMarket([sybil, other], { clusterId: 'fc:1', marketId: 'm1', fillId: 'f1' }, redis as never);
+    const second = await keepFirstSybilPerClusterMarket([sybil, other], { clusterId: 'fc:1', marketId: 'm1', fillId: 'f2' }, redis as never);
+    const otherMarket = await keepFirstSybilPerClusterMarket([sybil], { clusterId: 'fc:1', marketId: 'm2', fillId: 'f3' }, redis as never);
+    const replay = await keepFirstSybilPerClusterMarket([sybil], { clusterId: 'fc:1', marketId: 'm1', fillId: 'f1' }, redis as never);
+    expect(first).toEqual([sybil, other]);
+    expect(second).toEqual([other]);
+    expect(otherMarket).toEqual([sybil]);
+    expect(replay).toEqual([sybil]);
+    expect(redis.store.get(sybilClusterMarketKey('fc:1', 'm1'))).toBe('f1');
+  });
+
+  it('does not touch Redis without a SYBIL signal or cluster', async () => {
+    const redis = fakeRedis();
+    expect(await keepFirstSybilPerClusterMarket([other], { clusterId: 'fc:1', marketId: 'm1', fillId: 'f1' }, redis as never)).toEqual([other]);
+    expect(await keepFirstSybilPerClusterMarket([sybil], { clusterId: null, marketId: 'm1', fillId: 'f1' }, redis as never)).toEqual([sybil]);
+    expect(redis.set).not.toHaveBeenCalled();
   });
 });

@@ -119,6 +119,16 @@ max_price = 0.30
 min_stake_usd = 5_000
 score = 40
 
+# SYBIL_CLUSTER (shared-funder wallets entering the same market+side). deliver = false is shadow mode: stored and graded
+# in trade_outcomes, never sent to Telegram/feed, and adds nothing to a companion signal's deliverable score. Clusters
+# larger than max_cluster_size are exchange / hot-wallet fan-out, not sybils: the cold path never forms them and the
+# signal ignores existing ones. excluded_funders (lowercase addresses) are never used as a cluster's shared funder.
+# Only the first SYBIL alert per (cluster, market) is kept (Redis omen:sybil:cluster-market:<cluster>:<market>, 30d).
+[signals.sybil_cluster]
+deliver = false
+max_cluster_size = 50
+excluded_funders = []
+
 [market_maker]
 # insider-poly-bot heuristic (frequency 30 + buy/sell balance 40 + markets 20 + days active 10).
 # Likely MMs (score >= min_score) get no live signals and are excluded from baselines.

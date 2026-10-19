@@ -1,3 +1,4 @@
+import type { Redis } from 'ioredis';
 import type { AppConfig } from '../config/schema.js';
 import type { FillRecord } from '../types/fill.js';
 import { SignalId, type TriggeredSignal } from '../types/signal.js';
@@ -14,8 +15,8 @@ interface SybilClusterSignalContext {
   config: Pick<AppConfig, 'detection'>;
 }
 
-// Weighted up 2026-10-16 (7d outcomes: SYBIL_CLUSTER +12.7pp vs baseline, n=1187). 20/35 keeps a lone SYBIL hit
-// below MEDIUM (40) so Telegram volume barely moves; base-only hits now reach LOW and enter outcome tracking.
+// Weighted up 2026-10-16 (7d outcomes: SYBIL_CLUSTER +12.7pp vs baseline, n=1187). Shadow (deliver = false) by default
+// since 2026-10-19: graded at 20/35, never delivered and never lifts a companion signal's tier.
 const SYBIL_CLUSTER_BASE_SCORE = 20;
 const SYBIL_CLUSTER_BASE_CONFIDENCE = 0.8;
 const SYBIL_CLUSTER_ELEVATED_SCORE = 35;
@@ -38,6 +39,11 @@ export function evaluateSybilCluster(context: SybilClusterSignalContext): Trigge
     return null;
   }
 
+  const sybilConfig = context.config.detection.sybilCluster;
+  if (sybilConfig && context.cluster.clusterSize > sybilConfig.maxClusterSize) {
+    return null;
+  }
+
   if (context.cluster.sameMarketSameSideEntries < 2) {
     return null;
   }
@@ -51,6 +57,7 @@ export function evaluateSybilCluster(context: SybilClusterSignalContext): Trigge
     availability: 'LIVE',
     score,
     confidence,
+    ...(sybilConfig && !sybilConfig.deliver ? { shadow: true } : {}),
     evidence: [
       {
         field: 'funding_cluster_id',
@@ -61,7 +68,9 @@ export function evaluateSybilCluster(context: SybilClusterSignalContext): Trigge
       {
         field: 'cluster_size',
         value: context.cluster.clusterSize,
-        threshold: `>= ${context.config.detection.cluster.minSize}`,
+        threshold: sybilConfig
+          ? `${context.config.detection.cluster.minSize}-${sybilConfig.maxClusterSize}`
+          : `>= ${context.config.detection.cluster.minSize}`,
         description: 'Cluster membership meets the minimum size threshold.',
       },
       {
@@ -79,4 +88,29 @@ export function evaluateSybilCluster(context: SybilClusterSignalContext): Trigge
     ],
     triggeredAt: new Date(),
   };
+}
+
+const SYBIL_CLUSTER_MARKET_TTL_SECONDS = 30 * 86_400;
+
+export function sybilClusterMarketKey(clusterId: string, marketId: string): string {
+  return `omen:sybil:cluster-market:${clusterId}:${marketId}`;
+}
+
+/**
+ * One SYBIL_CLUSTER alert per (cluster, market): the first fill claims the pair; later fills from the same cluster
+ * on the same market (either side) drop their SYBIL signal. Re-processing the claiming fill keeps it.
+ */
+export async function keepFirstSybilPerClusterMarket<T extends Pick<TriggeredSignal, 'signalId'>>(
+  signals: T[],
+  context: { clusterId: string | null; marketId: string; fillId: string },
+  redis: Pick<Redis, 'set' | 'get'>,
+): Promise<T[]> {
+  if (context.clusterId === null || !signals.some((s) => s.signalId === SignalId.SYBIL_CLUSTER)) {
+    return signals;
+  }
+  const key = sybilClusterMarketKey(context.clusterId, context.marketId);
+  const claimed =
+    (await redis.set(key, context.fillId, 'EX', SYBIL_CLUSTER_MARKET_TTL_SECONDS, 'NX')) === 'OK' ||
+    (await redis.get(key)) === context.fillId;
+  return claimed ? signals : signals.filter((s) => s.signalId !== SignalId.SYBIL_CLUSTER);
 }

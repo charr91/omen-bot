@@ -113,6 +113,7 @@ shutdown_timeout_ms = 45000
     expect(config.logLevel).toBe('info');
     expect(config.logPretty).toBe(true);
     expect(config.filters.excludeCategories).toEqual(['sports']);
+    expect(config.detection.sybilCluster).toEqual({ deliver: false, maxClusterSize: 50, excludedFunders: [] });
   });
 
   it('applies env overrides on top of TOML values', async () => {
