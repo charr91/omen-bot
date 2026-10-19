@@ -129,4 +129,37 @@ describe('KalshiService', () => {
     expect(store.insertSignal).toHaveBeenCalledTimes(1);
     expect((store.insertSignal.mock.calls[0] as unknown[])[0]).toMatchObject({ ticker: 'KXFED-26OCT-T4' });
   });
+  it('skips volume-spike and book-move generation when disabled but keeps market refresh and snapshots', async () => {
+    const hour = new Date('2026-10-12T20:00:00Z');
+    const store = {
+      ...fakeStore(),
+      listUnknownActiveTickers: vi.fn(async () => []),
+      upsertMarkets: vi.fn(async () => {}),
+      listHotTickers: vi.fn(async () => [{ ticker: 'KXA-1', hour, notionalUsd: 50_000, yesNotionalUsd: 40_000 }]),
+      listMappings: vi.fn(async () => []),
+      insertSnapshots: vi.fn(async () => {}),
+      listHourlyHistory: vi.fn(async () => []),
+      listSnapshots: vi.fn(async () => []),
+      prune: vi.fn(async () => {}),
+    };
+    const client = {
+      listTradesSince: vi.fn(),
+      getMarkets: vi.fn(async () => [parseKalshiMarket({ ticker: 'KXA-1', yes_bid_dollars: '0.4', yes_ask_dollars: '0.42' })!]),
+    };
+    const service = new KalshiService(client as never, store as never, {
+      ...cfg, storeMinNotionalUsd: 250, maxTradePagesPerPoll: 5, bookWatchlistSize: 10, divergenceCooldownMs: 1, bookMoveCooldownMs: 1,
+      volumeSpikeEnabled: false, bookMoveEnabled: false,
+    }, () => new Date('2026-10-12T20:01:00Z'));
+    await service.runMarketCycle();
+    expect(store.insertSnapshots).toHaveBeenCalledTimes(1);
+    expect(store.listHourlyHistory).not.toHaveBeenCalled();
+    expect(store.listSnapshots).not.toHaveBeenCalled();
+
+    const enabled = new KalshiService(client as never, store as never, {
+      ...cfg, storeMinNotionalUsd: 250, maxTradePagesPerPoll: 5, bookWatchlistSize: 10, divergenceCooldownMs: 1, bookMoveCooldownMs: 1,
+    }, () => new Date('2026-10-12T20:01:00Z'));
+    await enabled.runMarketCycle();
+    expect(store.listHourlyHistory).toHaveBeenCalledTimes(1);
+    expect(store.listSnapshots).toHaveBeenCalledTimes(1);
+  });
 });

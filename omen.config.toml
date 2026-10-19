@@ -119,6 +119,17 @@ max_price = 0.30
 min_stake_usd = 5_000
 score = 40
 
+# Score-only signals: they still add to the wallet's live score (so they lift FRESH_WALLET_* / CONVICTION alerts on
+# the same fill), but their own alerts are stored + graded with dispatch_eligible = false and never reach the feed.
+[signals.niche_market_entry]
+score_only = true
+
+[signals.outsized_position]
+score_only = true
+
+[signals.lump_entry]
+score_only = true
+
 # SYBIL_CLUSTER (shared-funder wallets entering the same market+side). deliver = false is shadow mode: stored and graded
 # in trade_outcomes, never sent to Telegram/feed, and adds nothing to a companion signal's deliverable score. Clusters
 # larger than max_cluster_size are exchange / hot-wallet fan-out, not sybils: the cold path never forms them and the
@@ -144,6 +155,10 @@ store_min_notional_usd = 250
 large_print_usd = 10000
 volume_spike_min_hour_usd = 5000
 book_watchlist_size = 40
+# Off since 2026-10-19 (noisy, muted anyway): trades, hourly volume and book snapshots are still ingested and
+# KALSHI_BLOCK_TRADE / CROSS_VENUE_DIVERGENCE still run (graded only; feed.mute_kalshi keeps them off Telegram).
+volume_spike_enabled = false
+book_move_enabled = false
 
 # M3: shared alert feed (charr91/smart-money-feed) in its own DB (FEED_DATABASE_URL in .env). omen publishes promoted
 # alerts (deliver=true) and mirrors M1 outcomes; the feed process owns Telegram and stays in dry run by default.

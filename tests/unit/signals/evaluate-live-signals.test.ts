@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { AppConfig } from '../../../src/config/schema.js';
-import { computeCompositeLiveScore, evaluateLiveSignals } from '../../../src/signals/evaluate-live-signals.js';
+import {
+  computeCompositeLiveScore,
+  computeDeliverableLiveScore,
+  evaluateLiveSignals,
+} from '../../../src/signals/evaluate-live-signals.js';
+import { isScoreOnlySignal, isSignalDeliverable } from '../../../src/signals/delivery.js';
+import { SignalId } from '../../../src/types/signal.js';
 import type { FillRecord } from '../../../src/types/fill.js';
 import type { MarketInfo } from '../../../src/types/market.js';
 import type { WalletProfile } from '../../../src/types/wallet.js';
@@ -130,6 +136,39 @@ describe('evaluateLiveSignals', () => {
       'FRESH_WALLET_LARGE_POSITION',
     ]);
     expect(computeCompositeLiveScore(signals)).toBe(42);
+  });
+
+  it('marks score-only signals: they keep their score but are not deliverable', () => {
+    const signals = evaluateLiveSignals({
+      fill: makeFill(),
+      wallet: makeWallet(),
+      market: makeMarket(),
+      config: {
+        detection: {
+          ...makeConfig().detection,
+          nicheMarketEntry: { maxMarketVolumeUsd: 100_000, minFillUsd: 2_000 },
+          convictionSizeMismatch: { maxWalletTotalVolumeUsd: 5_000, minFillToWalletVolumeRatio: 0.5, longshotMaxPrice: 0.3, minFillUsd: 2_000 },
+          lumpEntry: { minFillUsd: 2_000, minLumpRatio: 0.8 },
+          scoreOnlySignals: [SignalId.OUTSIZED_POSITION, SignalId.NICHE_MARKET_ENTRY, SignalId.LUMP_ENTRY],
+        },
+      },
+      cluster: null,
+    });
+
+    const outsized = signals.find((signal) => signal.signalId === 'OUTSIZED_POSITION')!;
+    const fresh = signals.find((signal) => signal.signalId === 'FRESH_WALLET_LARGE_POSITION')!;
+    expect(isScoreOnlySignal(outsized)).toBe(true);
+    expect(isSignalDeliverable(outsized)).toBe(false);
+    expect(isSignalDeliverable(fresh)).toBe(true);
+    expect(computeDeliverableLiveScore(signals)).toBe(42);
+  });
+
+  it('keeps score-only and shadow semantics distinct', () => {
+    const base = { signalId: SignalId.NICHE_MARKET_ENTRY, availability: 'LIVE' as const, score: 15, confidence: 1, evidence: [], triggeredAt: new Date() };
+    expect(computeDeliverableLiveScore([{ ...base, scoreOnly: true }])).toBe(15);
+    expect(computeDeliverableLiveScore([{ ...base, shadow: true }])).toBe(0);
+    expect(isSignalDeliverable({ shadow: true })).toBe(false);
+    expect(isSignalDeliverable({})).toBe(true);
   });
 
   it('returns only outsized-position for contract wallets', () => {

@@ -31,6 +31,7 @@ import {
 } from '../signals/evaluate-live-signals.js';
 import { classifyMarketExclusion } from '../signals/market-exclusion.js';
 import { bumpMarketExclusion } from '../markets/exclusion-stats.js';
+import { isSignalDeliverable } from '../signals/delivery.js';
 import { isShadowSignal } from '../signals/fresh-wallet-longshot.js';
 import { keepFirstSybilPerClusterMarket, type LiveClusterSignalContext } from '../signals/sybil-cluster.js';
 import { deriveAlertTier } from '../signals/scoring.js';
@@ -361,6 +362,7 @@ async function processFill(fill: FillRecord): Promise<void> {
 
   // Shadow-mode signals (e.g. FRESH_WALLET_LONGSHOT with deliver = false) never lift the wallet's live score or any
   // delivered alert's tier; their own alert carries the full score so it is graded at the tier it would have had.
+  // Score-only signals (NICHE/OUTSIZED/LUMP) do count toward the live score; only their own alert is not delivered.
   const liveScore = computeDeliverableLiveScore(triggeredSignals);
   const liveTier = deriveAlertTier(liveScore, config);
   const shadowScore = computeCompositeLiveScore(triggeredSignals);
@@ -410,7 +412,7 @@ async function processFill(fill: FillRecord): Promise<void> {
             ? null
             : await alertStore.upsertPromotedAlert(
                 promotedAlert,
-                !isShadowSignal(signal) && isAlertDispatchEligible(config, promotedAlert.deliveryTier),
+                isSignalDeliverable(signal) && isAlertDispatchEligible(config, promotedAlert.deliveryTier),
               );
 
         postMessage({

@@ -113,6 +113,9 @@ shutdown_timeout_ms = 45000
     expect(config.logLevel).toBe('info');
     expect(config.logPretty).toBe(true);
     expect(config.filters.excludeCategories).toEqual(['sports']);
+    expect(config.detection.scoreOnlySignals).toEqual(['NICHE_MARKET_ENTRY', 'OUTSIZED_POSITION', 'LUMP_ENTRY']);
+    expect(config.kalshi.volumeSpikeEnabled).toBe(false);
+    expect(config.kalshi.bookMoveEnabled).toBe(false);
     expect(config.detection.sybilCluster).toEqual({ deliver: false, maxClusterSize: 50, excludedFunders: [] });
   });
 

@@ -95,14 +95,15 @@ export function evaluateLiveSignals(context: EvaluateLiveSignalsContext): Trigge
     signals.push(freshWalletLongshot);
   }
 
-  return signals;
+  const scoreOnly = new Set(context.config.detection.scoreOnlySignals ?? []);
+  return signals.map((signal) => (scoreOnly.has(signal.signalId) ? { ...signal, scoreOnly: true } : signal));
 }
 
 export function computeCompositeLiveScore(signals: TriggeredSignal[]): number {
   return clampSuspicionScore(signals.reduce((total, signal) => total + signal.score, 0));
 }
 
-/** Composite score of the signals that may be delivered (shadow-mode signals excluded). */
+/** Composite score of the signals that may be delivered (shadow-mode signals excluded; score-only signals count). */
 export function computeDeliverableLiveScore(signals: TriggeredSignal[]): number {
   return computeCompositeLiveScore(deliverableSignals(signals));
 }

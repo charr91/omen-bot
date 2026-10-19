@@ -24,7 +24,7 @@ import { FeedClient, XBridge, loadXOptions } from '@charr91/smart-money-feed';
 import { annotatePendingAlerts, recordXRequest, xRequestForAlert } from '../feed/x-enrich.js';
 import { Pool as PgPool } from 'pg';
 import { liveAlertEnvelope, syncOutcomesToFeed } from '../feed/publisher.js';
-import { isShadowSignal } from '../signals/fresh-wallet-longshot.js';
+import { isSignalDeliverable } from '../signals/delivery.js';
 import { KalshiClient } from '../kalshi/client.js';
 import { KalshiService } from '../kalshi/service.js';
 import { readMarketExclusions } from '../markets/exclusion-stats.js';
@@ -609,9 +609,9 @@ async function handleSignalPreview(options: {
   }
 
   const storedAlert = await resolveStoredAlert(promotedAlert, alertStore, alertDispatcher);
-  // Shadow-mode signals are stored (above) and graded via trade_outcomes (the outcome sync mirrors them to the feed
-  // with deliver=false), but never published as a live alert, X-enriched or dispatched.
-  if (isShadowSignal(preview.signal)) {
+  // Shadow-mode and score-only signals are stored (above) and graded via trade_outcomes (the outcome sync mirrors them
+  // to the feed with deliver=false), but never published as a live alert, X-enriched or dispatched.
+  if (!isSignalDeliverable(preview.signal)) {
     dashboard?.addSignalPreview(preview);
     return;
   }
@@ -861,7 +861,7 @@ async function resolveStoredAlert(
 ): Promise<StoredAlert> {
   const storedAlert = await alertStore.upsertPromotedAlert(
     promotedAlert,
-    !promotedAlert.dryRun && !isShadowSignal(promotedAlert.signal) && alertDispatcher.getEnabledChannels(promotedAlert.deliveryTier).length > 0,
+    !promotedAlert.dryRun && isSignalDeliverable(promotedAlert.signal) && alertDispatcher.getEnabledChannels(promotedAlert.deliveryTier).length > 0,
   );
 
   return {

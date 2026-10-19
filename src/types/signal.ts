@@ -27,4 +27,6 @@ export interface TriggeredSignal {
   triggeredAt: Date;
   /** Shadow mode: recorded + outcome-graded but never delivered (Telegram/Discord/feed). */
   shadow?: boolean;
+  /** Score-only: counts toward the deliverable score, but this signal's own alert is never delivered. */
+  scoreOnly?: boolean;
 }

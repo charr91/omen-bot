@@ -17,6 +17,9 @@ export interface KalshiServiceConfig extends KalshiSignalConfig {
   bookMoveCooldownMs: number;
   /** [filters] exclude_categories: no signals for markets whose series is in a matching Kalshi category. */
   excludeCategories?: string[];
+  /** KALSHI_VOLUME_SPIKE / KALSHI_BOOK_MOVE generation; absent = on. Ingest is unaffected. */
+  volumeSpikeEnabled?: boolean;
+  bookMoveEnabled?: boolean;
 }
 
 /** filters.exclude_categories name -> Kalshi `/series` category. */
@@ -107,13 +110,13 @@ export class KalshiService {
       ]),
     );
 
-    for (const current of hot) {
+    for (const current of this.config.volumeSpikeEnabled === false ? [] : hot) {
       const history = await this.store.listHourlyHistory(current.ticker, new Date(hour.getTime() - 7 * 24 * HOUR_MS), hour);
       const signal = evaluateVolumeSpike(current.ticker, history, current, now, yesPriceOf.get(current.ticker) ?? null, this.config);
       if (signal && (await this.store.insertSignal(signal, HOUR_MS))) this.count(result, signal);
     }
 
-    for (const market of markets) {
+    for (const market of this.config.bookMoveEnabled === false ? [] : markets) {
       const snapshots = await this.store.listSnapshots(market.ticker, new Date(now.getTime() - this.config.bookMoveWindowMs));
       const signal = evaluateBookMove(market.ticker, snapshots, this.config);
       if (signal && (await this.store.insertSignal(signal, this.config.bookMoveCooldownMs))) this.count(result, signal);

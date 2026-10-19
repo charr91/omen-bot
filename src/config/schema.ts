@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { SignalId } from '../types/signal.js';
 
 const booleanStringSchema = z
   .enum(['true', 'false', '1', '0'])
@@ -154,10 +155,15 @@ export const fileConfigSchema = z
         depth_pull_ratio: z.number().positive().max(1).optional(),
         divergence_min_gap: z.number().positive().optional(),
         book_watchlist_size: z.number().int().nonnegative().optional(),
+        volume_spike_enabled: z.boolean().optional(),
+        book_move_enabled: z.boolean().optional(),
       })
       .optional(),
     signals: z
       .object({
+        niche_market_entry: z.object({ score_only: z.boolean().optional() }).optional(),
+        outsized_position: z.object({ score_only: z.boolean().optional() }).optional(),
+        lump_entry: z.object({ score_only: z.boolean().optional() }).optional(),
         sybil_cluster: z
           .object({
             deliver: z.boolean().optional(),
@@ -230,6 +236,9 @@ export const fileConfigSchema = z
       },
     },
     signals: {
+      niche_market_entry: { score_only: value.signals?.niche_market_entry?.score_only ?? true },
+      outsized_position: { score_only: value.signals?.outsized_position?.score_only ?? true },
+      lump_entry: { score_only: value.signals?.lump_entry?.score_only ?? true },
       sybil_cluster: {
         deliver: value.signals?.sybil_cluster?.deliver ?? false,
         max_cluster_size: value.signals?.sybil_cluster?.max_cluster_size ?? 50,
@@ -309,6 +318,8 @@ export const fileConfigSchema = z
       depth_pull_ratio: value.kalshi?.depth_pull_ratio ?? 0.7,
       divergence_min_gap: value.kalshi?.divergence_min_gap ?? 0.06,
       book_watchlist_size: value.kalshi?.book_watchlist_size ?? 40,
+      volume_spike_enabled: value.kalshi?.volume_spike_enabled ?? false,
+      book_move_enabled: value.kalshi?.book_move_enabled ?? false,
     },
     market_maker: {
       filter_enabled: value.market_maker?.filter_enabled ?? true,
@@ -407,6 +418,8 @@ export interface AppConfig {
       maxRpcCalls: number;
       sameMarketSameSideWindowMs: number;
     };
+    /** Signals marked score-only ([signals.<id>] score_only); optional so partial test configs deliver everything. */
+    scoreOnlySignals?: SignalId[];
     /** [signals.sybil_cluster]; optional so partial test configs keep the legacy behaviour (delivered, no size cap). */
     sybilCluster?: {
       /** false = shadow mode: stored + outcome-graded, never delivered, adds nothing to the deliverable score. */
@@ -506,6 +519,9 @@ export interface AppConfig {
     depthPullRatio: number;
     divergenceMinGap: number;
     bookWatchlistSize: number;
+    /** KALSHI_VOLUME_SPIKE / KALSHI_BOOK_MOVE generation (default off; trades, volume and books are still ingested). */
+    volumeSpikeEnabled: boolean;
+    bookMoveEnabled: boolean;
   };
   /** insider-poly-bot market-maker heuristic: suppress signals from likely MMs and keep them out of baselines. */
   marketMaker: {

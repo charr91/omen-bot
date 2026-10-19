@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
+import { SignalId } from '../types/signal.js';
 import { envConfigSchema, fileConfigSchema, type AppConfig } from './schema.js';
 
 const require = createRequire(import.meta.url);
@@ -105,6 +106,11 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
         maxRpcCalls: fileConfig.detection.cluster.max_rpc_calls,
         sameMarketSameSideWindowMs: fileConfig.detection.cluster.same_market_same_side_window_ms,
       },
+      scoreOnlySignals: [
+        ...(fileConfig.signals.niche_market_entry.score_only ? [SignalId.NICHE_MARKET_ENTRY] : []),
+        ...(fileConfig.signals.outsized_position.score_only ? [SignalId.OUTSIZED_POSITION] : []),
+        ...(fileConfig.signals.lump_entry.score_only ? [SignalId.LUMP_ENTRY] : []),
+      ],
       sybilCluster: {
         deliver: fileConfig.signals.sybil_cluster.deliver,
         maxClusterSize: fileConfig.signals.sybil_cluster.max_cluster_size,
@@ -190,6 +196,8 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
       depthPullRatio: fileConfig.kalshi.depth_pull_ratio,
       divergenceMinGap: fileConfig.kalshi.divergence_min_gap,
       bookWatchlistSize: fileConfig.kalshi.book_watchlist_size,
+      volumeSpikeEnabled: fileConfig.kalshi.volume_spike_enabled,
+      bookMoveEnabled: fileConfig.kalshi.book_move_enabled,
     },
     marketMaker: {
       filterEnabled: fileConfig.market_maker.filter_enabled,
