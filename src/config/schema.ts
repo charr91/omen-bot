@@ -73,6 +73,11 @@ export const fileConfigSchema = z
           .optional(),
       })
       .optional(),
+    filters: z
+      .object({
+        exclude_categories: z.array(z.string().min(1)).optional(),
+      })
+      .optional(),
     alerts: z
       .object({
         critical_min_score: z.number().min(0).max(100).optional(),
@@ -227,6 +232,9 @@ export const fileConfigSchema = z
         min_stake_usd: value.signals?.fresh_wallet_longshot?.min_stake_usd ?? 5_000,
         score: value.signals?.fresh_wallet_longshot?.score ?? 40,
       },
+    },
+    filters: {
+      exclude_categories: (value.filters?.exclude_categories ?? ['sports']).map((c) => c.toLowerCase()),
     },
     alerts: {
       critical_min_score: value.alerts?.critical_min_score ?? 80,
@@ -398,6 +406,10 @@ export interface AppConfig {
       minStakeUsd: number;
       score: number;
     };
+  };
+  /** [filters]: markets in these categories are dropped before profiling, signals and alerts (sports by metadata). */
+  filters: {
+    excludeCategories: string[];
   };
   alerts: {
     criticalMinScore: number;

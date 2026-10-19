@@ -91,10 +91,45 @@ function mapGammaMarket(market: JsonObject): ActiveMarket[] {
         Math.max(getNumber(market, ['volume24hrClob']) ?? 0, getNumber(market, ['volume24hr']) ?? 0),
       ),
       gameStartTime: extractGameStartTime(market),
+      category: extractCategory(market),
+      tags: extractTags(market),
+      sportsMarketType: getString(market, ['sportsMarketType']),
       volumeUsd: formatNumericString(getNumber(market, ['volumeNum', 'volume']) ?? 0),
       liquidityUsd: formatNumericString(getNumber(market, ['liquidityNum', 'liquidity']) ?? 0),
     },
   ];
+}
+
+function firstEvent(market: JsonObject): JsonObject | null {
+  const events = Array.isArray(market.events) ? (market.events as unknown[]) : [];
+  return events[0] && typeof events[0] === 'object' ? (events[0] as JsonObject) : null;
+}
+
+/** Gamma's legacy `category` (market, else event); most current markets only carry tags. */
+export function extractCategory(market: JsonObject): string | null {
+  const event = firstEvent(market);
+  return getString(market, ['category']) ?? (event ? getString(event, ['category']) : null);
+}
+
+/** Tag slugs and labels from the market (include_tag=true) and its first event, lowercased and deduplicated. */
+export function extractTags(market: JsonObject): string[] {
+  const event = firstEvent(market);
+  const out = new Set<string>();
+  for (const source of [market, event]) {
+    const tags = source && Array.isArray(source.tags) ? (source.tags as unknown[]) : [];
+    for (const tag of tags) {
+      if (typeof tag === 'string') out.add(tag.toLowerCase());
+      else if (tag && typeof tag === 'object') {
+        for (const key of ['slug', 'label']) {
+          const value = (tag as JsonObject)[key];
+          if (typeof value === 'string' && value.length > 0) out.add(value.toLowerCase());
+        }
+      }
+    }
+  }
+  const seriesSlug = event ? getString(event, ['seriesSlug']) : null;
+  if (seriesSlug) out.add(`series:${seriesSlug.toLowerCase()}`);
+  return [...out];
 }
 
 /** Sports: Gamma's market `gameStartTime` ("2026-10-13 00:00:00+00"), else the event's `startTime`. */
@@ -122,6 +157,7 @@ export async function fetchMarketsByConditionIds(conditionIds: string[], options
     url.searchParams.append('condition_ids', conditionId);
   }
   url.searchParams.set('limit', String(conditionIds.length));
+  url.searchParams.set('include_tag', 'true');
   if (options.closed) url.searchParams.set('closed', 'true');
   const payload = await fetchJson(url);
   return jsonArraySchema
@@ -183,6 +219,7 @@ async function fetchAllActiveMarkets(): Promise<JsonObject[]> {
     url.searchParams.set('closed', 'false');
     url.searchParams.set('limit', String(ACTIVE_MARKETS_PAGE_SIZE));
     url.searchParams.set('offset', String(offset));
+    url.searchParams.set('include_tag', 'true');
 
     let payload: unknown;
     try {

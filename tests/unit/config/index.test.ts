@@ -112,6 +112,7 @@ shutdown_timeout_ms = 45000
     expect(config.discord.mediumWebhookUrl).toBe('https://discord.example/medium');
     expect(config.logLevel).toBe('info');
     expect(config.logPretty).toBe(true);
+    expect(config.filters.excludeCategories).toEqual(['sports']);
   });
 
   it('applies env overrides on top of TOML values', async () => {

@@ -27,6 +27,7 @@ import { liveAlertEnvelope, syncOutcomesToFeed } from '../feed/publisher.js';
 import { isShadowSignal } from '../signals/fresh-wallet-longshot.js';
 import { KalshiClient } from '../kalshi/client.js';
 import { KalshiService } from '../kalshi/service.js';
+import { readMarketExclusions } from '../markets/exclusion-stats.js';
 import { createKalshiStore } from '../kalshi/store.js';
 import { createTradeOutcomeStore } from '../outcomes/store.js';
 import { createMarketMakerStore } from '../persistence/queries/market-maker.js';
@@ -278,10 +279,12 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
             return;
           }
 
-          void readAlchemyCuUsage(redis)
-            .catch(() => null)
-            .then((alchemyCu) => {
-              emitStructuredLog(logger, { ...runtimeStats, alchemyCu });
+          void Promise.all([
+            readAlchemyCuUsage(redis).catch(() => null),
+            readMarketExclusions(redis).catch(() => null),
+          ])
+            .then(([alchemyCu, marketExcluded]) => {
+              emitStructuredLog(logger, { ...runtimeStats, alchemyCu, marketExcluded });
               if (alchemyCu && lastCuDay !== null && alchemyCu.day !== lastCuDay) {
                 void readAlchemyCuUsage(redis, new Date(Date.parse(`${lastCuDay}T23:59:59Z`)))
                   .then((previous) => emitStructuredLog(logger, { type: 'alchemy-cu-daily', ...previous }))
@@ -315,6 +318,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
         maxTradePagesPerPoll: 20,
         divergenceCooldownMs: 60 * 60_000,
         bookMoveCooldownMs: 30 * 60_000,
+        excludeCategories: config.filters.excludeCategories,
       });
       const loop = (name: string, fn: () => Promise<object>, everyMs: number): void => {
         let running = false;

@@ -115,6 +115,9 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
         score: fileConfig.signals.fresh_wallet_longshot.score,
       },
     },
+    filters: {
+      excludeCategories: fileConfig.filters.exclude_categories,
+    },
     alerts: {
       criticalMinScore: fileConfig.alerts.critical_min_score,
       highMinScore: fileConfig.alerts.high_min_score,

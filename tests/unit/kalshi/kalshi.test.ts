@@ -106,4 +106,27 @@ describe('KalshiService', () => {
     const second = await service.pollTrades();
     expect(second.trades).toBe(0);
   });
+  it('skips signals for markets in excluded Kalshi categories (sports series) but still ingests trades', async () => {
+    const trades = [
+      parseKalshiTrade(rawTrade({ trade_id: 'a', ticker: 'KXSERIEAGAME-26OCT12TORUDI-TOR', count_fp: '50000' }))!,
+      parseKalshiTrade(rawTrade({ trade_id: 'b', ticker: 'KXFED-26OCT-T4', count_fp: '50000' }))!,
+    ];
+    const client = {
+      listTradesSince: vi.fn(async () => ({ trades, complete: true })),
+      getMarkets: vi.fn(),
+      listSeriesTickers: vi.fn(async (category: string) => (category === 'Sports' ? ['KXSERIEAGAME'] : [])),
+    };
+    const store = fakeStore();
+    const service = new KalshiService(client as never, store as never, {
+      ...cfg, storeMinNotionalUsd: 250, maxTradePagesPerPoll: 5, bookWatchlistSize: 10, divergenceCooldownMs: 1, bookMoveCooldownMs: 1,
+      excludeCategories: ['sports'],
+    }, () => new Date('2026-10-12T20:01:00Z'));
+    const result = await service.pollTrades();
+    expect(client.listSeriesTickers).toHaveBeenCalledWith('Sports');
+    expect(result.storedTrades).toBe(2);
+    expect(result.signals.KALSHI_BLOCK_TRADE).toBe(1);
+    expect(result.excluded).toBe(1);
+    expect(store.insertSignal).toHaveBeenCalledTimes(1);
+    expect((store.insertSignal.mock.calls[0] as unknown[])[0]).toMatchObject({ ticker: 'KXFED-26OCT-T4' });
+  });
 });

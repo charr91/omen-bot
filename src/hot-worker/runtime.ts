@@ -23,7 +23,14 @@ import { createMarketMakerStore } from '../persistence/queries/market-maker.js';
 import { AlchemyDailyBudget, startCuMeterFlush } from '../resilience/cu-meter.js';
 import { isSettledChainProfile, profileModeForFill } from './profile-gate.js';
 import { buildConservativeChainProfile } from './chain-profile.js';
-import { computeCompositeLiveScore, computeDeliverableLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
+import {
+  computeCompositeLiveScore,
+  computeDeliverableLiveScore,
+  evaluateLiveSignals,
+  marketExclusionConfig,
+} from '../signals/evaluate-live-signals.js';
+import { classifyMarketExclusion } from '../signals/market-exclusion.js';
+import { bumpMarketExclusion } from '../markets/exclusion-stats.js';
 import { isShadowSignal } from '../signals/fresh-wallet-longshot.js';
 import type { LiveClusterSignalContext } from '../signals/sybil-cluster.js';
 import { deriveAlertTier } from '../signals/scoring.js';
@@ -86,6 +93,7 @@ const walletProfiler = new AlchemyWalletProfiler(config.alchemyApiKey, {
   },
 });
 const marketCatalog = new ActiveMarketCatalog();
+const marketExclusionSettings = marketExclusionConfig(config);
 const volumeRefiner = new MarketVolumeRefiner();
 const coldPathQueue = createFundingGraphRebuildJobQueue(config);
 const queue: FillRecord[] = [];
@@ -221,6 +229,15 @@ async function processFill(fill: FillRecord): Promise<void> {
     return;
   }
 
+  // [filters] exclude_categories (sports by Gamma metadata): dropped before any Alchemy, cluster or signal work.
+  const catalogMarket = await marketCatalog.getMarket(fill.marketId);
+  const exclusion = catalogMarket === null ? null : classifyMarketExclusion(catalogMarket, marketExclusionSettings);
+  if (exclusion !== null) {
+    void bumpMarketExclusion(redis, exclusion).catch(() => undefined);
+    await fillStore.markFillAnalyzed(fill.id);
+    return;
+  }
+
   const [aggregateStats, signalContext, isWhitelisted, persisted] = await Promise.all([
     walletStore.getAggregateStats(fill.walletAddress, { fillId: fill.id, fillTimestamp: fill.timestamp }),
     walletStore.getSignalContext(fill.walletAddress),
@@ -269,7 +286,6 @@ async function processFill(fill: FillRecord): Promise<void> {
     });
   }
 
-  const catalogMarket = await marketCatalog.getMarket(fill.marketId);
   // Gamma's volume24hr lags; full-mode fills (the ones that can trip volume-relative signals) also read the
   // market's own 24h trade tape and use the larger figure.
   const market =

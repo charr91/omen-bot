@@ -1,4 +1,5 @@
 import { fetchActiveMarkets, fetchMarketsByConditionIds } from '../phase0/public-api.js';
+import type { ActiveMarket } from '../phase0/types.js';
 import type { MarketInfo } from '../types/market.js';
 
 interface ActiveMarketCatalogOptions {
@@ -55,18 +56,7 @@ export class ActiveMarketCatalog {
       return cached.value;
     }
     const [market] = (await this.fetchMarketsByIds([marketId])).filter((entry) => entry.conditionId === marketId);
-    const value: MarketInfo | null = market
-      ? {
-          id: market.conditionId,
-          eventSlug: market.eventSlug,
-          question: market.question,
-          marketSlug: market.marketSlug,
-          dailyVolumeUsd: market.dailyVolumeUsd,
-          gameStartTime: market.gameStartTime ?? null,
-          volumeUsd: market.volumeUsd,
-          liquidityUsd: market.liquidityUsd,
-        }
-      : null;
+    const value = market ? toMarketInfo(market) : null;
     if (this.onDemand.size >= MAX_ON_DEMAND_ENTRIES) {
       this.onDemand.clear();
     }
@@ -87,16 +77,7 @@ export class ActiveMarketCatalog {
       const result = await this.fetchMarkets();
       this.markets.clear();
       for (const market of result.markets) {
-        this.markets.set(market.conditionId, {
-          id: market.conditionId,
-          eventSlug: market.eventSlug,
-          question: market.question,
-          marketSlug: market.marketSlug,
-          dailyVolumeUsd: market.dailyVolumeUsd,
-          gameStartTime: market.gameStartTime ?? null,
-          volumeUsd: market.volumeUsd,
-          liquidityUsd: market.liquidityUsd,
-        });
+        this.markets.set(market.conditionId, toMarketInfo(market));
       }
       this.refreshedAt = this.now();
     })();
@@ -107,4 +88,20 @@ export class ActiveMarketCatalog {
       this.refreshPromise = null;
     }
   }
+}
+
+export function toMarketInfo(market: ActiveMarket): MarketInfo {
+  return {
+    id: market.conditionId,
+    eventSlug: market.eventSlug,
+    question: market.question,
+    marketSlug: market.marketSlug,
+    dailyVolumeUsd: market.dailyVolumeUsd,
+    gameStartTime: market.gameStartTime ?? null,
+    category: market.category ?? null,
+    tags: market.tags ?? [],
+    sportsMarketType: market.sportsMarketType ?? null,
+    volumeUsd: market.volumeUsd,
+    liquidityUsd: market.liquidityUsd,
+  };
 }

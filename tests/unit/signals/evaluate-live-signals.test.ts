@@ -181,6 +181,13 @@ describe('evaluateLiveSignals', () => {
     expect(signals).toEqual([]);
   });
 
+  it('skips all live signals for sports markets by metadata when filters exclude sports', () => {
+    const market = makeMarket({ question: 'Will AC Monza win?', tags: ['sports', 'soccer'] });
+    const base = { fill: makeFill(), wallet: makeWallet(), market, cluster: null };
+    expect(evaluateLiveSignals({ ...base, config: makeConfig() }).length).toBeGreaterThan(0);
+    expect(evaluateLiveSignals({ ...base, config: { ...makeConfig(), filters: { excludeCategories: ['sports'] } } })).toEqual([]);
+  });
+
   it('skips all live signals for whitelisted wallets', () => {
     const signals = evaluateLiveSignals({
       fill: makeFill(),

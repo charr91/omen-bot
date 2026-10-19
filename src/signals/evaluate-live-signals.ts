@@ -11,13 +11,13 @@ import type { FillRecord } from '../types/fill.js';
 import type { MarketInfo } from '../types/market.js';
 import type { TriggeredSignal } from '../types/signal.js';
 import type { WalletProfile } from '../types/wallet.js';
-import { isMarketExcluded } from './market-exclusion.js';
+import { classifyMarketExclusion, type MarketExclusionConfig } from './market-exclusion.js';
 
 interface EvaluateLiveSignalsContext {
   fill: FillRecord;
   wallet: WalletProfile;
   market: MarketInfo | null;
-  config: Pick<AppConfig, 'detection'>;
+  config: Pick<AppConfig, 'detection'> & Partial<Pick<AppConfig, 'filters'>>;
   cluster: LiveClusterSignalContext | null;
 }
 
@@ -27,7 +27,7 @@ export function evaluateLiveSignals(context: EvaluateLiveSignalsContext): Trigge
     return [];
   }
 
-  if (isMarketExcluded(market, context.config.detection.excludedCategories)) {
+  if (classifyMarketExclusion(market, marketExclusionConfig(context.config)) !== null) {
     return [];
   }
 
@@ -105,4 +105,13 @@ export function computeCompositeLiveScore(signals: TriggeredSignal[]): number {
 /** Composite score of the signals that may be delivered (shadow-mode signals excluded). */
 export function computeDeliverableLiveScore(signals: TriggeredSignal[]): number {
   return computeCompositeLiveScore(deliverableSignals(signals));
+}
+
+export function marketExclusionConfig(
+  config: Pick<AppConfig, 'detection'> & Partial<Pick<AppConfig, 'filters'>>,
+): MarketExclusionConfig {
+  return {
+    keywordCategories: config.detection.excludedCategories,
+    excludeCategories: config.filters?.excludeCategories ?? null,
+  };
 }

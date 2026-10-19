@@ -1,4 +1,4 @@
-import type { KalshiClient, KalshiTrade } from './client.js';
+import { seriesTickerOf, type KalshiClient, type KalshiTrade } from './client.js';
 import {
   evaluateBlockTrade,
   evaluateBookMove,
@@ -15,26 +15,39 @@ export interface KalshiServiceConfig extends KalshiSignalConfig {
   bookWatchlistSize: number;
   divergenceCooldownMs: number;
   bookMoveCooldownMs: number;
+  /** [filters] exclude_categories: no signals for markets whose series is in a matching Kalshi category. */
+  excludeCategories?: string[];
 }
+
+/** filters.exclude_categories name -> Kalshi `/series` category. */
+export const KALSHI_FILTER_CATEGORIES: Record<string, string> = {
+  sports: 'Sports',
+};
 
 export interface KalshiCycleResult {
   trades: number;
   storedTrades: number;
   truncated: boolean;
   signals: Partial<Record<KalshiSignal['signalId'], number>>;
+  /** Signal candidates skipped because the market's series is in an excluded category. */
+  excluded?: number;
 }
 
 const HOUR_MS = 3_600_000;
 const SEEN_TTL_MS = 10 * 60_000;
 const TRADE_OVERLAP_SEC = 30;
+const SERIES_REFRESH_MS = 6 * HOUR_MS;
+const SERIES_RETRY_MS = 5 * 60_000;
 
 /** Kalshi read-only ingest + signals. No identities exist on Kalshi, so all signals are market-level. */
 export class KalshiService {
   private cursorSec: number | null = null;
   private readonly seen = new Map<string, number>();
+  private excludedSeries = new Set<string>();
+  private excludedSeriesAt = 0;
 
   constructor(
-    private readonly client: Pick<KalshiClient, 'listTradesSince' | 'getMarkets'>,
+    private readonly client: Pick<KalshiClient, 'listTradesSince' | 'getMarkets'> & Partial<Pick<KalshiClient, 'listSeriesTickers'>>,
     private readonly store: KalshiStore,
     private readonly config: KalshiServiceConfig,
     private readonly now: () => Date = () => new Date(),
@@ -51,7 +64,9 @@ export class KalshiService {
     await this.store.insertTrades(large);
 
     const result: KalshiCycleResult = { trades: fresh.length, storedTrades: large.length, truncated: !complete, signals: {} };
+    const isExcluded = await this.excludedTickerFilter(now);
     for (const trade of large) {
+      if (this.skipExcluded(result, isExcluded, trade.ticker)) continue;
       const signal = evaluateBlockTrade(trade, this.config);
       if (signal && (await this.store.insertSignal(signal, HOUR_MS))) this.count(result, signal);
     }
@@ -71,8 +86,11 @@ export class KalshiService {
     const unknown = await this.store.listUnknownActiveTickers(new Date(now.getTime() - 24 * HOUR_MS), this.config.storeMinNotionalUsd, 100);
     if (unknown.length > 0) await this.store.upsertMarkets(await this.client.getMarkets(unknown));
 
-    const hot = await this.store.listHotTickers(hour, this.config.volumeSpikeMinHourUsd, this.config.bookWatchlistSize);
-    const mappings = await this.store.listMappings();
+    const isExcluded = await this.excludedTickerFilter(now);
+    const hot = (await this.store.listHotTickers(hour, this.config.volumeSpikeMinHourUsd, this.config.bookWatchlistSize)).filter(
+      (h) => !this.skipExcluded(result, isExcluded, h.ticker),
+    );
+    const mappings = (await this.store.listMappings()).filter((m) => !this.skipExcluded(result, isExcluded, m.kalshiTicker));
     const watch = [...new Set([...mappings.map((m) => m.kalshiTicker), ...hot.map((h) => h.ticker)])].slice(
       0,
       this.config.bookWatchlistSize + mappings.length,
@@ -120,6 +138,30 @@ export class KalshiService {
 
     if (now.getUTCMinutes() === 0) await this.store.prune(now);
     return result;
+  }
+
+  /** Ticker predicate for excluded categories; the series list is refreshed every 6h (a failed refresh keeps the last one). */
+  private async excludedTickerFilter(now: Date): Promise<(ticker: string) => boolean> {
+    const categories = (this.config.excludeCategories ?? []).flatMap((c) => KALSHI_FILTER_CATEGORIES[c] ?? []);
+    if (categories.length === 0 || !this.client.listSeriesTickers) return () => false;
+    if (now.getTime() - this.excludedSeriesAt >= SERIES_REFRESH_MS) {
+      this.excludedSeriesAt = now.getTime();
+      try {
+        const series = new Set<string>();
+        for (const category of categories) for (const ticker of await this.client.listSeriesTickers(category)) series.add(ticker);
+        this.excludedSeries = series;
+      } catch {
+        // keep the previous list; retry in 5 minutes
+        this.excludedSeriesAt = now.getTime() - SERIES_REFRESH_MS + SERIES_RETRY_MS;
+      }
+    }
+    return (ticker) => this.excludedSeries.has(seriesTickerOf(ticker));
+  }
+
+  private skipExcluded(result: KalshiCycleResult, isExcluded: (ticker: string) => boolean, ticker: string): boolean {
+    if (!isExcluded(ticker)) return false;
+    result.excluded = (result.excluded ?? 0) + 1;
+    return true;
   }
 
   private dedupe(trades: KalshiTrade[], now: Date): KalshiTrade[] {

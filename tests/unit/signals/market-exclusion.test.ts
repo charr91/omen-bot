@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { isMarketExcluded } from '../../../src/signals/market-exclusion.js';
+import {
+  classifyMarketExclusion,
+  hasMarketMetadata,
+  isMarketExcluded,
+  isSportsByHeuristic,
+  isSportsByMetadata,
+} from '../../../src/signals/market-exclusion.js';
 import type { MarketInfo } from '../../../src/types/market.js';
 
 function makeMarket(overrides: Partial<MarketInfo> = {}): MarketInfo {
@@ -137,5 +143,59 @@ describe('isMarketExcluded', () => {
     expect(isMarketExcluded(market, { weather: ['weather', 'temperature', 'forecast'] })).toBe(
       false,
     );
+  });
+});
+
+describe('classifyMarketExclusion', () => {
+  const keywordCategories = { weather: ['weather', 'rain'], sports: ['nba', 'premier league'] };
+  const config = { keywordCategories, excludeCategories: ['sports'] };
+
+  it('excludes sports from Gamma tags without any keyword in the text', () => {
+    const market = makeMarket({ question: 'Will AC Monza win on 2026-10-19?', tags: ['sports', 'soccer', 'sea'] });
+    expect(classifyMarketExclusion(market, config)).toEqual({ category: 'sports', source: 'metadata' });
+  });
+
+  it('excludes sports from sportsMarketType or a Sports category', () => {
+    expect(classifyMarketExclusion(makeMarket({ sportsMarketType: 'moneyline' }), config)).toEqual({ category: 'sports', source: 'metadata' });
+    expect(classifyMarketExclusion(makeMarket({ category: 'Sports' }), config)).toEqual({ category: 'sports', source: 'metadata' });
+    expect(classifyMarketExclusion(makeMarket({ tags: ['esports', 'counter-strike-2'] }), config)).toEqual({ category: 'sports', source: 'metadata' });
+  });
+
+  it('keeps non-sports metadata markets even when the text matches sports keywords', () => {
+    const market = makeMarket({ question: 'Will Trump attend an NBA game in 2026?', tags: ['politics', 'trump'] });
+    expect(classifyMarketExclusion(market, config)).toBeNull();
+  });
+
+  it('falls back to keywords and game-shaped patterns only when metadata is missing', () => {
+    expect(classifyMarketExclusion(makeMarket({ question: 'Will Getafe CF win on 2026-10-19?' }), config)).toEqual({ category: 'sports', source: 'heuristic' });
+    expect(classifyMarketExclusion(makeMarket({ question: 'Lakers vs. Celtics' }), config)).toEqual({ category: 'sports', source: 'heuristic' });
+    expect(classifyMarketExclusion(makeMarket({ question: 'Exact Score: Arsenal 2 - 1 Chelsea?' }), config)).toEqual({ category: 'sports', source: 'heuristic' });
+    expect(classifyMarketExclusion(makeMarket({ question: 'Counter-Strike: G2 vs FaZe (BO3)' }), config)).toEqual({ category: 'sports', source: 'heuristic' });
+    expect(classifyMarketExclusion(makeMarket({ eventSlug: 'nba-finals-2026' }), config)).toEqual({ category: 'sports', source: 'heuristic' });
+    expect(classifyMarketExclusion(makeMarket({ question: 'Will the Fed cut rates in October?' }), config)).toBeNull();
+    expect(classifyMarketExclusion(makeMarket({ question: 'Will the Fed cut rates in October?', tags: [] }), config)).toBeNull();
+  });
+
+  it('keeps weather keyword exclusion regardless of metadata', () => {
+    const market = makeMarket({ question: 'Will it rain in NYC tomorrow?', tags: ['weather'] });
+    expect(classifyMarketExclusion(market, config)).toEqual({ category: 'weather', source: 'keyword' });
+  });
+
+  it('does not exclude sports when it is removed from filters', () => {
+    const market = makeMarket({ question: 'NBA: Lakers vs. Celtics', tags: ['sports', 'nba'] });
+    expect(classifyMarketExclusion(market, { keywordCategories, excludeCategories: [] })).toBeNull();
+  });
+
+  it('uses legacy keyword matching for every category when filters are absent', () => {
+    const market = makeMarket({ question: 'NBA: Lakers vs. Celtics', tags: ['politics'] });
+    expect(classifyMarketExclusion(market, { keywordCategories, excludeCategories: null })).toEqual({ category: 'sports', source: 'keyword' });
+  });
+
+  it('reports whether metadata is present and sports by metadata', () => {
+    expect(hasMarketMetadata({})).toBe(false);
+    expect(hasMarketMetadata({ tags: [], category: null })).toBe(false);
+    expect(hasMarketMetadata({ tags: ['politics'] })).toBe(true);
+    expect(isSportsByMetadata({ tags: ['politics', 'elections'] })).toBe(false);
+    expect(isSportsByHeuristic({ eventSlug: null, marketSlug: null, question: 'Will Bitcoin hit $150k?' })).toBe(false);
   });
 });

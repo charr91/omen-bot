@@ -197,6 +197,21 @@ export class KalshiClient {
     return markets;
   }
 
+  /** Series tickers in a Kalshi category ("Sports", "Climate and Weather", ...). */
+  async listSeriesTickers(category: string): Promise<string[]> {
+    const tickers: string[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < 20; page += 1) {
+      const payload = await this.get<{ series?: Array<Record<string, unknown>>; cursor?: string }>('/series', { category, cursor });
+      for (const series of payload.series ?? []) {
+        if (typeof series.ticker === 'string' && series.category === category) tickers.push(series.ticker);
+      }
+      cursor = payload.cursor || undefined;
+      if (!cursor) break;
+    }
+    return tickers;
+  }
+
   async listOpenMarkets(maxPages: number): Promise<KalshiMarket[]> {
     const markets: KalshiMarket[] = [];
     let cursor: string | undefined;

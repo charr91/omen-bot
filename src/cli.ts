@@ -11,6 +11,7 @@ import { sendTestTelegramAlert } from './alerts/test-telegram.js';
 import { runColdWorkerCommand } from './cold-path/runtime.js';
 import { parseStatsOptions, runStatsCommand } from './outcomes/command.js';
 import { runKalshiMapCommand } from './kalshi/command.js';
+import { runExclusionShareCommand } from './markets/exclusion-share.js';
 import { parseBacktestOptions, runBacktestCommand } from './backtest/command.js';
 import { runHealthCommand, runReplayCommand, runStartCommand } from './engine/index.js';
 import { loadEnvironment } from './env.js';
@@ -41,6 +42,7 @@ Usage:
   omen [--env-file .env] replay
   omen [--env-file .env] health
   omen [--env-file .env] stats [--days 7] [--json] [--refresh]
+  omen [--env-file .env] sports-share [--days 7] [--json]
   omen backtest [--out docs/backtests/m2-insider-cases.md] [--json f] [--offline] [--refresh] [--only <case-id>]
   omen [--env-file .env] kalshi-map <list|add|remove|suggest [--auto] [--min 0.6]> [...]
   omen [--env-file .env] test-telegram
@@ -83,6 +85,11 @@ async function main(): Promise<void> {
 
   if (scope === 'stats') {
     process.stdout.write(`${await runStatsCommand(parseStatsOptions(rest))}\n`);
+    return;
+  }
+
+  if (scope === 'sports-share') {
+    process.stdout.write(`${await runExclusionShareCommand(rest)}\n`);
     return;
   }
 
