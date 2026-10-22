@@ -1,24 +1,1030 @@
 {
   "totals": {
-    "insiderCases": 7,
-    "hits": 2,
-    "medianLeadHours": 24.444166666666668,
-    "controls": 6,
-    "controlsWithAlert": 0,
-    "falsePositiveRate": 0,
-    "controlAlertsPerDay": 0,
-    "insiderWrongSideShare": 0.4
+    "insiderCases": 19,
+    "hits": 9,
+    "medianLeadHours": 38.66861111111111,
+    "controls": 19,
+    "controlsWithAlert": 5,
+    "falsePositiveRate": 0.2631578947368421,
+    "controlAlertsPerDay": 0.06822187269040535,
+    "insiderWrongSideShare": 0.11538461538461539
   },
+  "deliveredSignals": [
+    {
+      "signalId": "FRESH_WALLET_LARGE_POSITION",
+      "insiderCases": 19,
+      "hits": 4,
+      "medianLeadHours": 49.980694444444445,
+      "insiderWinningAlerts": 8,
+      "insiderLosingAlerts": 2,
+      "controls": 19,
+      "controlsWithAlert": 4,
+      "controlAlerts": 4,
+      "controlAlertsPerDay": 0.05457749815232427
+    },
+    {
+      "signalId": "CONVICTION_SIZE_MISMATCH",
+      "insiderCases": 19,
+      "hits": 3,
+      "medianLeadHours": 10.219722222222222,
+      "insiderWinningAlerts": 3,
+      "insiderLosingAlerts": 0,
+      "controls": 19,
+      "controlsWithAlert": 0,
+      "controlAlerts": 0,
+      "controlAlertsPerDay": 0
+    },
+    {
+      "signalId": "FRESH_WALLET_LONGSHOT",
+      "insiderCases": 19,
+      "hits": 5,
+      "medianLeadHours": 21.908055555555556,
+      "insiderWinningAlerts": 15,
+      "insiderLosingAlerts": 1,
+      "controls": 19,
+      "controlsWithAlert": 1,
+      "controlAlerts": 1,
+      "controlAlertsPerDay": 0.013644374538081068
+    }
+  ],
   "variantTotals": {
-    "insiderCases": 7,
-    "hits": 4,
-    "medianLeadHours": 16.06388888888889,
-    "controls": 6,
-    "controlsWithAlert": 2,
-    "falsePositiveRate": 0.3333333333333333,
-    "controlAlertsPerDay": 0.1363722457225835,
-    "insiderWrongSideShare": 0.2857142857142857
+    "insiderCases": 19,
+    "hits": 9,
+    "medianLeadHours": 38.66861111111111,
+    "controls": 19,
+    "controlsWithAlert": 7,
+    "falsePositiveRate": 0.3684210526315789,
+    "controlAlertsPerDay": 0.1364437453808107,
+    "insiderWrongSideShare": 0.2391304347826087
   },
+  "moves": [
+    {
+      "signalId": "FRESH_WALLET_LARGE_POSITION",
+      "scope": "fired",
+      "subset": "all",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 14,
+            "hitRate": 0.2857142857142857,
+            "avg": 0.0158077225
+          },
+          "base": {
+            "n": 569,
+            "hitRate": 0.3850199962556493,
+            "avg": 0.005798324897605742
+          },
+          "edge": 0.010009397602394257
+        },
+        "h24": {
+          "signal": {
+            "n": 15,
+            "hitRate": 0.7333333333333333,
+            "avg": 0.08477113304666666
+          },
+          "base": {
+            "n": 865,
+            "hitRate": 0.48820740428113435,
+            "avg": -0.025333594648190672
+          },
+          "edge": 0.11010472769485732
+        },
+        "resolution": {
+          "signal": {
+            "n": 15,
+            "hitRate": 0.8666666666666667,
+            "avg": 0.17477113333333333
+          },
+          "base": {
+            "n": 872,
+            "hitRate": 0.7283651249024665,
+            "avg": 0.05714617786064287
+          },
+          "edge": 0.11762495547269046
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LARGE_POSITION",
+      "scope": "fired",
+      "subset": "insider",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 10,
+            "hitRate": 0.3,
+            "avg": 0.023330862940000002
+          },
+          "base": {
+            "n": 370,
+            "hitRate": 0.37344507992564135,
+            "avg": 0.007591356109132402
+          },
+          "edge": 0.0157395068308676
+        },
+        "h24": {
+          "signal": {
+            "n": 11,
+            "hitRate": 0.6363636363636364,
+            "avg": 0.10313972688181818
+          },
+          "base": {
+            "n": 647,
+            "hitRate": 0.35507187173783816,
+            "avg": -0.04162522135819129
+          },
+          "edge": 0.14476494824000946
+        },
+        "resolution": {
+          "signal": {
+            "n": 11,
+            "hitRate": 0.8181818181818182,
+            "avg": 0.2237760909090909
+          },
+          "base": {
+            "n": 652,
+            "hitRate": 0.6295888066851817,
+            "avg": 0.06774108176651938
+          },
+          "edge": 0.1560350091425715
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LARGE_POSITION",
+      "scope": "fired",
+      "subset": "control",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 4,
+            "hitRate": 0.25,
+            "avg": -0.0030001286000000127
+          },
+          "base": {
+            "n": 199,
+            "hitRate": 0.4139572870806693,
+            "avg": 0.0013157468687890939
+          },
+          "edge": -0.004315875468789107
+        },
+        "h24": {
+          "signal": {
+            "n": 4,
+            "hitRate": 1,
+            "avg": 0.03425749999999997
+          },
+          "base": {
+            "n": 218,
+            "hitRate": 0.8543301187751988,
+            "avg": 0.019468378804311043
+          },
+          "edge": 0.014789121195688926
+        },
+        "resolution": {
+          "signal": {
+            "n": 4,
+            "hitRate": 1,
+            "avg": 0.040007499999999974
+          },
+          "base": {
+            "n": 220,
+            "hitRate": 1,
+            "avg": 0.028010192119482434
+          },
+          "edge": 0.01199730788051754
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LARGE_POSITION",
+      "scope": "delivered",
+      "subset": "all",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 13,
+            "hitRate": 0.3076923076923077,
+            "avg": 0.02011770115384615
+          },
+          "base": {
+            "n": 569,
+            "hitRate": 0.38033338474101114,
+            "avg": 0.006761058579957952
+          },
+          "edge": 0.013356642573888198
+        },
+        "h24": {
+          "signal": {
+            "n": 14,
+            "hitRate": 0.7142857142857143,
+            "avg": 0.09012778540714285
+          },
+          "base": {
+            "n": 865,
+            "hitRate": 0.49069840934883446,
+            "avg": -0.02776726430934715
+          },
+          "edge": 0.11789504971649
+        },
+        "resolution": {
+          "signal": {
+            "n": 14,
+            "hitRate": 0.8571428571428571,
+            "avg": 0.1701277857142857
+          },
+          "base": {
+            "n": 872,
+            "hitRate": 0.7089626338240712,
+            "avg": 0.04407983523043561
+          },
+          "edge": 0.1260479504838501
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LARGE_POSITION",
+      "scope": "delivered",
+      "subset": "insider",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 9,
+            "hitRate": 0.3333333333333333,
+            "avg": 0.030392292155555556
+          },
+          "base": {
+            "n": 370,
+            "hitRate": 0.3653894281456076,
+            "avg": 0.009181197118255222
+          },
+          "edge": 0.021211095037300336
+        },
+        "h24": {
+          "signal": {
+            "n": 10,
+            "hitRate": 0.6,
+            "avg": 0.11247589957000001
+          },
+          "base": {
+            "n": 647,
+            "hitRate": 0.3452457255782887,
+            "avg": -0.046661521554810424
+          },
+          "edge": 0.15913742112481044
+        },
+        "resolution": {
+          "signal": {
+            "n": 10,
+            "hitRate": 0.8,
+            "avg": 0.22217589999999995
+          },
+          "base": {
+            "n": 652,
+            "hitRate": 0.5925476873536998,
+            "avg": 0.05050769247481688
+          },
+          "edge": 0.17166820752518308
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LARGE_POSITION",
+      "scope": "delivered",
+      "subset": "control",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 4,
+            "hitRate": 0.25,
+            "avg": -0.0030001286000000127
+          },
+          "base": {
+            "n": 199,
+            "hitRate": 0.4139572870806693,
+            "avg": 0.0013157468687890939
+          },
+          "edge": -0.004315875468789107
+        },
+        "h24": {
+          "signal": {
+            "n": 4,
+            "hitRate": 1,
+            "avg": 0.03425749999999997
+          },
+          "base": {
+            "n": 218,
+            "hitRate": 0.8543301187751988,
+            "avg": 0.019468378804311043
+          },
+          "edge": 0.014789121195688926
+        },
+        "resolution": {
+          "signal": {
+            "n": 4,
+            "hitRate": 1,
+            "avg": 0.040007499999999974
+          },
+          "base": {
+            "n": 220,
+            "hitRate": 1,
+            "avg": 0.028010192119482434
+          },
+          "edge": 0.01199730788051754
+        }
+      }
+    },
+    {
+      "signalId": "CONVICTION_SIZE_MISMATCH",
+      "scope": "fired",
+      "subset": "all",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 197,
+            "hitRate": 0.41624365482233505,
+            "avg": 0.03170931432588833
+          },
+          "base": {
+            "n": 8795,
+            "hitRate": 0.41632885991283536,
+            "avg": 0.014180258495570048
+          },
+          "edge": 0.017529055830318285
+        },
+        "h24": {
+          "signal": {
+            "n": 205,
+            "hitRate": 0.5463414634146342,
+            "avg": 0.31787529313219515
+          },
+          "base": {
+            "n": 9230,
+            "hitRate": 0.5009525338002947,
+            "avg": 0.24851575917660096
+          },
+          "edge": 0.06935953395559419
+        },
+        "resolution": {
+          "signal": {
+            "n": 206,
+            "hitRate": 0.529126213592233,
+            "avg": 0.39464182038834955
+          },
+          "base": {
+            "n": 9342,
+            "hitRate": 0.5048608033024835,
+            "avg": 0.3777243701842337
+          },
+          "edge": 0.016917450204115836
+        }
+      }
+    },
+    {
+      "signalId": "CONVICTION_SIZE_MISMATCH",
+      "scope": "fired",
+      "subset": "insider",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 132,
+            "hitRate": 0.49242424242424243,
+            "avg": 0.05180076027196972
+          },
+          "base": {
+            "n": 5338,
+            "hitRate": 0.4472795120834236,
+            "avg": 0.0235416005048645
+          },
+          "edge": 0.02825915976710522
+        },
+        "h24": {
+          "signal": {
+            "n": 135,
+            "hitRate": 0.7481481481481481,
+            "avg": 0.5016572276755557
+          },
+          "base": {
+            "n": 5516,
+            "hitRate": 0.6793196691687948,
+            "avg": 0.39646827283482206
+          },
+          "edge": 0.1051889548407336
+        },
+        "resolution": {
+          "signal": {
+            "n": 135,
+            "hitRate": 0.8074074074074075,
+            "avg": 0.6453120370370371
+          },
+          "base": {
+            "n": 5539,
+            "hitRate": 0.7703801887430488,
+            "avg": 0.6149827933156155
+          },
+          "edge": 0.03032924372142165
+        }
+      }
+    },
+    {
+      "signalId": "CONVICTION_SIZE_MISMATCH",
+      "scope": "fired",
+      "subset": "control",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 65,
+            "hitRate": 0.26153846153846155,
+            "avg": -0.009091775903076926
+          },
+          "base": {
+            "n": 3457,
+            "hitRate": 0.3534752278125639,
+            "avg": -0.004830466815612536
+          },
+          "edge": -0.0042613090874643895
+        },
+        "h24": {
+          "signal": {
+            "n": 70,
+            "hitRate": 0.15714285714285714,
+            "avg": -0.036561294915714276
+          },
+          "base": {
+            "n": 3714,
+            "hitRate": 0.15695877273247266,
+            "avg": -0.036821231449968225
+          },
+          "edge": 0.0002599365342539489
+        },
+        "resolution": {
+          "signal": {
+            "n": 71,
+            "hitRate": 0,
+            "avg": -0.0819846478873239
+          },
+          "base": {
+            "n": 3803,
+            "hitRate": 0,
+            "avg": -0.07340080055853412
+          },
+          "edge": -0.008583847328789779
+        }
+      }
+    },
+    {
+      "signalId": "CONVICTION_SIZE_MISMATCH",
+      "scope": "delivered",
+      "subset": "all",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 3,
+            "hitRate": 0.3333333333333333,
+            "avg": 0.1467557715
+          },
+          "base": {
+            "n": 1543,
+            "hitRate": 0.5802710526930172,
+            "avg": 0.07890362467675177
+          },
+          "edge": 0.06785214682324822
+        },
+        "h24": {
+          "signal": {
+            "n": 3,
+            "hitRate": 0.6666666666666666,
+            "avg": 0.5750890194666667
+          },
+          "base": {
+            "n": 1668,
+            "hitRate": 0.9175039319511682,
+            "avg": 0.44957963941189694
+          },
+          "edge": 0.12550938005476975
+        },
+        "resolution": {
+          "signal": {
+            "n": 3,
+            "hitRate": 1,
+            "avg": 0.8184223333333334
+          },
+          "base": {
+            "n": 1678,
+            "hitRate": 0.9926282622911836,
+            "avg": 0.8356563268693392
+          },
+          "edge": -0.017233993536005854
+        }
+      }
+    },
+    {
+      "signalId": "CONVICTION_SIZE_MISMATCH",
+      "scope": "delivered",
+      "subset": "insider",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 3,
+            "hitRate": 0.3333333333333333,
+            "avg": 0.1467557715
+          },
+          "base": {
+            "n": 1543,
+            "hitRate": 0.5802710526930172,
+            "avg": 0.07890362467675177
+          },
+          "edge": 0.06785214682324822
+        },
+        "h24": {
+          "signal": {
+            "n": 3,
+            "hitRate": 0.6666666666666666,
+            "avg": 0.5750890194666667
+          },
+          "base": {
+            "n": 1668,
+            "hitRate": 0.9175039319511682,
+            "avg": 0.44957963941189694
+          },
+          "edge": 0.12550938005476975
+        },
+        "resolution": {
+          "signal": {
+            "n": 3,
+            "hitRate": 1,
+            "avg": 0.8184223333333334
+          },
+          "base": {
+            "n": 1678,
+            "hitRate": 0.9926282622911836,
+            "avg": 0.8356563268693392
+          },
+          "edge": -0.017233993536005854
+        }
+      }
+    },
+    {
+      "signalId": "CONVICTION_SIZE_MISMATCH",
+      "scope": "delivered",
+      "subset": "control",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 0,
+            "hitRate": null,
+            "avg": null
+          },
+          "base": {
+            "n": 0,
+            "hitRate": null,
+            "avg": null
+          },
+          "edge": null
+        },
+        "h24": {
+          "signal": {
+            "n": 0,
+            "hitRate": null,
+            "avg": null
+          },
+          "base": {
+            "n": 0,
+            "hitRate": null,
+            "avg": null
+          },
+          "edge": null
+        },
+        "resolution": {
+          "signal": {
+            "n": 0,
+            "hitRate": null,
+            "avg": null
+          },
+          "base": {
+            "n": 0,
+            "hitRate": null,
+            "avg": null
+          },
+          "edge": null
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LONGSHOT",
+      "scope": "fired",
+      "subset": "all",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 20,
+            "hitRate": 0.35,
+            "avg": 0.062186561890000006
+          },
+          "base": {
+            "n": 4482,
+            "hitRate": 0.404658731150887,
+            "avg": 0.00294992001419417
+          },
+          "edge": 0.05923664187580584
+        },
+        "h24": {
+          "signal": {
+            "n": 21,
+            "hitRate": 0.7619047619047619,
+            "avg": 0.4869025260190476
+          },
+          "base": {
+            "n": 4637,
+            "hitRate": 0.7111571621906052,
+            "avg": 0.4074572954929115
+          },
+          "edge": 0.07944523052613611
+        },
+        "resolution": {
+          "signal": {
+            "n": 21,
+            "hitRate": 0.9047619047619048,
+            "avg": 0.7663310952380952
+          },
+          "base": {
+            "n": 4655,
+            "hitRate": 0.8287971646567253,
+            "avg": 0.6746335372229761
+          },
+          "edge": 0.09169755801511903
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LONGSHOT",
+      "scope": "fired",
+      "subset": "insider",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 19,
+            "hitRate": 0.3684210526315789,
+            "avg": 0.06762280198947368
+          },
+          "base": {
+            "n": 3519,
+            "hitRate": 0.4073196240895274,
+            "avg": 0.003355870123363377
+          },
+          "edge": 0.06426693186611031
+        },
+        "h24": {
+          "signal": {
+            "n": 20,
+            "hitRate": 0.8,
+            "avg": 0.51335275232
+          },
+          "base": {
+            "n": 3659,
+            "hitRate": 0.7410912984187449,
+            "avg": 0.4294028185869231
+          },
+          "edge": 0.08394993373307691
+        },
+        "resolution": {
+          "signal": {
+            "n": 20,
+            "hitRate": 0.95,
+            "avg": 0.8067527499999999
+          },
+          "base": {
+            "n": 3675,
+            "hitRate": 0.8702370228895615,
+            "avg": 0.7105432275535127
+          },
+          "edge": 0.09620952244648717
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LONGSHOT",
+      "scope": "fired",
+      "subset": "control",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 1,
+            "hitRate": 0,
+            "avg": -0.041102
+          },
+          "base": {
+            "n": 963,
+            "hitRate": 0.3541017653167186,
+            "avg": -0.004763132060020765
+          },
+          "edge": -0.03633886793997924
+        },
+        "h24": {
+          "signal": {
+            "n": 1,
+            "hitRate": 0,
+            "avg": -0.042102
+          },
+          "base": {
+            "n": 978,
+            "hitRate": 0.11247443762781185,
+            "avg": -0.031453166387321076
+          },
+          "edge": -0.010648833612678925
+        },
+        "resolution": {
+          "signal": {
+            "n": 1,
+            "hitRate": 0,
+            "avg": -0.042102
+          },
+          "base": {
+            "n": 980,
+            "hitRate": 0,
+            "avg": -0.04356026938775506
+          },
+          "edge": 0.0014582693877550623
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LONGSHOT",
+      "scope": "delivered",
+      "subset": "all",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 16,
+            "hitRate": 0.3125,
+            "avg": 0.078853519925
+          },
+          "base": {
+            "n": 4482,
+            "hitRate": 0.39174081407401834,
+            "avg": 0.001077269658670265
+          },
+          "edge": 0.07777625026632974
+        },
+        "h24": {
+          "signal": {
+            "n": 17,
+            "hitRate": 0.7647058823529411,
+            "avg": 0.5901692975529411
+          },
+          "base": {
+            "n": 4637,
+            "hitRate": 0.6758574581124858,
+            "avg": 0.37797275340553493
+          },
+          "edge": 0.21219654414740619
+        },
+        "resolution": {
+          "signal": {
+            "n": 17,
+            "hitRate": 0.8823529411764706,
+            "avg": 0.7347575294117646
+          },
+          "base": {
+            "n": 4655,
+            "hitRate": 0.7899828968708803,
+            "avg": 0.6315162960731238
+          },
+          "edge": 0.10324123333864088
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LONGSHOT",
+      "scope": "delivered",
+      "subset": "insider",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 15,
+            "hitRate": 0.3333333333333333,
+            "avg": 0.08685055458666667
+          },
+          "base": {
+            "n": 3519,
+            "hitRate": 0.3942500839911717,
+            "avg": 0.001466629773249667
+          },
+          "edge": 0.085383924813417
+        },
+        "h24": {
+          "signal": {
+            "n": 16,
+            "hitRate": 0.8125,
+            "avg": 0.62968625365
+          },
+          "base": {
+            "n": 3659,
+            "hitRate": 0.7110688968927779,
+            "avg": 0.4035618733925884
+          },
+          "edge": 0.22612438025741155
+        },
+        "resolution": {
+          "signal": {
+            "n": 16,
+            "hitRate": 0.9375,
+            "avg": 0.7833112499999999
+          },
+          "base": {
+            "n": 3675,
+            "hitRate": 0.8393568279253103,
+            "avg": 0.6737085814144288
+          },
+          "edge": 0.1096026685855711
+        }
+      }
+    },
+    {
+      "signalId": "FRESH_WALLET_LONGSHOT",
+      "scope": "delivered",
+      "subset": "control",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 1,
+            "hitRate": 0,
+            "avg": -0.041102
+          },
+          "base": {
+            "n": 963,
+            "hitRate": 0.3541017653167186,
+            "avg": -0.004763132060020765
+          },
+          "edge": -0.03633886793997924
+        },
+        "h24": {
+          "signal": {
+            "n": 1,
+            "hitRate": 0,
+            "avg": -0.042102
+          },
+          "base": {
+            "n": 978,
+            "hitRate": 0.11247443762781185,
+            "avg": -0.031453166387321076
+          },
+          "edge": -0.010648833612678925
+        },
+        "resolution": {
+          "signal": {
+            "n": 1,
+            "hitRate": 0,
+            "avg": -0.042102
+          },
+          "base": {
+            "n": 980,
+            "hitRate": 0,
+            "avg": -0.04356026938775506
+          },
+          "edge": 0.0014582693877550623
+        }
+      }
+    },
+    {
+      "signalId": "NICHE_MARKET_ENTRY",
+      "scope": "fired",
+      "subset": "all",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 389,
+            "hitRate": 0.38817480719794345,
+            "avg": -0.009510049039074542
+          },
+          "base": {
+            "n": 5773,
+            "hitRate": 0.4142168081781291,
+            "avg": -0.004908980094465571
+          },
+          "edge": -0.004601068944608971
+        },
+        "h24": {
+          "signal": {
+            "n": 436,
+            "hitRate": 0.4724770642201835,
+            "avg": -0.036675393414449566
+          },
+          "base": {
+            "n": 6450,
+            "hitRate": 0.4778810488136079,
+            "avg": -0.05202496971894388
+          },
+          "edge": 0.015349576304494315
+        },
+        "resolution": {
+          "signal": {
+            "n": 448,
+            "hitRate": 0.48660714285714285,
+            "avg": -0.10843422321428556
+          },
+          "base": {
+            "n": 6618,
+            "hitRate": 0.5039593747218586,
+            "avg": -0.09072699072746852
+          },
+          "edge": -0.017707232486817034
+        }
+      }
+    },
+    {
+      "signalId": "OUTSIZED_POSITION",
+      "scope": "fired",
+      "subset": "all",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 747,
+            "hitRate": 0.4578313253012048,
+            "avg": -0.004715562060910316
+          },
+          "base": {
+            "n": 17819,
+            "hitRate": 0.42125803686489083,
+            "avg": -0.015660456381113554
+          },
+          "edge": 0.010944894320203237
+        },
+        "h24": {
+          "signal": {
+            "n": 831,
+            "hitRate": 0.49217809867629364,
+            "avg": -0.04584035570866435
+          },
+          "base": {
+            "n": 19280,
+            "hitRate": 0.5111933249102142,
+            "avg": -0.06468533432599213
+          },
+          "edge": 0.018844978617327784
+        },
+        "resolution": {
+          "signal": {
+            "n": 847,
+            "hitRate": 0.5360094451003542,
+            "avg": -0.09657368949232573
+          },
+          "base": {
+            "n": 19577,
+            "hitRate": 0.5302546354152025,
+            "avg": -0.10205792519302416
+          },
+          "edge": 0.005484235700698434
+        }
+      }
+    },
+    {
+      "signalId": "LUMP_ENTRY",
+      "scope": "fired",
+      "subset": "all",
+      "cells": {
+        "h1": {
+          "signal": {
+            "n": 357,
+            "hitRate": 0.40896358543417366,
+            "avg": -0.017022993243137254
+          },
+          "base": {
+            "n": 17381,
+            "hitRate": 0.4201816085153246,
+            "avg": -0.022804251930203336
+          },
+          "edge": 0.005781258687066082
+        },
+        "h24": {
+          "signal": {
+            "n": 386,
+            "hitRate": 0.4585492227979275,
+            "avg": -0.04974169517383425
+          },
+          "base": {
+            "n": 18542,
+            "hitRate": 0.46968294960319595,
+            "avg": -0.03839910068195312
+          },
+          "edge": -0.01134259449188113
+        },
+        "resolution": {
+          "signal": {
+            "n": 391,
+            "hitRate": 0.47058823529411764,
+            "avg": -0.03498317391304352
+          },
+          "base": {
+            "n": 18771,
+            "hitRate": 0.45043247146517634,
+            "avg": -0.05288042287088342
+          },
+          "edge": 0.017897248957839895
+        }
+      }
+    }
+  ],
   "cases": [
     {
       "testCase": {
@@ -68,6 +1074,10 @@
               "CONVICTION_SIZE_MISMATCH",
               "FRESH_WALLET_LARGE_POSITION"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -90,6 +1100,7 @@
               "NICHE_MARKET_ENTRY",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -112,6 +1123,7 @@
               "NICHE_MARKET_ENTRY",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -133,6 +1145,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -154,6 +1167,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -175,6 +1189,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -190,7 +1205,9 @@
             "ageHours": 0.06444444444444444
           }
         ],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 42,
+        "baselineFillCount": 410
       },
       "hit": true,
       "bestWinningTier": "HIGH",
@@ -257,6 +1274,7 @@
               "NICHE_MARKET_ENTRY",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -279,6 +1297,9 @@
               "NICHE_MARKET_ENTRY",
               "FRESH_WALLET_LARGE_POSITION"
             ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -299,6 +1320,9 @@
             "signals": [
               "OUTSIZED_POSITION",
               "NICHE_MARKET_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
               "FRESH_WALLET_LARGE_POSITION"
             ],
             "winningSide": true,
@@ -324,6 +1348,9 @@
               "LUMP_ENTRY",
               "FRESH_WALLET_LARGE_POSITION"
             ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -345,6 +1372,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -366,6 +1394,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -387,6 +1416,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -408,6 +1438,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -427,6 +1458,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -450,6 +1484,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -469,6 +1506,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -492,6 +1532,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -511,6 +1554,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -534,6 +1580,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -553,6 +1602,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -576,6 +1628,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": false,
             "reportedWallet": false,
@@ -597,6 +1652,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -612,11 +1668,15 @@
             "marketDailyVolumeUsd": 1233607.2556481287,
             "walletAgeHours": 8.295277777777779,
             "priorWalletVolumeUsd": 69999.999994,
-            "score": 20,
-            "tier": "LOW",
+            "score": 60,
+            "tier": "HIGH",
             "signals": [
               "OUTSIZED_POSITION",
-              "LUMP_ENTRY"
+              "LUMP_ENTRY",
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
             ],
             "winningSide": false,
             "delivered": true,
@@ -637,6 +1697,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -675,7 +1738,9 @@
             "ageHours": 8.295277777777779
           }
         ],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 79,
+        "baselineFillCount": 791
       },
       "hit": true,
       "bestWinningTier": "MEDIUM",
@@ -687,16 +1752,17 @@
         "NICHE_MARKET_ENTRY": 4,
         "LUMP_ENTRY": 15,
         "FRESH_WALLET_LARGE_POSITION": 3,
-        "CONVICTION_SIZE_MISMATCH": 7
+        "CONVICTION_SIZE_MISMATCH": 7,
+        "FRESH_WALLET_LONGSHOT": 1
       },
       "tierCounts": {
         "CRITICAL": 0,
-        "HIGH": 0,
+        "HIGH": 1,
         "MEDIUM": 3,
-        "LOW": 14,
+        "LOW": 13,
         "CLEAN": 0
       },
-      "wrongSideDelivered": 1,
+      "wrongSideDelivered": 2,
       "reportedWalletFlagged": null
     },
     {
@@ -748,6 +1814,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -769,6 +1838,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -788,6 +1858,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -811,6 +1884,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -818,7 +1894,9 @@
           }
         ],
         "probeFills": [],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 67,
+        "baselineFillCount": 851
       },
       "hit": false,
       "bestWinningTier": "LOW",
@@ -893,6 +1971,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -914,6 +1995,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": true,
@@ -933,6 +2017,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -957,9 +2044,36 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": true,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1767390261,
+            "wallet": "0xa72db1749e9ac2379d49a3c12708325ed17febd4",
+            "name": "0xa72DB1749e9AC2379D49A3c12708325ED17FeBd4-1766534754187",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.071599,
+            "sizeUsd": 5782.660002,
+            "marketDailyVolumeUsd": 141135.85128552967,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 52,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
             "suppressedAsMarketMaker": false
           },
           {
@@ -978,7 +2092,32 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1767411721,
+            "wallet": "0x6baf05d193692bb208d616709e27442c910a94c5",
+            "name": "SBet365",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.113079,
+            "sizeUsd": 9999.999996,
+            "marketDailyVolumeUsd": 126743.34411688862,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 52,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
             "suppressedAsMarketMaker": false
@@ -1072,22 +2211,25 @@
               "OUTSIZED_POSITION"
             ]
           }
-        ]
+        ],
+        "signalFillCount": 42,
+        "baselineFillCount": 214
       },
-      "hit": false,
-      "bestWinningTier": "LOW",
-      "firstHitAt": null,
-      "leadHours": null,
+      "hit": true,
+      "bestWinningTier": "MEDIUM",
+      "firstHitAt": 1767390261,
+      "leadHours": 8.260833333333334,
       "firstAnyAlertLeadHours": 87.12138888888889,
       "signalsFired": {
         "LUMP_ENTRY": 5,
         "CONVICTION_SIZE_MISMATCH": 4,
-        "OUTSIZED_POSITION": 2
+        "OUTSIZED_POSITION": 4,
+        "FRESH_WALLET_LONGSHOT": 2
       },
       "tierCounts": {
         "CRITICAL": 0,
         "HIGH": 0,
-        "MEDIUM": 0,
+        "MEDIUM": 2,
         "LOW": 5,
         "CLEAN": 0
       },
@@ -1144,8 +2286,58 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772055606,
+            "wallet": "0x1caa6a7ad0c6916aef7b67946de2e57ad24846a0",
+            "name": "0x1caA6a7ad0c6916aeF7b67946De2e57Ad24846a0-1772054568088",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.1,
+            "sizeUsd": 7197.57,
+            "marketDailyVolumeUsd": 1502075.1951020511,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772055864,
+            "wallet": "0x1caa6a7ad0c6916aef7b67946de2e57ad24846a0",
+            "name": "0x1caA6a7ad0c6916aeF7b67946De2e57Ad24846a0-1772054568088",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.101406,
+            "sizeUsd": 8800.979997,
+            "marketDailyVolumeUsd": 1515221.1688900779,
+            "walletAgeHours": 0.07166666666666667,
+            "priorWalletVolumeUsd": 7197.57,
+            "score": 48,
+            "tier": "MEDIUM",
+            "signals": [
+              "LUMP_ENTRY",
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": false,
             "reportedWallet": false,
             "suppressedAsMarketMaker": false
           },
@@ -1165,8 +2357,33 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772123062,
+            "wallet": "0x1caa6a7ad0c6916aef7b67946de2e57ad24846a0",
+            "name": "0x1caA6a7ad0c6916aeF7b67946De2e57Ad24846a0-1772054568088",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.104496,
+            "sizeUsd": 15336.199797,
+            "marketDailyVolumeUsd": 1446125.6567115723,
+            "walletAgeHours": 18.73777777777778,
+            "priorWalletVolumeUsd": 15998.549998999999,
+            "score": 48,
+            "tier": "MEDIUM",
+            "signals": [
+              "LUMP_ENTRY",
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": false,
             "reportedWallet": false,
             "suppressedAsMarketMaker": false
           },
@@ -1184,6 +2401,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1207,8 +2427,57 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772132134,
+            "wallet": "0x1caa6a7ad0c6916aef7b67946de2e57ad24846a0",
+            "name": "0x1caA6a7ad0c6916aeF7b67946De2e57Ad24846a0-1772054568088",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.112023,
+            "sizeUsd": 12642.930001,
+            "marketDailyVolumeUsd": 1642122.6474665082,
+            "walletAgeHours": 21.25777777777778,
+            "priorWalletVolumeUsd": 31334.749798999997,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": false,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772140012,
+            "wallet": "0x1caa6a7ad0c6916aef7b67946de2e57ad24846a0",
+            "name": "0x1caA6a7ad0c6916aeF7b67946De2e57Ad24846a0-1772054568088",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.08,
+            "sizeUsd": 5250,
+            "marketDailyVolumeUsd": 1913109.3685893624,
+            "walletAgeHours": 23.44611111111111,
+            "priorWalletVolumeUsd": 46477.679798000005,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": false,
             "reportedWallet": false,
             "suppressedAsMarketMaker": false
           },
@@ -1227,6 +2496,32 @@
             "signals": [
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772146430,
+            "wallet": "0x56efadc9defe5b7a21af751e0d026f2cf54136db",
+            "name": "Neodbs",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.1,
+            "sizeUsd": 9883.75,
+            "marketDailyVolumeUsd": 1970886.4500347238,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
             ],
             "winningSide": true,
             "delivered": true,
@@ -1247,6 +2542,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1270,6 +2568,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1289,6 +2590,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1312,6 +2616,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1331,6 +2638,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1354,6 +2664,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1373,6 +2686,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1396,6 +2712,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1415,6 +2734,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1438,6 +2760,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1457,6 +2782,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1480,6 +2808,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1499,6 +2830,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1522,6 +2856,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1541,6 +2878,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1564,6 +2904,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1583,6 +2926,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1606,6 +2952,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1626,6 +2975,79 @@
             "signals": [
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772232181,
+            "wallet": "0x3811e09bb2fa30aff16d9be28c09ee9bba478f61",
+            "name": null,
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.18,
+            "sizeUsd": 10000,
+            "marketDailyVolumeUsd": 4244060.896971203,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772232769,
+            "wallet": "0x274c45994bfa0912cf8bee503190952e6af7da86",
+            "name": "0x274C45994BfA0912cf8bEe503190952E6Af7DA86-1772189577856",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.197279,
+            "sizeUsd": 15000,
+            "marketDailyVolumeUsd": 4278923.415989642,
+            "walletAgeHours": 11.879444444444445,
+            "priorWalletVolumeUsd": 7999.999997999999,
+            "score": 48,
+            "tier": "MEDIUM",
+            "signals": [
+              "LUMP_ENTRY",
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772237235,
+            "wallet": "0xdde15ebd95330ce69136dc0ccd810d22382e02c5",
+            "name": "Dicedicedice",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.2,
+            "sizeUsd": 11271.99,
+            "marketDailyVolumeUsd": 4453595.414727809,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
             ],
             "winningSide": true,
             "delivered": true,
@@ -1648,6 +3070,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1663,11 +3088,16 @@
             "marketDailyVolumeUsd": 4701077.871903831,
             "walletAgeHours": 3.19,
             "priorWalletVolumeUsd": 3349.9999989999997,
-            "score": 22,
-            "tier": "LOW",
+            "score": 62,
+            "tier": "HIGH",
             "signals": [
               "LUMP_ENTRY",
-              "CONVICTION_SIZE_MISMATCH"
+              "CONVICTION_SIZE_MISMATCH",
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH",
+              "FRESH_WALLET_LONGSHOT"
             ],
             "winningSide": true,
             "delivered": true,
@@ -1688,6 +3118,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1711,6 +3144,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1730,6 +3166,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1753,6 +3192,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1772,6 +3214,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -1795,6 +3240,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1816,6 +3264,32 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772256571,
+            "wallet": "0x9c6bd2c9c97679852baa0747953275e3be8df35e",
+            "name": "jamesjohnson176",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.224646,
+            "sizeUsd": 8500,
+            "marketDailyVolumeUsd": 5696312.053615431,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -1836,6 +3310,55 @@
             "signals": [
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772257735,
+            "wallet": "0x9e7d792c5d9f698fd9d0dbd1ae337dbe96543ce8",
+            "name": "Levc505",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.225134,
+            "sizeUsd": 5707.649998,
+            "marketDailyVolumeUsd": 6044615.572187523,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772258131,
+            "wallet": "0xf5477b7f259d0a1e40e1c62f7f769d725dab332c",
+            "name": "0xF5477B7F259D0a1e40E1C62F7f769d725DAb332c-1766519993463",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.241023,
+            "sizeUsd": 6000,
+            "marketDailyVolumeUsd": 6096243.391550945,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
             ],
             "winningSide": true,
             "delivered": true,
@@ -2148,23 +3671,26 @@
             "tier": "CLEAN",
             "signals": []
           }
-        ]
+        ],
+        "signalFillCount": 163,
+        "baselineFillCount": 4068
       },
-      "hit": false,
-      "bestWinningTier": "LOW",
-      "firstHitAt": null,
-      "leadHours": null,
+      "hit": true,
+      "bestWinningTier": "HIGH",
+      "firstHitAt": 1772055606,
+      "leadHours": 56.83166666666666,
       "firstAnyAlertLeadHours": 57.794444444444444,
       "signalsFired": {
-        "LUMP_ENTRY": 34,
+        "LUMP_ENTRY": 35,
         "CONVICTION_SIZE_MISMATCH": 33,
+        "FRESH_WALLET_LONGSHOT": 9,
         "OUTSIZED_POSITION": 1
       },
       "tierCounts": {
         "CRITICAL": 0,
-        "HIGH": 0,
-        "MEDIUM": 0,
-        "LOW": 34,
+        "HIGH": 1,
+        "MEDIUM": 8,
+        "LOW": 33,
         "CLEAN": 0
       },
       "wrongSideDelivered": 0,
@@ -2216,6 +3742,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -2235,6 +3764,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -2258,8 +3790,57 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": false,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1775541389,
+            "wallet": "0x321f2007faa0b1960e680375a494122abdea5392",
+            "name": "antrouklasxaxa",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.039891,
+            "sizeUsd": 4999.999999,
+            "marketDailyVolumeUsd": 1686407.4883672907,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1775556105,
+            "wallet": "0x8039ad26298d7847799899808554474b7fa57421",
+            "name": "Friidjdncoriejwnsnndmvtkoeiein4848588382",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.05935,
+            "sizeUsd": 10000.000004,
+            "marketDailyVolumeUsd": 1549484.5097193164,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": true,
             "reportedWallet": false,
             "suppressedAsMarketMaker": false
           },
@@ -2277,6 +3858,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -2298,6 +3882,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -2357,21 +3944,24 @@
             "ageHours": 11.242222222222223
           }
         ],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 62,
+        "baselineFillCount": 2950
       },
-      "hit": false,
-      "bestWinningTier": "LOW",
-      "firstHitAt": null,
-      "leadHours": null,
+      "hit": true,
+      "bestWinningTier": "MEDIUM",
+      "firstHitAt": 1775541389,
+      "leadHours": 16.558611111111112,
       "firstAnyAlertLeadHours": 42.32083333333333,
       "signalsFired": {
         "LUMP_ENTRY": 4,
-        "CONVICTION_SIZE_MISMATCH": 4
+        "CONVICTION_SIZE_MISMATCH": 4,
+        "FRESH_WALLET_LONGSHOT": 2
       },
       "tierCounts": {
         "CRITICAL": 0,
         "HIGH": 0,
-        "MEDIUM": 0,
+        "MEDIUM": 2,
         "LOW": 4,
         "CLEAN": 0
       },
@@ -2421,6 +4011,9 @@
               "NICHE_MARKET_ENTRY",
               "FRESH_WALLET_LARGE_POSITION"
             ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -2443,7 +4036,32 @@
               "NICHE_MARKET_ENTRY",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1750470931,
+            "wallet": "0xb1fa1aa03ce4f1f4e259cda433e7fdaf80f91a14",
+            "name": "anas10",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.201091,
+            "sizeUsd": 6999.999994,
+            "marketDailyVolumeUsd": 109921.59608328433,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 52,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
             "suppressedAsMarketMaker": false
@@ -2462,6 +4080,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -2485,6 +4106,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -2506,6 +4130,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -2525,6 +4152,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": true,
@@ -2563,29 +4193,1452 @@
             "ageHours": 0.47
           }
         ],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 47,
+        "baselineFillCount": 554
       },
-      "hit": false,
-      "bestWinningTier": "LOW",
-      "firstHitAt": null,
-      "leadHours": null,
+      "hit": true,
+      "bestWinningTier": "MEDIUM",
+      "firstHitAt": 1750470931,
+      "leadHours": 21.908055555555556,
       "firstAnyAlertLeadHours": 37.405277777777776,
       "signalsFired": {
-        "OUTSIZED_POSITION": 2,
+        "OUTSIZED_POSITION": 3,
         "NICHE_MARKET_ENTRY": 2,
         "FRESH_WALLET_LARGE_POSITION": 1,
         "LUMP_ENTRY": 5,
+        "FRESH_WALLET_LONGSHOT": 1,
         "CONVICTION_SIZE_MISMATCH": 4
       },
       "tierCounts": {
         "CRITICAL": 0,
         "HIGH": 0,
-        "MEDIUM": 1,
+        "MEDIUM": 2,
         "LOW": 5,
         "CLEAN": 0
       },
       "wrongSideDelivered": 1,
       "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "us-forces-venezuela-jan31",
+        "kind": "insider",
+        "title": "US forces in Venezuela by January 31, 2026?",
+        "conditionId": "0xbb8bfdef9052b2709557a6f8f28b23551e3134bfb86eca800211e2191703ee65",
+        "winningOutcome": "YES",
+        "windowStart": "2025-12-30T00:00:00Z",
+        "newsAt": "2026-01-03T06:00:00Z",
+        "newsNote": "Same operation as Maduro Jan 31; complaint: Van Dyke also held YES here until it resolved",
+        "reportedWallets": [
+          "Burdensome-Mix"
+        ],
+        "sources": [
+          {
+            "label": "CFTC complaint vs Van Dyke, 2026-04-23",
+            "url": "https://www.cftc.gov/media/13761/EnfGannonKenVanDykeComplaint042326/download"
+          },
+          {
+            "label": "CFTC release 9217-26",
+            "url": "https://www.cftc.gov/PressRoom/PressReleases/9217-26"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "us-forces-venezuela-jan31",
+        "tradesInWindow": 91,
+        "volumeInWindowUsd": 11652.20540299776,
+        "candidatesEvaluated": 20,
+        "walletsProfiled": 16,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [
+          {
+            "timestamp": 1767406491,
+            "name": "0x31a56e9E61eD21De08Cbe9524Cdb8eD9-0765984",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 49.999999,
+            "tier": "CLEAN",
+            "signals": []
+          }
+        ],
+        "signalFillCount": 2,
+        "baselineFillCount": 14
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": false
+    },
+    {
+      "testCase": {
+        "id": "khamenei-out-mar31",
+        "kind": "insider",
+        "title": "Khamenei out as Supreme Leader of Iran by March 31?",
+        "conditionId": "0x70909f0ba8256a89c301da58812ae47203df54957a07c7f8b10235e877ad63c2",
+        "winningOutcome": "YES",
+        "windowStart": "2026-02-25T06:30:00Z",
+        "newsAt": "2026-02-28T06:30:00Z",
+        "newsNote": "Cut-off = first strike reports (06:30 UTC), before his death was known; Magamyman bought before the strikes",
+        "reportedWallets": [
+          "Magamyman"
+        ],
+        "sources": [
+          {
+            "label": "NPR, 2026-03-01",
+            "url": "https://www.npr.org/2026/03/01/nx-s1-5731568/polymarket-trade-iran-supreme-leader-killing"
+          },
+          {
+            "label": "USA Today, 2026-03-03",
+            "url": "https://www.usatoday.com/story/money/2026/03/03/magamyman-polymarket-trader-iran-bets/88949233007/"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "khamenei-out-mar31",
+        "tradesInWindow": 2814,
+        "volumeInWindowUsd": 721856.8769381708,
+        "candidatesEvaluated": 378,
+        "walletsProfiled": 230,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1772119084,
+            "wallet": "0xb9595b2028667634069de56043051af7eb27709e",
+            "name": "narchiebald",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.84,
+            "sizeUsd": 5059.999998,
+            "marketDailyVolumeUsd": 160056.7281317524,
+            "walletAgeHours": 63.955555555555556,
+            "priorWalletVolumeUsd": 4499.999985,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1772222095,
+            "wallet": "0x4d8a89d16700befb5402406cbd5add446448548c",
+            "name": "0x4D8a89D16700BEfB5402406CBd5Add446448548c-1767913407872",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.223965,
+            "sizeUsd": 6851.000001,
+            "marketDailyVolumeUsd": 311827.069695003,
+            "walletAgeHours": 1180.8730555555555,
+            "priorWalletVolumeUsd": 587.999997,
+            "score": 34,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1772201427,
+            "stakeUsd": 2740.3783099568004,
+            "effectivePrice": 0.242351,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1772202859,
+            "stakeUsd": 1492.5126656499122,
+            "effectivePrice": 0.262566,
+            "winningSide": true,
+            "ageHours": 0.3977777777777778
+          }
+        ],
+        "reportedFills": [],
+        "signalFillCount": 37,
+        "baselineFillCount": 202
+      },
+      "hit": false,
+      "bestWinningTier": "LOW",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 39.19888888888889,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 2,
+        "LUMP_ENTRY": 2,
+        "CONVICTION_SIZE_MISMATCH": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 2,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "israel-strikes-iran-jun13",
+        "kind": "insider",
+        "title": "Israel military action against Iran before July? (2025-06-13)",
+        "conditionId": "0xd25ff3223a2233f6cd96a349455ca3237931c64358792f90c5f02d8cc39be38d",
+        "winningOutcome": "YES",
+        "windowStart": "2025-06-10T00:00:00Z",
+        "newsAt": "2025-06-12T23:30:00Z",
+        "newsNote": "Operation Rising Lion began ~03:00 IDT June 13; indictment: an IAF reservist tipped a friend who bet \"before July\"",
+        "sources": [
+          {
+            "label": "Ynet, IAF major indictment",
+            "url": "https://www.ynetnews.com/article/sjjp4m7o11l"
+          },
+          {
+            "label": "Times of Israel, 2026-03-27",
+            "url": "https://www.timesofisrael.com/israeli-air-force-major-charged-with-using-classified-info-to-place-bets-on-polymarket/"
+          },
+          {
+            "label": "Rajiv Sethi, 2025-06-18 (fresh account, $134k)",
+            "url": "https://rajivsethi.substack.com/p/betting-on-geopolitical-violence"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "israel-strikes-iran-jun13",
+        "tradesInWindow": 3164,
+        "volumeInWindowUsd": 871563.3859159284,
+        "candidatesEvaluated": 746,
+        "walletsProfiled": 306,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1749557761,
+            "wallet": "0x4ed1490b0bebd9ccf7cb42862ea7df70ebc0fcfd",
+            "name": "AngCh",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.274733,
+            "sizeUsd": 5898.099999,
+            "marketDailyVolumeUsd": 136434.7140348185,
+            "walletAgeHours": 0.06888888888888889,
+            "priorWalletVolumeUsd": 1418.7768,
+            "score": 74,
+            "tier": "HIGH",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH",
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH",
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1749581846,
+            "wallet": "0x118fd01976dfa74b99ef0122ef70590f5ef44f4b",
+            "name": "Trendo",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.29,
+            "sizeUsd": 2030,
+            "marketDailyVolumeUsd": 129183.97270086425,
+            "walletAgeHours": 0.010555555555555556,
+            "priorWalletVolumeUsd": 280,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1749636762,
+            "wallet": "0xf58f8fc5a74e5c1a3e39f6d26ed4352a396737a4",
+            "name": "runningBTC",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.288817,
+            "sizeUsd": 999.999999,
+            "marketDailyVolumeUsd": 149806.58304508528,
+            "walletAgeHours": 444.81194444444446,
+            "priorWalletVolumeUsd": 635.969428,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1749646318,
+            "wallet": "0xc0a005750061e6b5c5699c395a09fd238116ac10",
+            "name": "0xc0a005750061E6B5c5699c395A09FD238116aC10-1749642840055",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.3,
+            "sizeUsd": 2848.488,
+            "marketDailyVolumeUsd": 129433.6439356692,
+            "walletAgeHours": 0.02,
+            "priorWalletVolumeUsd": 383.4438,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1749666186,
+            "wallet": "0x0afc7ce56285bde1fbe3a75efaffdfc86d6530b2",
+            "name": "Rundeep",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.657745,
+            "sizeUsd": 3000,
+            "marketDailyVolumeUsd": 149395.3397458686,
+            "walletAgeHours": 25.29,
+            "priorWalletVolumeUsd": 3364.76,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1749557513,
+            "stakeUsd": 1418.7767999999999,
+            "effectivePrice": 0.21,
+            "winningSide": true,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1749557761,
+            "stakeUsd": 5898.11028701075,
+            "effectivePrice": 0.274733,
+            "winningSide": true,
+            "ageHours": 0.06888888888888889
+          },
+          {
+            "timestamp": 1749581846,
+            "stakeUsd": 2029.9999999999998,
+            "effectivePrice": 0.29,
+            "winningSide": true,
+            "ageHours": 0.010555555555555556
+          }
+        ],
+        "reportedFills": [],
+        "signalFillCount": 35,
+        "baselineFillCount": 465
+      },
+      "hit": true,
+      "bestWinningTier": "HIGH",
+      "firstHitAt": 1749557761,
+      "leadHours": 59.23305555555555,
+      "firstAnyAlertLeadHours": 59.23305555555555,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 3,
+        "LUMP_ENTRY": 5,
+        "CONVICTION_SIZE_MISMATCH": 3,
+        "FRESH_WALLET_LONGSHOT": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 1,
+        "MEDIUM": 0,
+        "LOW": 4,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "israel-iran-ceasefire-jun23",
+        "kind": "insider",
+        "title": "Israel x Iran ceasefire before July? (2025-06-23)",
+        "conditionId": "0x3b2f19935f2a969634a7aca52b69cf653d957ec6243bdfcb97dd830003e90624",
+        "winningOutcome": "YES",
+        "windowStart": "2025-06-20T22:00:00Z",
+        "newsAt": "2025-06-23T22:00:00Z",
+        "newsNote": "Trump Truth Social ~18:00 ET; indictment says the same pair won a bet on the war's end date (market not named, best match)",
+        "sources": [
+          {
+            "label": "Times of Israel, 2026-03-27",
+            "url": "https://www.timesofisrael.com/israeli-air-force-major-charged-with-using-classified-info-to-place-bets-on-polymarket/"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "israel-iran-ceasefire-jun23",
+        "tradesInWindow": 503,
+        "volumeInWindowUsd": 68463.44073472511,
+        "candidatesEvaluated": 106,
+        "walletsProfiled": 64,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 6,
+        "baselineFillCount": 61
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "biden-pardon-hunter",
+        "kind": "insider",
+        "title": "Will Joe pardon Hunter Biden?",
+        "conditionId": "0x0e85e94301db0e38e25f0650ab649c3a4485b5fc9734a8b6abf3d0da0ee6dd55",
+        "winningOutcome": "YES",
+        "windowStart": "2024-11-28T23:00:00Z",
+        "newsAt": "2024-12-01T23:00:00Z",
+        "newsNote": "Pardon announced Sunday evening Dec 1 (cut-off 18:00 ET); Bubblemaps: same trader as the Jan 20 pardon bets",
+        "sources": [
+          {
+            "label": "NPR, 2026-04-16 (Bubblemaps)",
+            "url": "https://www.npr.org/2026/04/16/nx-s1-5786580/a-polymarket-trader-made-300-000-betting-on-bidens-pardons-a-new-analysis-shows"
+          },
+          {
+            "label": "CNN, 2024-12-01",
+            "url": "https://www.cnn.com/2024/12/01/politics/joe-biden-pardon-hunter-biden-statement"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "biden-pardon-hunter",
+        "tradesInWindow": 1420,
+        "volumeInWindowUsd": 55151.04668198181,
+        "candidatesEvaluated": 39,
+        "walletsProfiled": 33,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 8,
+        "baselineFillCount": 16
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "biden-pardon-jim",
+        "kind": "insider",
+        "title": "Will Biden pardon Jim Biden?",
+        "conditionId": "0xcde81adc8f07ce43f0287684a259ac4a6b3612a73c71c0247c6bc8b2bc97a691",
+        "winningOutcome": "YES",
+        "windowStart": "2025-01-17T16:40:00Z",
+        "newsAt": "2025-01-20T16:40:00Z",
+        "newsNote": "Family pardons announced ~11:40 ET Jan 20; reported $21.7k YES at ~11%",
+        "sources": [
+          {
+            "label": "NPR, 2026-04-16 (Bubblemaps)",
+            "url": "https://www.npr.org/2026/04/16/nx-s1-5786580/a-polymarket-trader-made-300-000-betting-on-bidens-pardons-a-new-analysis-shows"
+          },
+          {
+            "label": "Decrypt",
+            "url": "https://decrypt.co/364660/suspicious-polymarket-trader-320k-2025-biden-pardons"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "biden-pardon-jim",
+        "tradesInWindow": 2144,
+        "volumeInWindowUsd": 532977.7754221611,
+        "candidatesEvaluated": 351,
+        "walletsProfiled": 149,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 53,
+        "baselineFillCount": 194
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "biden-pardon-cheney",
+        "kind": "insider",
+        "title": "Will Biden pardon Liz Cheney?",
+        "conditionId": "0x0ba6d0a2f35fbb9a38aaee50b4a44b21093f4da96a2c3a3b49704b488a6b6b20",
+        "winningOutcome": "YES",
+        "windowStart": "2025-01-17T12:30:00Z",
+        "newsAt": "2025-01-20T12:30:00Z",
+        "newsNote": "Jan 6 committee pre-emptive pardons announced ~07:30 ET Jan 20",
+        "sources": [
+          {
+            "label": "NPR, 2026-04-16 (Bubblemaps)",
+            "url": "https://www.npr.org/2026/04/16/nx-s1-5786580/a-polymarket-trader-made-300-000-betting-on-bidens-pardons-a-new-analysis-shows"
+          },
+          {
+            "label": "NBC News, 2025-01-20",
+            "url": "https://www.nbcnews.com/politics/joe-biden/biden-issues-preemptive-pardons-milley-fauci-jan-6-panel-members-polic-rcna188368"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "biden-pardon-cheney",
+        "tradesInWindow": 1136,
+        "volumeInWindowUsd": 161621.26476606049,
+        "candidatesEvaluated": 156,
+        "walletsProfiled": 81,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 11,
+        "baselineFillCount": 78
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "biden-pardon-schiff",
+        "kind": "insider",
+        "title": "Will Biden pardon Adam Schiff?",
+        "conditionId": "0x072acaa7dd352c795948d495e019eec539539d36698225ab98b2f55c692d1b0c",
+        "winningOutcome": "YES",
+        "windowStart": "2025-01-17T12:30:00Z",
+        "newsAt": "2025-01-20T12:30:00Z",
+        "newsNote": "Jan 6 committee pardons ~07:30 ET Jan 20; reported entry at ~6%",
+        "sources": [
+          {
+            "label": "Decrypt",
+            "url": "https://decrypt.co/364660/suspicious-polymarket-trader-320k-2025-biden-pardons"
+          },
+          {
+            "label": "The Verge",
+            "url": "https://www.theverge.com/policy/913069/someone-made-over-300000-betting-on-biden-pardons"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "biden-pardon-schiff",
+        "tradesInWindow": 443,
+        "volumeInWindowUsd": 43499.69450397865,
+        "candidatesEvaluated": 59,
+        "walletsProfiled": 43,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 7,
+        "baselineFillCount": 28
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "gemini-3-nov18",
+        "kind": "insider",
+        "title": "Will Gemini 3.0 be released on November 18 2025?",
+        "conditionId": "0xcb42ce799c32e8f0bbe7df6a20396a7ecb1ca494316c5df0027ab89d941e1ca7",
+        "winningOutcome": "YES",
+        "windowStart": "2025-11-14T12:00:00Z",
+        "newsAt": "2025-11-17T12:00:00Z",
+        "newsNote": "Launch 2025-11-18 16:00 UTC; cut-off a day earlier, when Gemini 3 was spotted in AI Studio; AlphaRaccoon won ~$150k here",
+        "reportedWallets": [
+          "AlphaRaccoon"
+        ],
+        "sources": [
+          {
+            "label": "Gizmodo",
+            "url": "https://gizmodo.com/polymarket-user-accused-of-1-million-insider-trade-on-google-search-markets-2000696258"
+          },
+          {
+            "label": "Forbes, 2025-12-04",
+            "url": "https://www.forbes.com/sites/boazsobrado/2025/12/04/alleged-insider-nets-1-million-on-polymarket-in-24-hours/"
+          },
+          {
+            "label": "BleepingComputer (AI Studio sighting)",
+            "url": "https://www.bleepingcomputer.com/news/google/google-gemini-3-spotted-on-ai-studio-ahead-of-imminent-release/"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "gemini-3-nov18",
+        "tradesInWindow": 2553,
+        "volumeInWindowUsd": 355979.05925435387,
+        "candidatesEvaluated": 346,
+        "walletsProfiled": 187,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1763160146,
+            "wallet": "0xece847ea152616dcaf5d65aad4e73ea1ddc2cac6",
+            "name": "0xEcE847ea152616dCaf5d65aaD4E73ea1DDc2cAC6-1763158294527",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.595886,
+            "sizeUsd": 1139.499999,
+            "marketDailyVolumeUsd": 34384.38385416277,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 49,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1763177480,
+            "wallet": "0xd9430448ac33ddce60fa8feaee5e83d0b6b7195c",
+            "name": "pitya",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.807895,
+            "sizeUsd": 2497.9319,
+            "marketDailyVolumeUsd": 72535.40804787094,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 49,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1763187092,
+            "wallet": "0x20f2885308bed6377bf14d31fca705825875a981",
+            "name": "WaterDropplet",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.752627,
+            "sizeUsd": 2149.159998,
+            "marketDailyVolumeUsd": 81700.0935980674,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 49,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1763189456,
+            "wallet": "0x596ac7863897df6610ccefc5a7bec753b0074207",
+            "name": "7sea",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.798397,
+            "sizeUsd": 5800.669997,
+            "marketDailyVolumeUsd": 85078.81747805608,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 49,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1763196404,
+            "wallet": "0x5e32436affeb84f0d94c3e06ce93712c1aa34e3e",
+            "name": "joker3333",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.250826,
+            "sizeUsd": 980.729999,
+            "marketDailyVolumeUsd": 99278.51671008261,
+            "walletAgeHours": 15.124444444444444,
+            "priorWalletVolumeUsd": 105.78,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1763256835,
+            "wallet": "0x596ac7863897df6610ccefc5a7bec753b0074207",
+            "name": "7sea",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.760222,
+            "sizeUsd": 8751.499999,
+            "marketDailyVolumeUsd": 95753.47313267116,
+            "walletAgeHours": 18.71638888888889,
+            "priorWalletVolumeUsd": 5800.669997,
+            "score": 57,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": false,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1763273909,
+            "wallet": "0x24d147e895ceb386c850f29df0347d12ec4051e0",
+            "name": "FentReactor",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.250931,
+            "sizeUsd": 1160.159999,
+            "marketDailyVolumeUsd": 93562.85657848362,
+            "walletAgeHours": 61.39416666666666,
+            "priorWalletVolumeUsd": 2034.3906859999997,
+            "score": 21,
+            "tier": "LOW",
+            "signals": [
+              "NICHE_MARKET_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1763344657,
+            "wallet": "0x9acdf430b3218451c84734d22a8313b47d4c7841",
+            "name": "0x9acdF430B3218451c84734d22a8313B47d4c7841-1763294197696",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.287001,
+            "sizeUsd": 1151.409999,
+            "marketDailyVolumeUsd": 127643.51378576558,
+            "walletAgeHours": 0.21777777777777776,
+            "priorWalletVolumeUsd": 1,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1763380263,
+            "wallet": "0x5b24d9e2fdd90981ecfd7176c4795ee1d2b284ce",
+            "name": "jaeyoungkim",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.253451,
+            "sizeUsd": 1332.479999,
+            "marketDailyVolumeUsd": 123624.86057931097,
+            "walletAgeHours": 44.44277777777778,
+            "priorWalletVolumeUsd": 838.9299970000001,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [
+          {
+            "timestamp": 1763312731,
+            "stakeUsd": 1200.00017336727,
+            "effectivePrice": 0.276838,
+            "winningSide": false,
+            "ageHours": 0
+          },
+          {
+            "timestamp": 1763332033,
+            "stakeUsd": 1049.9980004247848,
+            "effectivePrice": 0.202945,
+            "winningSide": false,
+            "ageHours": 23.756666666666668
+          },
+          {
+            "timestamp": 1763344657,
+            "stakeUsd": 1151.411904978192,
+            "effectivePrice": 0.287001,
+            "winningSide": false,
+            "ageHours": 0.21777777777777776
+          }
+        ],
+        "reportedFills": [],
+        "signalFillCount": 37,
+        "baselineFillCount": 211
+      },
+      "hit": true,
+      "bestWinningTier": "MEDIUM",
+      "firstHitAt": 1763160146,
+      "leadHours": 61.29277777777778,
+      "firstAnyAlertLeadHours": 61.29277777777778,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 4,
+        "NICHE_MARKET_ENTRY": 5,
+        "FRESH_WALLET_LARGE_POSITION": 4,
+        "LUMP_ENTRY": 3,
+        "CONVICTION_SIZE_MISMATCH": 4
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 4,
+        "LOW": 4,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "pope-leo-not-top-search",
+        "kind": "insider",
+        "title": "Will Pope Leo XIV be the #1 searched person on Google this year? (No)",
+        "conditionId": "0xb9b05c3a14c6a7c1c6c00a8c214ed154d4232a885f98ebfd01889204ed252931",
+        "winningOutcome": "NO",
+        "windowStart": "2025-11-26T00:00:00Z",
+        "newsAt": "2025-12-04T08:00:00Z",
+        "newsNote": "Year in Search 2025 published Dec 4; listed in the CFTC complaint (AlphaRaccoon, NO side)",
+        "reportedWallets": [
+          "AlphaRaccoon"
+        ],
+        "sources": [
+          {
+            "label": "CFTC complaint 26-cv-4419",
+            "url": "https://storage.courtlistener.com/recap/gov.uscourts.nysd.664905/gov.uscourts.nysd.664905.1.0.pdf"
+          },
+          {
+            "label": "Reuters via Investing.com, 2026-05-27",
+            "url": "https://www.investing.com/news/stock-market-news/us-charges-google-engineer-with-insider-trading-on-polymarket-4713459"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "pope-leo-not-top-search",
+        "tradesInWindow": 5615,
+        "volumeInWindowUsd": 2439555.6559827467,
+        "candidatesEvaluated": 902,
+        "walletsProfiled": 430,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1764216543,
+            "wallet": "0xe4f648f5674dedfbdd844cf96b64089d8ff984bf",
+            "name": "bbdree",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.62,
+            "sizeUsd": 1074.999998,
+            "marketDailyVolumeUsd": 27005.78258394553,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 49,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1764622524,
+            "wallet": "0x63afa0695a62a52b6b0b798c5b2a300dd1363438",
+            "name": "DicholasJ.",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.47,
+            "sizeUsd": 4995.8648,
+            "marketDailyVolumeUsd": 62659.510030014724,
+            "walletAgeHours": 261.06805555555553,
+            "priorWalletVolumeUsd": 5181.88,
+            "score": 27,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1764682026,
+            "wallet": "0xaa0f9278293573f4f8ec1b7cdc19ba6fa480ab1c",
+            "name": "shimpei",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.5,
+            "sizeUsd": 37210.815,
+            "marketDailyVolumeUsd": 118481.97551584872,
+            "walletAgeHours": 15.49611111111111,
+            "priorWalletVolumeUsd": 31470.588099999997,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1764777757,
+            "wallet": "0xc1259ddd92f58aded52d029e37e3fbbebafaa4c1",
+            "name": "albertbert",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.49,
+            "sizeUsd": 3675,
+            "marketDailyVolumeUsd": 145113.5323121489,
+            "walletAgeHours": 33.179722222222225,
+            "priorWalletVolumeUsd": 2806.118920000001,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 94,
+        "baselineFillCount": 663
+      },
+      "hit": true,
+      "bestWinningTier": "MEDIUM",
+      "firstHitAt": 1764216543,
+      "leadHours": 171.84916666666666,
+      "firstAnyAlertLeadHours": 171.84916666666666,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 4,
+        "NICHE_MARKET_ENTRY": 2,
+        "FRESH_WALLET_LARGE_POSITION": 1,
+        "LUMP_ENTRY": 3
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 1,
+        "LOW": 3,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "warsh-fed-chair",
+        "kind": "insider",
+        "title": "Will Trump nominate Kevin Warsh as the next Fed chair?",
+        "conditionId": "0x61b66d02793b4a68ab0cc25be60d65f517fe18c7d654041281bb130341244fcc",
+        "winningOutcome": "YES",
+        "windowStart": "2026-01-20T00:00:00Z",
+        "newsAt": "2026-01-29T14:00:00Z",
+        "newsNote": "Reports Jan 29 that Warsh was the pick (cut-off 09:00 ET); Truth Social nomination Jan 30 06:48 ET; quant42 entered ~Jan 21",
+        "reportedWallets": [
+          "quant42"
+        ],
+        "sources": [
+          {
+            "label": "IBTimes UK, 2026-01-30",
+            "url": "https://www.ibtimes.co.uk/someone-bet-kevin-warsh-fed-chair-9-days-ago-before-everyone-else-started-paying-attention-1775072"
+          },
+          {
+            "label": "CNBC, 2026-01-29",
+            "url": "https://www.cnbc.com/2026/01/29/trump-says-he-will-announce-a-replacement-for-powell-as-fed-chair-friday-morning.html"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "warsh-fed-chair",
+        "tradesInWindow": 14582,
+        "volumeInWindowUsd": 1339951.894423587,
+        "candidatesEvaluated": 1320,
+        "walletsProfiled": 346,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1768927840,
+            "wallet": "0x6e0254bd74e592700ef62d70201b936038dbbfce",
+            "name": "metsW",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.4,
+            "sizeUsd": 20000,
+            "marketDailyVolumeUsd": 254671.30491646504,
+            "walletAgeHours": 1718.348611111111,
+            "priorWalletVolumeUsd": 2500.832842,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1768949560,
+            "wallet": "0x4ebb2f3016c231f6ffc9b3222b075d7e7d65061a",
+            "name": "predictor555",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.5359039999999999,
+            "sizeUsd": 17596.845498,
+            "marketDailyVolumeUsd": 301948.7717552285,
+            "walletAgeHours": null,
+            "priorWalletVolumeUsd": 1213.485856,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769078448,
+            "wallet": "0xc6174a742b2926f00e683828019cef708ff9cd8e",
+            "name": "0xc6174a742B2926f00E683828019CEF708ff9cd8E-1762579911011",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.45,
+            "sizeUsd": 5717.142,
+            "marketDailyVolumeUsd": 247908.16602880595,
+            "walletAgeHours": 243.19055555555556,
+            "priorWalletVolumeUsd": 6371.458232,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769192542,
+            "wallet": "0x6b8e8bbe394d76f95dc079597fb8d9a4adbde8b0",
+            "name": "psa10snorlax",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.422812,
+            "sizeUsd": 2925.809999,
+            "marketDailyVolumeUsd": 104217.0969464441,
+            "walletAgeHours": 317.3077777777778,
+            "priorWalletVolumeUsd": 987.904399,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": [
+          {
+            "timestamp": 1768898806,
+            "name": "quant42",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 1740.312,
+            "tier": "CLEAN",
+            "signals": []
+          }
+        ],
+        "signalFillCount": 72,
+        "baselineFillCount": 999
+      },
+      "hit": false,
+      "bestWinningTier": "LOW",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 213.15555555555557,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 4,
+        "LUMP_ENTRY": 4
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 4,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": false
+    },
+    {
+      "testCase": {
+        "id": "swift-kelce-engaged-2025",
+        "kind": "insider",
+        "title": "Taylor Swift and Travis Kelce engaged in 2025?",
+        "conditionId": "0x89ac32e18929185f5bd0dc00e70337571f546e64ae5cd16dceb6026ac2679c1e",
+        "winningOutcome": "YES",
+        "windowStart": "2025-08-23T17:00:00Z",
+        "newsAt": "2025-08-26T17:00:00Z",
+        "newsNote": "Instagram post 13:00 ET Aug 26; romanticpaul bought from ~24 h before, last buy 15 min before",
+        "reportedWallets": [
+          "romanticpaul"
+        ],
+        "sources": [
+          {
+            "label": "Business Insider, 2025-08",
+            "url": "https://www.businessinsider.com/taylor-swift-travis-kelce-engagement-polymarket-bet-pays-off-2025-8"
+          },
+          {
+            "label": "Mitts & Ofir, Harvard Law corp-gov forum",
+            "url": "https://corpgov.law.harvard.edu/2026/03/25/from-iran-to-taylor-swift-informed-trading-in-prediction-markets/"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "swift-kelce-engaged-2025",
+        "tradesInWindow": 39,
+        "volumeInWindowUsd": 1682.7209970091326,
+        "candidatesEvaluated": 15,
+        "walletsProfiled": 2,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [
+          {
+            "timestamp": 1756063697,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 12.25,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756074041,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 6.25,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756075047,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 6.5,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756149059,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 59.7,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756149059,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 337.23,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756149061,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 1.3328,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756149061,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 3.684,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756149061,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 1.5796,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756149061,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 6.81,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756150939,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 1.23,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756156629,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 11.7,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756167033,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 44.85,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756176581,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 108,
+            "tier": "CLEAN",
+            "signals": []
+          },
+          {
+            "timestamp": 1756226773,
+            "name": "romanticpaul",
+            "effectiveOutcome": "YES",
+            "sizeUsd": 240.8,
+            "tier": "CLEAN",
+            "signals": []
+          }
+        ],
+        "signalFillCount": 0,
+        "baselineFillCount": 15
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": false
     },
     {
       "testCase": {
@@ -2629,6 +5682,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -2636,7 +5692,9 @@
           }
         ],
         "probeFills": [],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 50,
+        "baselineFillCount": 536
       },
       "hit": false,
       "bestWinningTier": "CLEAN",
@@ -2700,6 +5758,7 @@
               "NICHE_MARKET_ENTRY",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": true,
             "delivered": true,
             "reportedWallet": false,
@@ -2707,7 +5766,9 @@
           }
         ],
         "probeFills": [],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 44,
+        "baselineFillCount": 419
       },
       "hit": false,
       "bestWinningTier": "LOW",
@@ -2756,7 +5817,9 @@
         "excludedMarket": false,
         "alerts": [],
         "probeFills": [],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 8,
+        "baselineFillCount": 30
       },
       "hit": false,
       "bestWinningTier": "CLEAN",
@@ -2816,6 +5879,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -2835,6 +5901,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -2858,6 +5927,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -2877,6 +5949,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -2900,6 +5975,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -2919,6 +5997,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -2942,6 +6023,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -2963,6 +6047,32 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760084718,
+            "wallet": "0xc71558be1368db8b222da9b0d4802086d1409edc",
+            "name": null,
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.042102,
+            "sizeUsd": 10395.000001,
+            "marketDailyVolumeUsd": 1460748.0068609635,
+            "walletAgeHours": 0,
+            "priorWalletVolumeUsd": 0,
+            "score": 40,
+            "tier": "MEDIUM",
+            "signals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LONGSHOT"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -2982,6 +6092,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3125,7 +6238,9 @@
             "ageHours": 0
           }
         ],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 55,
+        "baselineFillCount": 1436
       },
       "hit": false,
       "bestWinningTier": "CLEAN",
@@ -3134,16 +6249,17 @@
       "firstAnyAlertLeadHours": 67.52333333333333,
       "signalsFired": {
         "LUMP_ENTRY": 9,
-        "CONVICTION_SIZE_MISMATCH": 9
+        "CONVICTION_SIZE_MISMATCH": 9,
+        "FRESH_WALLET_LONGSHOT": 1
       },
       "tierCounts": {
         "CRITICAL": 0,
         "HIGH": 0,
-        "MEDIUM": 0,
+        "MEDIUM": 1,
         "LOW": 9,
         "CLEAN": 0
       },
-      "wrongSideDelivered": 0,
+      "wrongSideDelivered": 1,
       "reportedWalletFlagged": null
     },
     {
@@ -3188,6 +6304,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3207,6 +6326,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3230,6 +6352,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": false,
             "reportedWallet": false,
@@ -3251,6 +6376,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3270,6 +6396,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3293,6 +6422,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3312,6 +6444,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3335,6 +6470,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3354,6 +6492,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3377,6 +6518,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3396,6 +6540,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3419,6 +6566,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3438,6 +6588,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3461,6 +6614,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3480,6 +6636,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3503,6 +6662,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3522,6 +6684,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3545,6 +6710,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3564,6 +6732,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3587,6 +6758,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3608,6 +6782,9 @@
               "LUMP_ENTRY",
               "CONVICTION_SIZE_MISMATCH"
             ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3627,6 +6804,9 @@
             "tier": "LOW",
             "signals": [
               "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
               "CONVICTION_SIZE_MISMATCH"
             ],
             "winningSide": false,
@@ -3819,7 +6999,9 @@
             "ageHours": 0
           }
         ],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 108,
+        "baselineFillCount": 3416
       },
       "hit": false,
       "bestWinningTier": "CLEAN",
@@ -3850,7 +7032,7 @@
         "winningOutcome": "NO",
         "windowStart": "2026-03-29T23:59:00Z",
         "newsAt": "2026-03-31T23:59:00Z",
-        "newsNote": "Expired No",
+        "newsNote": "Expired No. Caveat: the Guardian reported ~8 new accounts betting ~$70k YES here around Mar 21 (they lost); kept for comparability",
         "sources": [
           {
             "label": "Polymarket",
@@ -3883,6 +7065,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3904,6 +7087,7 @@
               "OUTSIZED_POSITION",
               "LUMP_ENTRY"
             ],
+            "deliverableSignals": [],
             "winningSide": false,
             "delivered": true,
             "reportedWallet": false,
@@ -3911,7 +7095,9 @@
           }
         ],
         "probeFills": [],
-        "reportedFills": []
+        "reportedFills": [],
+        "signalFillCount": 25,
+        "baselineFillCount": 604
       },
       "hit": false,
       "bestWinningTier": "CLEAN",
@@ -3927,6 +7113,941 @@
         "HIGH": 0,
         "MEDIUM": 0,
         "LOW": 2,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-us-forces-venezuela-dec31",
+        "kind": "control",
+        "title": "US forces in Venezuela by December 31?",
+        "conditionId": "0x467176b3079c10574bef26546e834f5d3c1551bada9ec1d43ee5814651a0baf9",
+        "winningOutcome": "NO",
+        "windowStart": "2025-12-28T00:00:00Z",
+        "newsAt": "2026-01-01T00:00:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/us-forces-in-venezuela-by"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-us-forces-venezuela-dec31",
+        "tradesInWindow": 347,
+        "volumeInWindowUsd": 65587.63334136363,
+        "candidatesEvaluated": 107,
+        "walletsProfiled": 57,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 10,
+        "baselineFillCount": 54
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-khamenei-out-2025",
+        "kind": "control",
+        "title": "Khamenei out as Supreme Leader of Iran in 2025?",
+        "conditionId": "0x1b6f76e5b8587ee896c35847e12d11e75290a8c3934c5952e8a9d6e4c6f03cfa",
+        "winningOutcome": "NO",
+        "windowStart": "2025-12-28T00:00:00Z",
+        "newsAt": "2026-01-01T00:00:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/khamenei-out-as-supreme-leader-of-iran-in-2025"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-khamenei-out-2025",
+        "tradesInWindow": 968,
+        "volumeInWindowUsd": 100696.5403333444,
+        "candidatesEvaluated": 72,
+        "walletsProfiled": 60,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1767205155,
+            "wallet": "0x6720987c1e01b1fbf6817f8f4148e878b5670fab",
+            "name": "0x6720987C1e01B1fbF6817F8f4148E878b5670fab-1750038860268",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.999,
+            "sizeUsd": 1998,
+            "marketDailyVolumeUsd": 22816.32616705449,
+            "walletAgeHours": 0.03944444444444444,
+            "priorWalletVolumeUsd": 1784.45,
+            "score": 57,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1767216221,
+            "wallet": "0x9ca52beaebdce932d4adbbe4ed90da65f1f3ee30",
+            "name": "macanga",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.0040000000000000036,
+            "sizeUsd": 2431.90332,
+            "marketDailyVolumeUsd": 33379.48202504935,
+            "walletAgeHours": 4655.936944444445,
+            "priorWalletVolumeUsd": 1021.789999,
+            "score": 27,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 17,
+        "baselineFillCount": 28
+      },
+      "hit": true,
+      "bestWinningTier": "MEDIUM",
+      "firstHitAt": 1767205155,
+      "leadHours": 5.679166666666666,
+      "firstAnyAlertLeadHours": 5.679166666666666,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 2,
+        "NICHE_MARKET_ENTRY": 2,
+        "LUMP_ENTRY": 2,
+        "FRESH_WALLET_LARGE_POSITION": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 1,
+        "LOW": 1,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-israel-strikes-iran-sep30",
+        "kind": "control",
+        "title": "Israel strikes Iran by September 30? (2025)",
+        "conditionId": "0xa74304523e0d5b3ea3ce9d44a7ec5e67cc2ccf15735d46a186497d23a5d9edde",
+        "winningOutcome": "NO",
+        "windowStart": "2025-09-27T00:00:00Z",
+        "newsAt": "2025-10-01T00:00:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/israel-strikes-iran-by-september-30"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-israel-strikes-iran-sep30",
+        "tradesInWindow": 463,
+        "volumeInWindowUsd": 97906.74044221177,
+        "candidatesEvaluated": 83,
+        "walletsProfiled": 54,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1759100151,
+            "wallet": "0x373f307a311cfb5e9fc7383e155f3cc79d0e1878",
+            "name": "333blacksea",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.99097,
+            "sizeUsd": 1794.199939,
+            "marketDailyVolumeUsd": 22631.885434946445,
+            "walletAgeHours": 16.76222222222222,
+            "priorWalletVolumeUsd": 1199.789974,
+            "score": 57,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 16,
+        "baselineFillCount": 50
+      },
+      "hit": true,
+      "bestWinningTier": "MEDIUM",
+      "firstHitAt": 1759100151,
+      "leadHours": 49.06916666666667,
+      "firstAnyAlertLeadHours": 49.06916666666667,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 1,
+        "NICHE_MARKET_ENTRY": 1,
+        "LUMP_ENTRY": 1,
+        "FRESH_WALLET_LARGE_POSITION": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 1,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-us-iran-deal-apr30",
+        "kind": "control",
+        "title": "US-Iran nuclear deal by April 30? (2026)",
+        "conditionId": "0xd08544f6162283dc8d0a82f16362aab837a8537379df9bbe604960eec9cd4618",
+        "winningOutcome": "NO",
+        "windowStart": "2026-04-27T00:00:00Z",
+        "newsAt": "2026-05-01T00:00:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/us-iran-nuclear-deal-by-april-30"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-us-iran-deal-apr30",
+        "tradesInWindow": 522,
+        "volumeInWindowUsd": 78132.95395337215,
+        "candidatesEvaluated": 61,
+        "walletsProfiled": 49,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1777345604,
+            "wallet": "0xb8ee94bd599a92d4747dda5f3bc6d2b243349e81",
+            "name": "0xB8eE94bD599A92D4747DdA5f3bc6D2B243349e81-1765943326811",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.01100000000000001,
+            "sizeUsd": 1978,
+            "marketDailyVolumeUsd": 27694.056034380574,
+            "walletAgeHours": null,
+            "priorWalletVolumeUsd": 605.818602,
+            "score": 27,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1777472906,
+            "wallet": "0x7d70e26424e1f79cb07a93bf7411aca9412727e8",
+            "name": null,
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.00576500000000002,
+            "sizeUsd": 6491.47227,
+            "marketDailyVolumeUsd": 14884.168806916769,
+            "walletAgeHours": 242.69222222222223,
+            "priorWalletVolumeUsd": 7134.729995000001,
+            "score": 27,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 8,
+        "baselineFillCount": 27
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 68.88777777777777,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 2,
+        "NICHE_MARKET_ENTRY": 2,
+        "LUMP_ENTRY": 2
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 2,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-biden-pardon-hillary",
+        "kind": "control",
+        "title": "Will Biden pardon Hillary?",
+        "conditionId": "0x7f697cf4dcabd2440273944aef7a6867471b02f2f462f9703229abd8c2745b22",
+        "winningOutcome": "NO",
+        "windowStart": "2025-01-17T16:40:00Z",
+        "newsAt": "2025-01-20T16:40:00Z",
+        "newsNote": "Same event and window as the Jim Biden case",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/who-will-biden-pardon"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-biden-pardon-hillary",
+        "tradesInWindow": 450,
+        "volumeInWindowUsd": 110321.49997482216,
+        "candidatesEvaluated": 105,
+        "walletsProfiled": 58,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 12,
+        "baselineFillCount": 41
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-biden-pardon-sbf",
+        "kind": "control",
+        "title": "Will Biden pardon SBF?",
+        "conditionId": "0xf4078ddd084c8979c81f1ac4674d5e846b87a13b7f568bdd402296181e83b4d9",
+        "winningOutcome": "NO",
+        "windowStart": "2025-01-17T16:40:00Z",
+        "newsAt": "2025-01-20T16:40:00Z",
+        "newsNote": "Same event and window as the Jim Biden case",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/who-will-biden-pardon"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-biden-pardon-sbf",
+        "tradesInWindow": 1063,
+        "volumeInWindowUsd": 959551.1853181339,
+        "candidatesEvaluated": 372,
+        "walletsProfiled": 194,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1737307538,
+            "wallet": "0xd1acd3925d895de9aec98ff95f3a30c5279d08d5",
+            "name": "Kickstand7",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.963839,
+            "sizeUsd": 56684.406191,
+            "marketDailyVolumeUsd": 223557.6987722404,
+            "walletAgeHours": null,
+            "priorWalletVolumeUsd": 65664.65469199998,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1737315940,
+            "wallet": "0xc8fc2246b2757e256c3e945d015c4a979d33fa36",
+            "name": "NGMA",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.973084,
+            "sizeUsd": 94169.999968,
+            "marketDailyVolumeUsd": 308968.54803749896,
+            "walletAgeHours": 264.52416666666664,
+            "priorWalletVolumeUsd": 43772.17778700001,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 30,
+        "baselineFillCount": 220
+      },
+      "hit": false,
+      "bestWinningTier": "LOW",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 23.239444444444445,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 2,
+        "LUMP_ENTRY": 2
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 2,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-trump-pardon-hunter",
+        "kind": "control",
+        "title": "Will Trump pardon Hunter Biden?",
+        "conditionId": "0x1c08575bf76817784ff133142eacc37506f1bdeeeb4d3901bed1189b8091ff03",
+        "winningOutcome": "NO",
+        "windowStart": "2025-04-16T12:00:00Z",
+        "newsAt": "2025-04-19T12:00:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/will-trump-pardon-hunter-biden"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-trump-pardon-hunter",
+        "tradesInWindow": 205,
+        "volumeInWindowUsd": 7523.555236833831,
+        "candidatesEvaluated": 7,
+        "walletsProfiled": 7,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 0,
+        "baselineFillCount": 3
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-gemini-3-by-nov15",
+        "kind": "control",
+        "title": "Will Gemini 3.0 be released by November 15?",
+        "conditionId": "0xca115707c2c17262646adee5b0eb92286d4761ad8ae76cea66f2f2df57e85f5e",
+        "winningOutcome": "NO",
+        "windowStart": "2025-11-12T12:00:00Z",
+        "newsAt": "2025-11-16T05:00:00Z",
+        "newsNote": "Expired No (end of Nov 15 ET)",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/gemini-3pt0-released-by"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-gemini-3-by-nov15",
+        "tradesInWindow": 1695,
+        "volumeInWindowUsd": 574777.5311098342,
+        "candidatesEvaluated": 446,
+        "walletsProfiled": 287,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1763033962,
+            "wallet": "0x6b18275ad7479e1bd65262e3b659a9c97fed126f",
+            "name": "9Wangy",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.93,
+            "sizeUsd": 1994.85,
+            "marketDailyVolumeUsd": 76385.16325363737,
+            "walletAgeHours": 0.025,
+            "priorWalletVolumeUsd": 36560.08716,
+            "score": 49,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 43,
+        "baselineFillCount": 299
+      },
+      "hit": true,
+      "bestWinningTier": "MEDIUM",
+      "firstHitAt": 1763033962,
+      "leadHours": 65.34388888888888,
+      "firstAnyAlertLeadHours": 65.34388888888888,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 1,
+        "NICHE_MARKET_ENTRY": 1,
+        "FRESH_WALLET_LARGE_POSITION": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 1,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-hassett-fed-chair",
+        "kind": "control",
+        "title": "Will Trump nominate Kevin Hassett as the next Fed chair?",
+        "conditionId": "0xdcc87b9ca36015e396bd0eebca29e854a136ed2b0b701049d1ee9da6bee3eb35",
+        "winningOutcome": "NO",
+        "windowStart": "2026-01-20T00:00:00Z",
+        "newsAt": "2026-01-29T14:00:00Z",
+        "newsNote": "Same event and window as the Warsh case",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/who-will-trump-nominate-as-fed-chair"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-hassett-fed-chair",
+        "tradesInWindow": 12978,
+        "volumeInWindowUsd": 934738.6708907643,
+        "candidatesEvaluated": 1368,
+        "walletsProfiled": 391,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1769103724,
+            "wallet": "0xab8959231b67c6e91ae04ef359c7e4a01f3dc4ef",
+            "name": "0xAB8959231b67c6e91Ae04ef359c7E4A01f3Dc4eF-1768577627032",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.06000000000000005,
+            "sizeUsd": 9951.028,
+            "marketDailyVolumeUsd": 111542.59730970912,
+            "walletAgeHours": 146.04333333333332,
+            "priorWalletVolumeUsd": 9209.999996,
+            "score": 20,
+            "tier": "LOW",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "LUMP_ENTRY"
+            ],
+            "deliverableSignals": [],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1769435451,
+            "wallet": "0xc6d73faf8393c077d7dcceeeb5321d3d4a14715d",
+            "name": "OllieJ",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.089118,
+            "sizeUsd": 684.24,
+            "marketDailyVolumeUsd": 93170.39940626144,
+            "walletAgeHours": 2849.0622222222223,
+            "priorWalletVolumeUsd": 522.309998,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 80,
+        "baselineFillCount": 1123
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": 164.29888888888888,
+      "signalsFired": {
+        "OUTSIZED_POSITION": 1,
+        "LUMP_ENTRY": 2,
+        "CONVICTION_SIZE_MISMATCH": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 2,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-swift-kelce-before-april",
+        "kind": "control",
+        "title": "Taylor Swift and Travis Kelce engaged before April? (2025)",
+        "conditionId": "0x26af267d671532b83ffb5779f5a62d3ce21590d1220ad5649528063a9599164f",
+        "winningOutcome": "NO",
+        "windowStart": "2025-03-28T12:00:00Z",
+        "newsAt": "2025-03-31T12:00:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/taylor-swift-and-travis-kelce-engaged-before-april"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-swift-kelce-before-april",
+        "tradesInWindow": 115,
+        "volumeInWindowUsd": 1461.346982014549,
+        "candidatesEvaluated": 1,
+        "walletsProfiled": 1,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 0,
+        "baselineFillCount": 1
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-spotify-weeknd-2nd",
+        "kind": "control",
+        "title": "Will The Weeknd be the second most streamed Spotify artist for 2025?",
+        "conditionId": "0xfd5a7d8cb258c7790a9c385d5999aff844108e66edd600f851a11397ede1c73b",
+        "winningOutcome": "NO",
+        "windowStart": "2025-11-30T12:00:00Z",
+        "newsAt": "2025-12-03T12:00:00Z",
+        "newsNote": "Spotify Wrapped 2025 (Dec 3; cut-off 07:00 ET); a data-release market like Year in Search, no reported leak",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/2-most-streamed-spotify-artist-2025"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-spotify-weeknd-2nd",
+        "tradesInWindow": 536,
+        "volumeInWindowUsd": 17462.40026421915,
+        "candidatesEvaluated": 176,
+        "walletsProfiled": 144,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 3,
+        "baselineFillCount": 101
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-navalnaya-nobel-2025",
+        "kind": "control",
+        "title": "Will Yulia Navalnaya win the Nobel Peace Prize in 2025?",
+        "conditionId": "0xb1de8e4de72cc5674815e0ac09adce40ba94f3dec50e64ea15918f109fa58339",
+        "winningOutcome": "NO",
+        "windowStart": "2025-10-07T09:00:00Z",
+        "newsAt": "2025-10-10T09:00:00Z",
+        "newsNote": "Same event and window as the Machado case (a smaller market, like Machado)",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/nobel-peace-prize-winner-2025"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-navalnaya-nobel-2025",
+        "tradesInWindow": 1332,
+        "volumeInWindowUsd": 102891.74905268289,
+        "candidatesEvaluated": 175,
+        "walletsProfiled": 104,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [
+          {
+            "timestamp": 1759989749,
+            "wallet": "0x3b242dc4b65136c917e54b27b9b1be84e3a5ca45",
+            "name": "0x3B242DC4B65136C917E54b27b9b1Be84e3A5Ca45-1759622088659",
+            "effectiveOutcome": "YES",
+            "effectivePrice": 0.092327,
+            "sizeUsd": 500,
+            "marketDailyVolumeUsd": 4074.1262449013325,
+            "walletAgeHours": 0.0016666666666666668,
+            "priorWalletVolumeUsd": 500,
+            "score": 22,
+            "tier": "LOW",
+            "signals": [
+              "LUMP_ENTRY",
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "deliverableSignals": [
+              "CONVICTION_SIZE_MISMATCH"
+            ],
+            "winningSide": false,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          },
+          {
+            "timestamp": 1760045821,
+            "wallet": "0x68ddf4f01e04587512e19903450aa49208a53c70",
+            "name": "Neverevergiveup",
+            "effectiveOutcome": "NO",
+            "effectivePrice": 0.92,
+            "sizeUsd": 1307.5316,
+            "marketDailyVolumeUsd": 14264.790349779996,
+            "walletAgeHours": 0.04055555555555555,
+            "priorWalletVolumeUsd": 18.4,
+            "score": 57,
+            "tier": "MEDIUM",
+            "signals": [
+              "OUTSIZED_POSITION",
+              "NICHE_MARKET_ENTRY",
+              "LUMP_ENTRY",
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "deliverableSignals": [
+              "FRESH_WALLET_LARGE_POSITION"
+            ],
+            "winningSide": true,
+            "delivered": true,
+            "reportedWallet": false,
+            "suppressedAsMarketMaker": false
+          }
+        ],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 18,
+        "baselineFillCount": 126
+      },
+      "hit": true,
+      "bestWinningTier": "MEDIUM",
+      "firstHitAt": 1760045821,
+      "leadHours": 11.383055555555556,
+      "firstAnyAlertLeadHours": 26.95861111111111,
+      "signalsFired": {
+        "LUMP_ENTRY": 2,
+        "CONVICTION_SIZE_MISMATCH": 1,
+        "OUTSIZED_POSITION": 1,
+        "NICHE_MARKET_ENTRY": 1,
+        "FRESH_WALLET_LARGE_POSITION": 1
+      },
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 1,
+        "LOW": 1,
+        "CLEAN": 0
+      },
+      "wrongSideDelivered": 0,
+      "reportedWalletFlagged": null
+    },
+    {
+      "testCase": {
+        "id": "ctl-openai-hardware-2025",
+        "kind": "control",
+        "title": "Will OpenAI launch a new consumer hardware product in 2025?",
+        "conditionId": "0xd4f79cbb0e6aa3035f19ea539d7186d126b4ba6f9b6aa463ebea7d3523f8bf05",
+        "winningOutcome": "NO",
+        "windowStart": "2025-12-28T00:00:00Z",
+        "newsAt": "2026-01-01T00:00:00Z",
+        "newsNote": "Expired No",
+        "sources": [
+          {
+            "label": "Polymarket",
+            "url": "https://polymarket.com/event/will-openai-launch-a-consumer-hardware-product-by"
+          }
+        ]
+      },
+      "result": {
+        "caseId": "ctl-openai-hardware-2025",
+        "tradesInWindow": 3,
+        "volumeInWindowUsd": 1.619425994945,
+        "candidatesEvaluated": 1,
+        "walletsProfiled": 1,
+        "walletsUnprofiled": 0,
+        "excludedMarket": false,
+        "alerts": [],
+        "probeFills": [],
+        "reportedFills": [],
+        "signalFillCount": 0,
+        "baselineFillCount": 0
+      },
+      "hit": false,
+      "bestWinningTier": "CLEAN",
+      "firstHitAt": null,
+      "leadHours": null,
+      "firstAnyAlertLeadHours": null,
+      "signalsFired": {},
+      "tierCounts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
         "CLEAN": 0
       },
       "wrongSideDelivered": 0,
