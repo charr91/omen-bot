@@ -43,7 +43,7 @@ Usage:
   omen [--env-file .env] health
   omen [--env-file .env] stats [--days 7] [--json] [--refresh]
   omen [--env-file .env] sports-share [--days 7] [--json]
-  omen backtest [--out docs/backtests/m2-insider-cases.md] [--json f] [--offline] [--refresh] [--only <case-id>]
+  omen backtest [--out docs/backtests/m2-insider-cases.md] [--json f] [--offline] [--refresh] [--only <case-id>] [--rps 5]
   omen [--env-file .env] kalshi-map <list|add|remove|suggest [--auto] [--min 0.6]> [...]
   omen [--env-file .env] test-telegram
   omen [--env-file .env] cold-worker

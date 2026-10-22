@@ -3,6 +3,8 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { join } from 'node:path';
+import { extractCategory, extractTags } from '../phase0/public-api.js';
+import type { JsonObject } from '../phase0/types.js';
 
 /**
  * Historical data for the offline backtest. Only public Polymarket HTTP APIs (data-api trades/activity, gamma
@@ -44,6 +46,12 @@ export interface RawMarket {
   slug: string | null;
   eventSlug: string | null;
   volume: number;
+  /** Gamma metadata, as live (include_tag=true): used by the sports/weather exclusion. */
+  category?: string | null;
+  tags?: string[];
+  sportsMarketType?: string | null;
+  /** When the market closed (resolved), unix seconds; prices after it are the resolution price. */
+  closedAt?: number | null;
 }
 
 export interface WalletHistory {
@@ -56,9 +64,33 @@ export interface WalletHistory {
 
 export type JsonGetter = (url: string) => Promise<unknown>;
 
+/** Polite request pacing shared by every backtest HTTP call: at most `rps` request starts per second. */
+let minGapMs = 1000 / 5;
+let nextSlot = 0;
+export function setRequestRate(rps: number): void {
+  minGapMs = rps > 0 ? 1000 / rps : 0;
+}
+async function pace(): Promise<void> {
+  const now = Date.now();
+  const at = Math.max(now, nextSlot);
+  nextSlot = at + minGapMs;
+  if (at > now) await new Promise((r) => setTimeout(r, at - now));
+}
+
 export const httpGetJson: JsonGetter = async (url) => {
   for (let attempt = 0; ; attempt += 1) {
-    const response = await fetch(url, { headers: { 'user-agent': 'omen-backtest/1' }, signal: AbortSignal.timeout(60_000) });
+    await pace();
+    let response: Response;
+    try {
+      response = await fetch(url, { headers: { 'user-agent': 'omen-backtest/1' }, signal: AbortSignal.timeout(60_000) });
+    } catch (error) {
+      // Timeouts and dropped connections: back off and retry like a 5xx.
+      if (attempt < 4) {
+        await new Promise((r) => setTimeout(r, 2_000 * 2 ** attempt));
+        continue;
+      }
+      throw error;
+    }
     if (response.ok) return (await response.json()) as unknown;
     if ((response.status === 429 || response.status >= 500) && attempt < 4) {
       await new Promise((r) => setTimeout(r, 1_000 * 2 ** attempt));
@@ -88,17 +120,23 @@ export class BacktestDataSource {
   }
 
   async market(conditionId: string): Promise<RawMarket> {
-    return this.cached(`market:${conditionId}`, async () => {
-      const body = (await this.get(`${GAMMA_API}/markets?condition_ids=${conditionId}&closed=true`)) as Array<Record<string, unknown>>;
+    // v2: adds category/tags/sportsMarketType (market exclusion) and closedAt (outcome pricing).
+    return this.cached(`market:v2:${conditionId}`, async () => {
+      const body = (await this.get(`${GAMMA_API}/markets?condition_ids=${conditionId}&closed=true&include_tag=true`)) as Array<Record<string, unknown>>;
       const m = body[0];
       if (!m) throw new Error(`gamma: no market ${conditionId}`);
       const events = (m.events as Array<{ slug?: string }> | undefined) ?? [];
+      const closed = typeof m.closedTime === 'string' ? Date.parse(m.closedTime.replace(' ', 'T').replace(/\+00$/, 'Z')) : NaN;
       return {
         conditionId,
         question: String(m.question),
         slug: typeof m.slug === 'string' ? m.slug : null,
         eventSlug: events[0]?.slug ?? null,
         volume: Number(m.volume ?? 0),
+        category: extractCategory(m as JsonObject),
+        tags: extractTags(m as JsonObject),
+        sportsMarketType: typeof m.sportsMarketType === 'string' && m.sportsMarketType ? m.sportsMarketType : null,
+        closedAt: Number.isFinite(closed) ? Math.floor(closed / 1000) : null,
       };
     });
   }

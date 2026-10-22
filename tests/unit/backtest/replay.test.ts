@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { BacktestCase } from '../../../src/backtest/cases.js';
 import { BACKTEST_CASES } from '../../../src/backtest/cases.js';
 import { BacktestDataSource, type RawTrade, type WalletHistory } from '../../../src/backtest/data.js';
-import { median, summarizeCase, totals } from '../../../src/backtest/report.js';
-import { candidateWallets, replayCase, walletAt, type ReplayConfig, type WalletHistoryPair } from '../../../src/backtest/replay.js';
+import { bandMatched, moveRow, moveStat, TapePricer, type MoveRow } from '../../../src/backtest/moves.js';
+import { median, signalScorecard, summarizeCase, totals } from '../../../src/backtest/report.js';
+import { candidateWallets, deliveredSignalIds, replayCase, walletAt, type ReplayConfig, type WalletHistoryPair } from '../../../src/backtest/replay.js';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -148,16 +149,76 @@ describe('backtest replay', () => {
     expect(t.controlsWithAlert).toBe(0); // outsized + niche = 19, CLEAN: not a delivered MEDIUM+
   });
 
-  it('ships 5-10 insider cases and controls with sources', () => {
+  it('ships 15-25 insider cases and a matching number of controls with sources', () => {
     const insider = BACKTEST_CASES.filter((c) => c.kind === 'insider');
-    expect(insider.length).toBeGreaterThanOrEqual(5);
-    expect(insider.length).toBeLessThanOrEqual(10);
-    expect(BACKTEST_CASES.some((c) => c.kind === 'control')).toBe(true);
+    const controls = BACKTEST_CASES.filter((c) => c.kind === 'control');
+    expect(insider.length).toBeGreaterThanOrEqual(15);
+    expect(insider.length).toBeLessThanOrEqual(25);
+    expect(controls.length).toBeGreaterThanOrEqual(insider.length - 2);
+    expect(new Set(BACKTEST_CASES.map((c) => c.id)).size).toBe(BACKTEST_CASES.length);
     for (const c of BACKTEST_CASES) {
       expect(c.conditionId).toMatch(/^0x[0-9a-f]{64}$/);
       expect(Date.parse(c.windowStart)).toBeLessThan(Date.parse(c.newsAt));
       expect(c.sources.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('backtest delivery and moves', () => {
+  it('lists only deliverable signals: score-only, muted sybil and undelivered longshot are out', () => {
+    const c = {
+      ...config,
+      detection: { ...config.detection, scoreOnlySignals: ['NICHE_MARKET_ENTRY', 'OUTSIZED_POSITION', 'LUMP_ENTRY'], freshWalletLongshot: { enabled: true, deliver: true } },
+    } as unknown as ReplayConfig;
+    expect(deliveredSignalIds(c).sort()).toEqual(['CONVICTION_SIZE_MISMATCH', 'FRESH_WALLET_LARGE_POSITION', 'FRESH_WALLET_LONGSHOT']);
+    const noLongshot = { ...c, detection: { ...c.detection, freshWalletLongshot: { enabled: true, deliver: false } } } as unknown as ReplayConfig;
+    expect(deliveredSignalIds(noLongshot)).not.toContain('FRESH_WALLET_LONGSHOT');
+  });
+
+  it('scores a signal only on its own delivered alerts and records signal and baseline fills', () => {
+    const trades = [
+      trade({ timestamp: newsS - 20 * 3600, size: 2_000, price: 0.5 }),
+      trade({ proxyWallet: FRESH, timestamp: newsS - 5 * 3600, size: 20_000, price: 0.1 }),
+      trade({ timestamp: newsS - 4 * 3600, size: 600, price: 0.5 }), // $300 from an old wallet: no signal, baseline
+    ];
+    const histories = new Map<string, WalletHistoryPair>([
+      ...OLD_SMALL,
+      [FRESH, pair({ wallet: FRESH, truncated: false, events: [{ timestamp: newsS - 6 * 3600, conditionId: '0xother', type: 'TRADE', usdcSize: 50, side: 'BUY' }] })],
+    ]);
+    const result = replayCase({ testCase, market, trades, histories, config });
+    const summary = summarizeCase(testCase, result);
+    expect(signalScorecard('FRESH_WALLET_LARGE_POSITION', [summary]).hits).toBe(1);
+    expect(signalScorecard('FRESH_WALLET_LONGSHOT', [summary]).hits).toBe(0);
+    expect(result.signalFills.some((f) => f.signals?.includes('FRESH_WALLET_LARGE_POSITION'))).toBe(true);
+    expect(result.baselineFills.length).toBeGreaterThan(0);
+  });
+
+  it('prices from the tape (other token = 1 - p), switches to resolution after close, and skips flats', () => {
+    const pricer = new TapePricer(
+      [trade({ timestamp: 100, price: 0.2, outcome: 'Yes' }), trade({ timestamp: 200, price: 0.6, outcome: 'No' })],
+      10_000,
+      'YES',
+    );
+    expect(pricer.yesAt(50)).toBeNull();
+    expect(pricer.tokenAt('YES', 150)).toBeCloseTo(0.2);
+    expect(pricer.tokenAt('YES', 250)).toBeCloseTo(0.4);
+    expect(pricer.tokenAt('NO', 250)).toBeCloseTo(0.6);
+    expect(pricer.tokenAt('NO', 10_000)).toBe(0);
+    const row = moveRow(testCase, { timestamp: 100 - 3_600, asset: '1', tokenOutcome: 'YES', side: 'BUY', price: 0.2 }, pricer);
+    expect(row.moves.h1).toBeCloseTo(0); // flat at +1h
+    expect(row.moves.resolution).toBeCloseTo(0.8);
+    expect(moveStat([row], 'h1').n).toBe(0);
+  });
+
+  it('matches the baseline on market and band, weighted by signal fills per cell', () => {
+    const r = (caseId: string, band: string, m: number): MoveRow => ({ caseId, kind: 'insider', band, moves: { h1: m, h24: m, resolution: m } });
+    const signal = [r('a', '0-20', 0.1), r('a', '0-20', 0.1), r('b', '20-40', 0.04), r('c', '0-20', 0.5)];
+    const baseline = [r('a', '0-20', 0.02), r('b', '20-40', -0.02), r('b', '0-20', 0.9)];
+    const { signal: s, base, edge } = bandMatched(signal, baseline, 'h1');
+    expect(s.n).toBe(3); // case c has no baseline cell
+    expect(s.avg).toBeCloseTo(0.08);
+    expect(base.avg).toBeCloseTo((2 * 0.02 - 0.02) / 3);
+    expect(edge).toBeCloseTo(0.08 - 0.02 / 3);
   });
 });
 

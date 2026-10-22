@@ -2,17 +2,34 @@ import type { AppConfig } from '../config/schema.js';
 import { parseTradeToFill } from '../ingestion/polymarket-client.js';
 import { deriveWalletAge } from '../profiling/wallet-age.js';
 import { effectivePosition } from '../signals/effective-position.js';
-import { computeDeliverableLiveScore, evaluateLiveSignals } from '../signals/evaluate-live-signals.js';
+import { isSignalDeliverable } from '../signals/delivery.js';
+import { computeDeliverableLiveScore, evaluateLiveSignals, marketExclusionConfig } from '../signals/evaluate-live-signals.js';
+import { classifyMarketExclusion } from '../signals/market-exclusion.js';
 import { calculateMarketMakerScore } from '../signals/market-maker.js';
 import { deriveAlertTier } from '../signals/scoring.js';
 import type { FillRecord } from '../types/fill.js';
 import type { MarketInfo } from '../types/market.js';
-import type { AlertTier, SignalId } from '../types/signal.js';
+import { SignalId, type AlertTier } from '../types/signal.js';
 import type { WalletChainProfile, WalletProfile } from '../types/wallet.js';
 import type { BacktestCase } from './cases.js';
 import type { RawMarket, RawTrade, WalletHistory } from './data.js';
 
-export type ReplayConfig = Pick<AppConfig, 'detection' | 'alerts' | 'marketMaker'>;
+export type ReplayConfig = Pick<AppConfig, 'detection' | 'alerts' | 'marketMaker'> & Partial<Pick<AppConfig, 'filters'>>;
+
+/**
+ * Signals whose own alerts can reach Telegram under `config`: not score-only, not shadow. SYBIL_CLUSTER is excluded
+ * when muted, and is never evaluated offline anyway (needs Alchemy funding graphs).
+ */
+export function deliveredSignalIds(config: ReplayConfig): SignalId[] {
+  const scoreOnly = new Set(config.detection.scoreOnlySignals ?? []);
+  const longshot = config.detection.freshWalletLongshot;
+  return [SignalId.FRESH_WALLET_LARGE_POSITION, SignalId.CONVICTION_SIZE_MISMATCH, SignalId.FRESH_WALLET_LONGSHOT, SignalId.NICHE_MARKET_ENTRY, SignalId.OUTSIZED_POSITION, SignalId.LUMP_ENTRY, SignalId.SYBIL_CLUSTER].filter((id) => {
+    if (scoreOnly.has(id)) return false;
+    if (id === SignalId.FRESH_WALLET_LONGSHOT) return Boolean(longshot?.enabled && longshot.deliver);
+    if (id === SignalId.SYBIL_CLUSTER) return false;
+    return true;
+  });
+}
 
 /** The lowest per-fill minimum of any live signal that can run offline (conviction stake, $250). */
 export function candidateMinUsd(config: ReplayConfig): number {
@@ -40,6 +57,8 @@ export interface ReplayAlert {
   score: number;
   tier: AlertTier;
   signals: SignalId[];
+  /** Signals whose own alert may be delivered (not score-only, not shadow); empty = nothing reaches Telegram. */
+  deliverableSignals: SignalId[];
   winningSide: boolean;
   /** False when the live dedup (same wallet+market inside the cooldown, score not +N) would have held it back. */
   delivered: boolean;
@@ -63,6 +82,35 @@ export interface ReplayResult {
    */
   probeFills: { timestamp: number; stakeUsd: number; effectivePrice: number; winningSide: boolean; ageHours: number }[];
   reportedFills: { timestamp: number; name: string; effectiveOutcome: 'YES' | 'NO'; sizeUsd: number; tier: AlertTier; signals: SignalId[] }[];
+  /**
+   * Every candidate fill with >= 1 live signal (any tier, market makers removed), as live enrolls signal fills in
+   * trade_outcomes. `delivered` = the live dedup would have let this fill's alert through.
+   */
+  signalFills: GradedFill[];
+  /** Candidate fills (>= the lowest signal minimum) with no signal and no market-maker wallet: the move baseline. */
+  baselineFills: GradedFill[];
+}
+
+/** A fill as graded by `omen outcomes`: raw token side/price (BUY profits when the token rises). */
+export interface GradedFill {
+  timestamp: number;
+  asset: string;
+  /** Token outcome label of the traded asset ('YES' | 'NO'). */
+  tokenOutcome: 'YES' | 'NO';
+  side: 'BUY' | 'SELL';
+  price: number;
+  /** Fill notional and effective (position) price, for threshold what-ifs. */
+  sizeUsd?: number;
+  effectivePrice?: number;
+  /** Wallet age (h) and prior Polymarket volume at the fill, null when unknown. */
+  walletAgeHours?: number | null;
+  walletPriorVolumeUsd?: number | null;
+  marketDailyVolumeUsd?: number;
+  signals?: SignalId[];
+  deliverableSignals?: SignalId[];
+  tier?: AlertTier;
+  delivered?: boolean;
+  winningSide?: boolean;
 }
 
 interface WalletPointInTime {
@@ -235,6 +283,9 @@ export function replayCase(input: {
     marketSlug: input.market.slug,
     dailyVolumeUsd: '0',
     dailyVolumeSource: 'trades',
+    category: input.market.category ?? null,
+    tags: input.market.tags ?? [],
+    sportsMarketType: input.market.sportsMarketType ?? null,
     volumeUsd: String(input.market.volume),
     liquidityUsd: '0',
   };
@@ -252,10 +303,12 @@ export function replayCase(input: {
     candidatesEvaluated: 0,
     walletsProfiled: input.histories.size,
     walletsUnprofiled: 0,
-    excludedMarket: false,
+    excludedMarket: classifyMarketExclusion(market, marketExclusionConfig(config)) !== null,
     alerts: [],
     probeFills: [],
     reportedFills: [],
+    signalFills: [],
+    baselineFills: [],
   };
   const unprofiled = new Set<string>();
   const lastDelivered = new Map<string, { at: number; score: number }>();
@@ -290,6 +343,19 @@ export function replayCase(input: {
     const tier = deriveAlertTier(score, config);
     const position = effectivePosition(fill);
     const effectiveOutcome = position?.outcome ?? fill.outcome;
+    const deliverable = signals.filter((s) => isSignalDeliverable(s)).map((s) => s.signalId);
+    const graded: GradedFill = {
+      timestamp: trade.timestamp,
+      asset: trade.asset,
+      tokenOutcome: fill.outcome,
+      side: fill.side,
+      price: Number(fill.price),
+      sizeUsd: Number(fill.sizeUsd),
+      effectivePrice: position?.price ?? Number(fill.price),
+      walletAgeHours: point.profile.activityAgeKnown ? point.profile.ageSeconds / 3600 : null,
+      walletPriorVolumeUsd: point.priorVolumeUsd,
+      marketDailyVolumeUsd: rolling,
+    };
 
     const ageHours = point.profile.activityAgeKnown ? point.profile.ageSeconds / 3600 : null;
     if (
@@ -313,7 +379,14 @@ export function replayCase(input: {
         signals: signals.map((s) => s.signalId),
       });
     }
-    if (tier === 'CLEAN' && !(isMm && evaluated.length > 0)) continue;
+    const walletIsMm = config.marketMaker.filterEnabled && point.marketMakerScore >= config.marketMaker.minScore;
+    if (evaluated.length === 0 && !walletIsMm) result.baselineFills.push(graded);
+    if (tier === 'CLEAN' && !(isMm && evaluated.length > 0)) {
+      if (signals.length > 0) {
+        result.signalFills.push({ ...graded, signals: signals.map((s) => s.signalId), deliverableSignals: deliverable, tier, delivered: false, winningSide: effectiveOutcome === testCase.winningOutcome });
+      }
+      continue;
+    }
 
     const key = `${fill.walletAddress}:${fill.marketId}`;
     const last = lastDelivered.get(key);
@@ -321,6 +394,9 @@ export function replayCase(input: {
       tier !== 'CLEAN' &&
       (!last || trade.timestamp - last.at >= config.alerts.dedupCooldownMs / 1000 || score >= last.score + config.alerts.dedupScoreIncrease);
     if (delivered) lastDelivered.set(key, { at: trade.timestamp, score });
+    if (signals.length > 0) {
+      result.signalFills.push({ ...graded, signals: signals.map((s) => s.signalId), deliverableSignals: deliverable, tier, delivered, winningSide: effectiveOutcome === testCase.winningOutcome });
+    }
 
     result.alerts.push({
       timestamp: trade.timestamp,
@@ -335,6 +411,7 @@ export function replayCase(input: {
       score,
       tier,
       signals: (isMm ? evaluated : signals).map((s) => s.signalId),
+      deliverableSignals: deliverable,
       winningSide: effectiveOutcome === testCase.winningOutcome,
       delivered,
       reportedWallet: isReported,

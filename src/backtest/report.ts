@@ -1,6 +1,7 @@
 import type { BacktestCase } from './cases.js';
 import { TIER_RANK, type ReplayAlert, type ReplayResult } from './replay.js';
 import type { AlertTier } from '../types/signal.js';
+import type { Horizon, MoveStat } from './moves.js';
 
 /** omen's Telegram delivery floor: LOW alerts are promoted to the feed for grading, MEDIUM+ reach a chat. */
 export const DELIVERY_MIN_TIER: AlertTier = 'MEDIUM';
@@ -20,14 +21,24 @@ export interface CaseSummary {
   reportedWalletFlagged: boolean | null;
 }
 
-function atLeast(alert: ReplayAlert, tier: AlertTier): boolean {
-  return alert.delivered && TIER_RANK[alert.tier] >= TIER_RANK[tier];
+/**
+ * Reaches Telegram: passes the dedup, tier >= `tier`, and carries at least one deliverable signal (score-only
+ * NICHE/OUTSIZED/LUMP and shadow signals lift the tier but never deliver their own alert).
+ */
+function atLeast(alert: ReplayAlert, tier: AlertTier, signalId?: string): boolean {
+  const deliverable = (alert.deliverableSignals ?? alert.signals) as string[];
+  return (
+    alert.delivered &&
+    TIER_RANK[alert.tier] >= TIER_RANK[tier] &&
+    (signalId === undefined ? deliverable.length > 0 : deliverable.includes(signalId))
+  );
 }
 
 export function summarizeCase(testCase: BacktestCase, result: ReplayResult, minTier: AlertTier = DELIVERY_MIN_TIER): CaseSummary {
   const newsAt = Date.parse(testCase.newsAt) / 1000;
   const delivered = result.alerts.filter((a) => a.delivered);
   const winning = delivered.filter((a) => a.winningSide && atLeast(a, minTier));
+  // `delivered` below = alerts that passed the dedup (any tier, for the tier columns).
   const first = winning.length > 0 ? Math.min(...winning.map((a) => a.timestamp)) : null;
   const firstAny = delivered.length > 0 ? Math.min(...delivered.map((a) => a.timestamp)) : null;
   const signalsFired: Record<string, number> = {};
@@ -106,8 +117,9 @@ export function renderMarkdown(
     generatedAt: string;
     configPath: string;
     variants?: { label: string; summaries: CaseSummary[] }[];
-    /** A shadow-mode signal replayed as if delivered: its standalone record and the combined headline. */
-    shadow?: { signalId: string; summaries: CaseSummary[] };
+    /** Signals whose alerts reach Telegram under this config (scorecard rows). */
+    deliveredSignals?: string[];
+    moves?: MovesReport;
   },
 ): string {
   const t = totals(summaries);
@@ -118,7 +130,7 @@ export function renderMarkdown(
   lines.push('');
   lines.push('## Headline');
   lines.push('');
-  lines.push(`- Insider cases: **${t.hits}/${t.insiderCases} hit** (a delivered ${DELIVERY_MIN_TIER}+ alert on the winning side before the news).`);
+  lines.push(`- Insider cases: **${t.hits}/${t.insiderCases} hit** (a delivered ${DELIVERY_MIN_TIER}+ alert from a deliverable signal on the winning side before the news).`);
   lines.push(`- Median lead time of the first such alert: **${fmtH(t.medianLeadHours)}**.`);
   lines.push(
     `- False-positive rate on controls: **${t.controlsWithAlert}/${t.controls}` +
@@ -129,13 +141,14 @@ export function renderMarkdown(
     `- In the insider markets, ${t.insiderWrongSideShare === null ? '—' : `${(t.insiderWrongSideShare * 100).toFixed(0)}%`} of delivered ${DELIVERY_MIN_TIER}+ alerts were on the losing side.`,
   );
   lines.push('');
+  if (meta.deliveredSignals?.length) lines.push(...renderScorecard(meta.deliveredSignals, summaries));
   lines.push('## Method');
   lines.push('');
   lines.push('- **Data.** Polymarket data-api `/trades` (taker side, the feed omen ingests live) for each market from `windowStart − 24h` to the news cut-off, paged backwards by `end`; gamma `/markets` for metadata; data-api `/activity` (≤ 500 rows per page) for each wallet with a fill ≥ $250 (the lowest offline signal minimum). All responses cached under `.backtest-cache/`; reruns with `--offline` make no requests. No Alchemy calls, no Postgres/Redis, nothing sent to Telegram or the feed.');
-  lines.push('- **Replay.** Each candidate fill goes through the live path: `evaluateLiveSignals` → market-maker filter (`calculateMarketMakerScore` ≥ `market_maker.min_score`) → `computeCompositeLiveScore` → `deriveAlertTier` → 24 h per wallet+market dedup (re-alert on +`dedup_score_increase`). Thresholds come from `omen.config.toml` as committed.');
-  lines.push('- **Point-in-time inputs.** Market 24 h volume = the tape over the 24 h before each fill (gamma `volume24hr` has no history). Wallet totals, fill count, markets and market-maker score come from the wallet\'s Polymarket activity strictly before the fill. Wallet age = time since its first Polymarket activity (stand-in for the Alchemy first-transfer age; funding usually precedes the first trade by minutes to hours, so this reads slightly *fresher* than live). When the activity pages cannot see a fill\'s full prior history the wallet gets omen\'s conservative profile (fresh-wallet, lump and conviction cannot fire), as live does on a degraded profile.');
-  lines.push('- **Not evaluated.** `SYBIL_CLUSTER` (needs Alchemy funding graphs) is off in the replay, so cluster-style cases (Iran Feb 28, ceasefire Apr 7) are scored without it.');
-  lines.push(`- **Scoring.** Hit = a delivered ${DELIVERY_MIN_TIER}+ alert (the Telegram tiers) on the side that won, before the news cut-off. Lead = news − first such alert. FP rate = control markets with ≥ 1 delivered ${DELIVERY_MIN_TIER}+ alert. LOW alerts are promoted to the feed for grading but not delivered, so they count in the tier columns only.`);
+  lines.push('- **Replay.** Each candidate fill goes through the live path: `evaluateLiveSignals` (including the sports/weather market exclusion on Gamma metadata) → market-maker filter (`calculateMarketMakerScore` ≥ `market_maker.min_score`) → `computeDeliverableLiveScore` (score-only signals count, shadow signals do not) → `deriveAlertTier` → 24 h per wallet+market dedup (re-alert on +`dedup_score_increase`). Thresholds come from `omen.config.toml` as committed.');
+  lines.push('- **Point-in-time inputs.** Market 24 h volume = the tape over the 24 h before each fill (gamma `volume24hr` has no history). Wallet totals, fill count, markets and market-maker score come from the wallet\'s Polymarket activity strictly before the fill. Wallet age = time since its first Polymarket activity (stand-in for the Alchemy first-transfer age; funding usually precedes the first trade by minutes to hours, so this reads slightly *fresher* than live). When the activity pages cannot see a fill\'s full prior history the wallet gets omen\'s conservative profile (fresh-wallet, lump and conviction cannot fire), as live does on a degraded profile. Wallets beyond `--max-wallets` per case (largest fills first) also get the conservative profile.');
+  lines.push('- **Not evaluated.** `SYBIL_CLUSTER` (needs Alchemy funding graphs; muted on Telegram anyway) is off in the replay, so cluster-style cases (Iran Feb 28, ceasefire Apr 7) are scored without it.');
+  lines.push(`- **Scoring.** Live delivery is per (fill, signal): a signal\'s own alert reaches Telegram when it is deliverable (not score-only, not shadow) and the fill\'s deliverable tier is ${DELIVERY_MIN_TIER}+ (the feed sends MEDIUM+; LOW is dry-run). Hit = such an alert on the side that won, before the news cut-off. Lead = news − first such alert. FP = control market with ≥ 1 such alert. The tier columns count every dedup-passing alert, delivered or not.`);
   lines.push('- **Cut-offs.** News times are the first public signal from the linked reporting (UTC), rounded; see each case. Controls use a same-length window before expiry.');
   lines.push('');
   lines.push('## Per case');
@@ -174,25 +187,7 @@ export function renderMarkdown(
     }
     lines.push('');
   }
-  if (meta.shadow) lines.push(...renderShadowSection(meta.shadow.signalId, meta.shadow.summaries));
-  lines.push('### What-if probe (not shipped): fresh wallet (< 24 h, ≤ max_txns) longshot (< 0.30) at any market size');
-  lines.push('');
-  lines.push('Counts of probe fills before the news, winning side / losing side, by minimum stake. Lead = news minus first winning-side probe fill.');
-  lines.push('');
-  const stakes = [2_500, 5_000, 10_000];
-  lines.push(`| Case | ${stakes.map((x) => `≥ ${fmtUsd(x)} (win / lose, lead)`).join(' | ')} |`);
-  lines.push(`|---|${stakes.map(() => '---').join('|')}|`);
-  for (const s of summaries) {
-    const newsAt = Date.parse(s.testCase.newsAt) / 1000;
-    const cells = stakes.map((min) => {
-      const f = s.result.probeFills.filter((p) => p.stakeUsd >= min);
-      const win = f.filter((p) => p.winningSide);
-      const lead = win.length ? (newsAt - Math.min(...win.map((p) => p.timestamp))) / 3600 : null;
-      return `${win.length} / ${f.length - win.length}${lead === null ? '' : `, ${lead.toFixed(1)} h`}`;
-    });
-    lines.push(`| ${s.testCase.id} (${s.testCase.kind}) | ${cells.join(' | ')} |`);
-  }
-  lines.push('');
+  if (meta.moves) lines.push(...renderMoves(meta.moves));
   lines.push('## Case details');
   for (const s of summaries) {
     lines.push('');
@@ -200,6 +195,7 @@ export function renderMarkdown(
     lines.push('');
     lines.push(`- Condition \`${s.testCase.conditionId}\`; winner ${s.testCase.winningOutcome}.`);
     lines.push(`- Window ${s.testCase.windowStart} → news ${s.testCase.newsAt} (${s.testCase.newsNote}).`);
+    if (s.result.excludedMarket) lines.push('- **Excluded market** (sports/weather filter): no signals can fire, as live.');
     lines.push(
       `- ${s.result.candidatesEvaluated} candidate fills evaluated; ${s.result.walletsProfiled} wallets profiled from Polymarket activity` +
         `${s.result.walletsUnprofiled ? `, ${s.result.walletsUnprofiled} over the profiling cap (conservative profile)` : ''}.`,
@@ -229,68 +225,121 @@ export function renderMarkdown(
 }
 
 
-export interface ShadowSignalTotals {
+export interface SignalScorecard {
+  signalId: string;
   insiderCases: number;
   hits: number;
   medianLeadHours: number | null;
+  /** Delivered MEDIUM+ alerts carrying the signal in insider markets: winning / losing side. */
+  insiderWinningAlerts: number;
+  insiderLosingAlerts: number;
   controls: number;
   controlsWithAlert: number;
-  insiderLosingSideCases: number;
+  controlAlerts: number;
+  controlAlertsPerDay: number | null;
 }
 
-/** Standalone record of one signal: winning-side alert carrying it before the news = hit; any alert on a control = FP. */
-export function shadowSignalTotals(signalId: string, summaries: CaseSummary[]): ShadowSignalTotals {
+/** One delivered signal's record: its own delivered MEDIUM+ alerts (the alert carries the signal and passes dedup). */
+export function signalScorecard(signalId: string, summaries: CaseSummary[]): SignalScorecard {
   const leads: number[] = [];
   let hits = 0;
+  let insiderWinningAlerts = 0;
+  let insiderLosingAlerts = 0;
   let controlsWithAlert = 0;
-  let insiderLosingSideCases = 0;
+  let controlAlerts = 0;
+  let controlDays = 0;
   for (const s of summaries) {
-    const fired = s.result.alerts.filter((a) => !a.suppressedAsMarketMaker && (a.signals as string[]).includes(signalId));
+    const fired = s.result.alerts.filter((a) => atLeast(a, DELIVERY_MIN_TIER, signalId));
     const win = fired.filter((a) => a.winningSide);
     if (s.testCase.kind === 'insider') {
+      insiderWinningAlerts += win.length;
+      insiderLosingAlerts += fired.length - win.length;
       if (win.length) {
         hits += 1;
         leads.push((Date.parse(s.testCase.newsAt) / 1000 - Math.min(...win.map((a) => a.timestamp))) / 3600);
       }
-      if (fired.length > win.length) insiderLosingSideCases += 1;
-    } else if (fired.length) {
-      controlsWithAlert += 1;
+    } else {
+      controlDays += (Date.parse(s.testCase.newsAt) - Date.parse(s.testCase.windowStart)) / 86_400_000;
+      controlAlerts += fired.length;
+      if (fired.length) controlsWithAlert += 1;
     }
   }
   return {
+    signalId,
     insiderCases: summaries.filter((s) => s.testCase.kind === 'insider').length,
     hits,
     medianLeadHours: median(leads),
-    controls: summaries.filter((s) => s.testCase.kind !== 'insider').length,
+    insiderWinningAlerts,
+    insiderLosingAlerts,
+    controls: summaries.filter((s) => s.testCase.kind === 'control').length,
     controlsWithAlert,
-    insiderLosingSideCases,
+    controlAlerts,
+    controlAlertsPerDay: controlDays > 0 ? controlAlerts / controlDays : null,
   };
 }
 
-function renderShadowSection(signalId: string, summaries: CaseSummary[]): string[] {
-  const st = shadowSignalTotals(signalId, summaries);
-  const ct = totals(summaries);
-  const fmt = (h: number | null) => (h === null ? '—' : `${h.toFixed(1)} h`);
+function renderScorecard(signalIds: string[], summaries: CaseSummary[]): string[] {
+  const t = totals(summaries);
   const lines: string[] = [];
-  lines.push(`### Shadow signal: ${signalId} (recorded + graded live, not delivered; replayed here as if delivered)`);
+  lines.push('## Per delivered signal');
   lines.push('');
   lines.push(
-    `- On its own: fired on the winning side before the news in **${st.hits}/${st.insiderCases}** insider cases (median lead ${fmt(st.medianLeadHours)}); ` +
-      `fired on **${st.controlsWithAlert}/${st.controls}** controls; fired on the losing side in ${st.insiderLosingSideCases} insider case(s).`,
-  );
-  lines.push(
-    `- Combined with the shipped signals, if delivered: **${ct.hits}/${ct.insiderCases}** hits, median lead ${fmt(ct.medianLeadHours)}, ` +
-      `controls with a ${DELIVERY_MIN_TIER}+ alert **${ct.controlsWithAlert}/${ct.controls}**.`,
+    `A signal's own alert is delivered when it passes the dedup, the fill's deliverable score is ${DELIVERY_MIN_TIER}+ and the signal is neither score-only nor shadow. ` +
+      'Hit = such an alert on the winning side before the news; FP = a control market with one.',
   );
   lines.push('');
-  lines.push('| Case | Kind | Fired (winning / losing) | Lead (first winning) | Combined hit if delivered |');
-  lines.push('|---|---|---|---|---|');
-  for (const s of summaries) {
-    const fired = s.result.alerts.filter((a) => !a.suppressedAsMarketMaker && (a.signals as string[]).includes(signalId));
-    const win = fired.filter((a) => a.winningSide);
-    const lead = win.length ? (Date.parse(s.testCase.newsAt) / 1000 - Math.min(...win.map((a) => a.timestamp))) / 3600 : null;
-    const combined = s.testCase.kind === 'insider' ? (s.hit ? '**HIT**' : 'miss') : s.result.alerts.some((a) => atLeast(a, DELIVERY_MIN_TIER)) ? 'FP' : 'clean';
-    lines.push(`| ${s.testCase.id} | ${s.testCase.kind} | ${win.length} / ${fired.length - win.length} | ${fmt(lead)} | ${combined} |`);
+  lines.push('| Signal | Insider hits | Median lead (first hit) | Insider alerts (winning / losing) | Controls with alert (FP) | Control alerts / market-day |');
+  lines.push('|---|---|---|---|---|---|');
+  for (const id of signalIds) {
+    const c = signalScorecard(id, summaries);
+    lines.push(
+      `| ${id} | ${c.hits}/${c.insiderCases} | ${fmtH(c.medianLeadHours)} | ${c.insiderWinningAlerts} / ${c.insiderLosingAlerts} | ` +
+        `${c.controlsWithAlert}/${c.controls} | ${c.controlAlertsPerDay === null ? '—' : c.controlAlertsPerDay.toFixed(2)} |`,
+    );
+  }
+  lines.push(
+    `| **any delivered** | **${t.hits}/${t.insiderCases}** | ${fmtH(t.medianLeadHours)} | — | **${t.controlsWithAlert}/${t.controls}** | ${t.controlAlertsPerDay === null ? '—' : t.controlAlertsPerDay.toFixed(2)} |`,
+  );
+  lines.push('');
+  return lines;
+}
+
+export interface MovesCell {
+  signal: MoveStat;
+  base: MoveStat;
+  edge: number | null;
+}
+
+export interface MovesReport {
+  /** Rows: signal × scope ('fired' = every firing, as live grades; 'delivered' = delivered MEDIUM+ alerts) × subset. */
+  rows: { signalId: string; scope: 'fired' | 'delivered'; subset: 'all' | 'insider' | 'control'; cells: Record<Horizon, MovesCell> }[];
+  baselineFills: number;
+}
+
+const cents = (v: number | null): string => (v === null ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}¢`);
+const pct = (v: number | null): string => (v === null ? '—' : `${(v * 100).toFixed(0)}%`);
+
+function renderMoves(m: MovesReport): string[] {
+  const lines: string[] = [];
+  lines.push('## Average price move vs the same-market, same-band baseline');
+  lines.push('');
+  lines.push(
+    'Same frame as `omen stats` (M1 outcomes): directional move of the traded token (BUY gains when it rises) in cents at +1 h, +24 h and resolution; ' +
+      'flat moves are left out of n and the averages. Baseline = candidate fills (≥ the lowest signal minimum) with no signal and no market-maker wallet, ' +
+      `**in the same market and the same 20¢ effective entry-price band**, weighted by the signal's fills per (market, band) cell (${m.baselineFills.toLocaleString('en-US')} baseline fills). ` +
+      'Prices come from the public tape (last trade at or before the horizon; resolution price once the market closed), not CLOB mid history as live. ' +
+      '"fired" = every firing of the signal at any tier (what live grades); "delivered" = its delivered MEDIUM+ alerts.',
+  );
+  lines.push('');
+  lines.push('| Signal | Scope | Cases | n (+1h / +24h / res) | +1h signal / base / edge | +24h signal / base / edge | Resolution signal / base / edge | Hit rate +24h (signal / base) |');
+  lines.push('|---|---|---|---|---|---|---|---|');
+  for (const r of m.rows) {
+    const c = r.cells;
+    const cell = (x: MovesCell) => `${cents(x.signal.avg)} / ${cents(x.base.avg)} / **${cents(x.edge)}**`;
+    lines.push(
+      `| ${r.signalId} | ${r.scope} | ${r.subset} | ${c.h1.signal.n} / ${c.h24.signal.n} / ${c.resolution.signal.n} | ${cell(c.h1)} | ${cell(c.h24)} | ${cell(c.resolution)} | ` +
+        `${pct(c.h24.signal.hitRate)} / ${pct(c.h24.base.hitRate)} |`,
+    );
   }
   lines.push('');
   return lines;
