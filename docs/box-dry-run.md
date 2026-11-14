@@ -87,16 +87,27 @@ Check it by hand with `redis-cli hgetall omen:alchemy:cu:$(date -u +%F)`.
 
 ### Backups (`scripts/backup.sh`)
 
-`scripts/backup.sh` dumps the configured databases, encrypts the archive with a local gpg passphrase file, and
-can upload it to a GitHub release with `gh`. It **requires** `BACKUP_REPO`, `BACKUP_DIR`, `BACKUP_KEY`,
-`PGHOST`, `PGPORT`, and `PGUSER`. It exits with a usage error if any of those are unset. Optional knobs:
-`BACKUP_PREFIX`, `BACKUP_TAG`, `KEEP_LOCAL`, `KEEP_REMOTE`, `BACKUP_OFFBOX=0` (local only), `BACKUP_DATABASES`.
+`scripts/backup.sh` dumps the configured databases, encrypts the archive with a local gpg passphrase file,
+splits it into parts under 2 GB (`<prefix>-<ts>.tar.gpg.part-aa`, …), and can upload every part to a GitHub
+release with `gh`. Parts of one backup are pruned as a unit. It **requires** `BACKUP_REPO`, `BACKUP_DIR`,
+`BACKUP_KEY`, `PGHOST`, `PGPORT`, and `PGUSER`. It exits with a usage error if any of those are unset. Optional
+knobs: `BACKUP_PREFIX`, `BACKUP_TAG`, `KEEP_LOCAL`, `KEEP_REMOTE`, `BACKUP_OFFBOX=0` (local only),
+`BACKUP_DATABASES`. On dump or upload failure it can Telegram-alert if `FEED_TELEGRAM_BOT_TOKEN` is set.
 
-Keep a second copy of the passphrase file offline. Without it, off-host copies cannot be decrypted. A restore looks like:
+Keep a second copy of the passphrase file offline. Without it, off-host copies cannot be decrypted.
+Concatenate split parts before decrypt (legacy single-file `.tar.gpg` assets still work). A restore looks like:
 
 ```bash
-gh release download "$BACKUP_TAG" -R "$BACKUP_REPO" -p "$BACKUP_PREFIX-<ts>.tar.gpg"
-gpg --batch --pinentry-mode loopback --passphrase-file "$BACKUP_KEY" -d "$BACKUP_PREFIX-<ts>.tar.gpg" | tar -xf -
+# new split assets
+gh release download "$BACKUP_TAG" -R "$BACKUP_REPO" -p "$BACKUP_PREFIX-<ts>.tar.gpg.part-*"
+cat "$BACKUP_PREFIX-<ts>.tar.gpg.part-"* | gpg --batch --pinentry-mode loopback --passphrase-file "$BACKUP_KEY" -d | tar -xf -
+
+# legacy single-file assets
+# gh release download "$BACKUP_TAG" -R "$BACKUP_REPO" -p "$BACKUP_PREFIX-<ts>.tar.gpg"
+# gpg --batch --pinentry-mode loopback --passphrase-file "$BACKUP_KEY" -d "$BACKUP_PREFIX-<ts>.tar.gpg" | tar -xf -
+
+# or: scripts/restore-backup.sh --extract-dir /tmp/restore "$BACKUP_PREFIX-<ts>.tar.gpg.part-aa"
+
 psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -c 'create database restore_test'
 pg_restore -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d restore_test --no-owner <ts>/omen.dump
 ```

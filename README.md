@@ -38,7 +38,9 @@ Tuning lives in `omen.config.toml`. Secrets stay in `.env` (see `.env.example`).
 
 Needs Node 22+, [pnpm](https://pnpm.io), and Docker.
 
-`@charr91/smart-money-feed` is an optional private sibling package used to publish alerts. `pnpm install` and `pnpm test` work without it; a local shim covers types, envelope parsing, and no-op FeedClient/XBridge classes. When the real package is installed, omen uses it unchanged.
+`@charr91/smart-money-feed` is an optional private sibling package used to publish alerts. `pnpm install` and `pnpm test` work without it: tests enable a local no-op shim automatically (`NODE_ENV=test`, or `OMEN_FEED_SHIM=1` in the Vitest config). The shim covers types, envelope parsing, and no-op FeedClient/XBridge classes.
+
+In normal runs (including production), omen fails fast at startup with a clear error if that package cannot be loaded. To use the shim outside of tests — for example a local start without access to the private repo — set `OMEN_FEED_SHIM=1`. When the real package is installed and the shim is not forced, omen uses the package unchanged.
 
 ```bash
 pnpm install

@@ -4,9 +4,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    env: {
+      OMEN_FEED_SHIM: '1',
+    },
     coverage: {
       reporter: ['text', 'lcov'],
     },
   },
 });
-

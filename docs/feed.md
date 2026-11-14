@@ -1,6 +1,6 @@
 # Shared alert feed (M3)
 
-omen publishes to the shared layer in the optional `@charr91/smart-money-feed` package (a private sibling, pinned to a tag when installed). Without that package, publish/X-bridge calls use a local no-op shim.
+omen publishes to the shared layer in the optional `@charr91/smart-money-feed` package (a private sibling, pinned to a tag when installed). Without that package, omen fails fast at startup unless you set `OMEN_FEED_SHIM=1` (or `NODE_ENV=test`); the shim then no-ops publish/X-bridge calls. Do not enable the shim in production.
 Its README covers the design and decision #11 (a library writing to a shared schema, plus one dispatcher process).
 
 - **Settings:** `[feed] enabled` in omen.config.toml, and `FEED_DATABASE_URL` in .env, pointing at a separate
