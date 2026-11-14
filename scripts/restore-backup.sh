@@ -24,8 +24,43 @@ Options:
 
 Postgres connection comes from PGHOST, PGPORT, PGUSER when --restore-db is used.
 This script will refuse --restore-db omen or smart_money_feed unless ALLOW_LIVE_DB_RESTORE=1.
+Verification of --restore-db counts relations in any non-system schema (not only public),
+and also requires objects in the expected schema for known dumps (omen.dump -> public,
+smart_money_feed.dump -> feed).
 USAGE
 }
+
+# Maps a dump filename to the schema that should hold restored objects.
+# Unknown dumps return empty: any non-system schema is accepted.
+expected_schema_for_dump() {
+  case "$1" in
+    smart_money_feed.dump) printf '%s\n' feed ;;
+    omen.dump) printf '%s\n' public ;;
+    *) printf '%s\n' ;;
+  esac
+}
+
+# Count relations in every schema except Postgres system catalogs.
+user_relation_count_sql() {
+  cat <<'SQL'
+SELECT count(*)
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+  AND n.nspname NOT LIKE 'pg_temp%'
+  AND n.nspname NOT LIKE 'pg_toast_temp%'
+SQL
+}
+
+# Count relations in one schema (caller must pass a simple identifier).
+schema_relation_count_sql() {
+  printf "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = '%s'\n" "$1"
+}
+
+# Allow unit tests to source the helpers without running the CLI.
+if [ "${RESTORE_BACKUP_SOURCE_ONLY:-}" = 1 ]; then
+  return 0 2>/dev/null || exit 0
+fi
 
 EXTRACT_DIR=""
 KEY="${BACKUP_KEY:-}"
@@ -216,10 +251,25 @@ set +e
 pg_restore -d "$RESTORE_DB" --no-owner --no-acl "$DUMP"
 restore_rc=$?
 set -e
-relcount="$(psql -d "$RESTORE_DB" -Atc "SELECT count(*) FROM pg_class WHERE relnamespace = 'public'::regnamespace")"
-echo "pg_restore exit=$restore_rc; public relations=$relcount in $RESTORE_DB"
+relcount="$(psql -d "$RESTORE_DB" -Atc "$(user_relation_count_sql)")"
+echo "pg_restore exit=$restore_rc; user relations=$relcount in $RESTORE_DB"
+expected_schema="$(expected_schema_for_dump "$DUMP_NAME")"
+if [ -n "$expected_schema" ]; then
+  case "$expected_schema" in
+    *[!a-zA-Z0-9_]*)
+      echo "error: expected schema must be a simple identifier (got: $expected_schema)" >&2
+      exit 1
+      ;;
+  esac
+  schema_count="$(psql -d "$RESTORE_DB" -Atc "$(schema_relation_count_sql "$expected_schema")")"
+  echo "expected schema $expected_schema relations=$schema_count"
+  if [ "${schema_count:-0}" -lt 1 ]; then
+    echo "error: restore produced no relations in expected schema '$expected_schema' (from $DUMP_NAME)" >&2
+    exit 1
+  fi
+fi
 echo "extract dir: $EXTRACT_DIR"
 if [ "${relcount:-0}" -lt 1 ]; then
-  echo "error: restore produced no public relations" >&2
+  echo "error: restore produced no user relations (non-system schemas)" >&2
   exit 1
 fi
