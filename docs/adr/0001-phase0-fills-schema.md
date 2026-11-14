@@ -59,7 +59,7 @@ public sample.
 
 ## Live Validation Evidence
 
-Validated from `/Users/bot/repos/omen-bot/.phase0-data/overnight-24h`:
+Validated from a local `.phase0-data/overnight-24h` capture:
 
 - 24-hour capture window from `2026-03-28T11:08:39.057Z` to `2026-03-29T11:08:39.064Z`
 - 305,450 public trade observations and 305,450 unique public trades

@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import { FeedClient, type AlertEnvelopeInput, type Severity } from '@charr91/smart-money-feed';
+import type { AlertEnvelopeInput, FeedClientInstance, Severity } from './sdk.js';
 import type { StoredAlert } from '../types/alert.js';
 
 /**
@@ -86,7 +86,7 @@ const KALSHI_DELIVER_MAX_AGE_MS = 3_600_000;
 
 export async function syncOutcomesToFeed(
   omenDb: Pick<Pool, 'query'>,
-  feed: FeedClient,
+  feed: FeedClientInstance,
   limit = 500,
   options: OutcomeSyncOptions = {},
 ): Promise<number> {

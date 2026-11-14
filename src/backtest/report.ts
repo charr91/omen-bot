@@ -76,7 +76,7 @@ export function median(values: number[]): number | null {
 }
 
 export interface BacktestTotals {
-  insiderCases: number;
+  flaggedCases: number;
   hits: number;
   medianLeadHours: number | null;
   controls: number;
@@ -84,26 +84,26 @@ export interface BacktestTotals {
   /** Controls with >= 1 delivered MEDIUM+ alert / controls. */
   falsePositiveRate: number | null;
   controlAlertsPerDay: number | null;
-  /** Share of delivered MEDIUM+ alerts in insider markets that were on the losing side. */
-  insiderWrongSideShare: number | null;
+  /** Share of delivered MEDIUM+ alerts in flagged (public-report) markets that were on the losing side. */
+  flaggedWrongSideShare: number | null;
 }
 
 export function totals(summaries: CaseSummary[]): BacktestTotals {
-  const insider = summaries.filter((s) => s.testCase.kind === 'insider');
+  const flagged = summaries.filter((s) => s.testCase.kind === 'flagged');
   const controls = summaries.filter((s) => s.testCase.kind === 'control');
   const controlHits = controls.filter((s) => s.result.alerts.some((a) => atLeast(a, DELIVERY_MIN_TIER)));
   const controlAlerts = controls.reduce((n, s) => n + s.result.alerts.filter((a) => atLeast(a, DELIVERY_MIN_TIER)).length, 0);
   const controlDays = controls.reduce((d, s) => d + (Date.parse(s.testCase.newsAt) - Date.parse(s.testCase.windowStart)) / 86_400_000, 0);
-  const insiderDelivered = insider.flatMap((s) => s.result.alerts.filter((a) => atLeast(a, DELIVERY_MIN_TIER)));
+  const flaggedDelivered = flagged.flatMap((s) => s.result.alerts.filter((a) => atLeast(a, DELIVERY_MIN_TIER)));
   return {
-    insiderCases: insider.length,
-    hits: insider.filter((s) => s.hit).length,
-    medianLeadHours: median(insider.filter((s) => s.leadHours !== null).map((s) => s.leadHours!)),
+    flaggedCases: flagged.length,
+    hits: flagged.filter((s) => s.hit).length,
+    medianLeadHours: median(flagged.filter((s) => s.leadHours !== null).map((s) => s.leadHours!)),
     controls: controls.length,
     controlsWithAlert: controlHits.length,
     falsePositiveRate: controls.length ? controlHits.length / controls.length : null,
     controlAlertsPerDay: controlDays > 0 ? controlAlerts / controlDays : null,
-    insiderWrongSideShare: insiderDelivered.length ? insiderDelivered.filter((a) => !a.winningSide).length / insiderDelivered.length : null,
+    flaggedWrongSideShare: flaggedDelivered.length ? flaggedDelivered.filter((a) => !a.winningSide).length / flaggedDelivered.length : null,
   };
 }
 
@@ -124,13 +124,13 @@ export function renderMarkdown(
 ): string {
   const t = totals(summaries);
   const lines: string[] = [];
-  lines.push('# M2 backtest: omen signals on reported Polymarket insider cases');
+  lines.push('# M2 backtest: omen signals on public-report Polymarket cases');
   lines.push('');
   lines.push(`Generated ${meta.generatedAt} by \`omen backtest\` (config \`${meta.configPath}\`). Offline replay: no DB, Redis, Telegram, feed or Alchemy.`);
   lines.push('');
   lines.push('## Headline');
   lines.push('');
-  lines.push(`- Insider cases: **${t.hits}/${t.insiderCases} hit** (a delivered ${DELIVERY_MIN_TIER}+ alert from a deliverable signal on the winning side before the news).`);
+  lines.push(`- Flagged (public-report) cases: **${t.hits}/${t.flaggedCases} hit** (a delivered ${DELIVERY_MIN_TIER}+ alert from a deliverable signal on the winning side before the news).`);
   lines.push(`- Median lead time of the first such alert: **${fmtH(t.medianLeadHours)}**.`);
   lines.push(
     `- False-positive rate on controls: **${t.controlsWithAlert}/${t.controls}` +
@@ -138,7 +138,7 @@ export function renderMarkdown(
       `${t.controlAlertsPerDay === null ? '—' : t.controlAlertsPerDay.toFixed(2)} such alerts per control market-day.`,
   );
   lines.push(
-    `- In the insider markets, ${t.insiderWrongSideShare === null ? '—' : `${(t.insiderWrongSideShare * 100).toFixed(0)}%`} of delivered ${DELIVERY_MIN_TIER}+ alerts were on the losing side.`,
+    `- In the flagged markets, ${t.flaggedWrongSideShare === null ? '—' : `${(t.flaggedWrongSideShare * 100).toFixed(0)}%`} of delivered ${DELIVERY_MIN_TIER}+ alerts were on the losing side.`,
   );
   lines.push('');
   if (meta.deliveredSignals?.length) lines.push(...renderScorecard(meta.deliveredSignals, summaries));
@@ -161,7 +161,7 @@ export function renderMarkdown(
     const rep = s.reportedWalletFlagged === null ? (s.testCase.reportedWallets?.length ? 'not found in tape' : 'n/a') : s.reportedWalletFlagged ? 'yes' : 'no';
     lines.push(
       `| ${s.testCase.id} | ${s.testCase.kind} | ${s.result.tradesInWindow.toLocaleString('en-US')} / ${fmtUsd(s.result.volumeInWindowUsd)} | ` +
-        `${s.testCase.kind === 'insider' ? (s.hit ? '**HIT**' : 'miss') : s.result.alerts.some((a) => atLeast(a, DELIVERY_MIN_TIER)) ? 'FP' : 'clean'} | ` +
+        `${s.testCase.kind === 'flagged' ? (s.hit ? '**HIT**' : 'miss') : s.result.alerts.some((a) => atLeast(a, DELIVERY_MIN_TIER)) ? 'FP' : 'clean'} | ` +
         `${s.bestWinningTier} | ${fmtH(s.leadHours)} | ${fmtH(s.firstAnyAlertLeadHours)} | ${c.CRITICAL}/${c.HIGH}/${c.MEDIUM}/${c.LOW} | ${sig} | ${rep} |`,
     );
   }
@@ -171,9 +171,9 @@ export function renderMarkdown(
     lines.push(`### What-if (not shipped): ${v.label}`);
     lines.push('');
     lines.push(
-      `Hits **${vt.hits}/${vt.insiderCases}**, median lead ${fmtH(vt.medianLeadHours)}, controls with a ${DELIVERY_MIN_TIER}+ alert ` +
+      `Hits **${vt.hits}/${vt.flaggedCases}**, median lead ${fmtH(vt.medianLeadHours)}, controls with a ${DELIVERY_MIN_TIER}+ alert ` +
         `**${vt.controlsWithAlert}/${vt.controls}** (${vt.controlAlertsPerDay === null ? '—' : vt.controlAlertsPerDay.toFixed(2)}/market-day), ` +
-        `losing-side share in insider markets ${vt.insiderWrongSideShare === null ? '—' : `${(vt.insiderWrongSideShare * 100).toFixed(0)}%`}.`,
+        `losing-side share in flagged markets ${vt.flaggedWrongSideShare === null ? '—' : `${(vt.flaggedWrongSideShare * 100).toFixed(0)}%`}.`,
     );
     lines.push('');
     lines.push('| Case | Hit | Best winning-side tier | Lead (first hit) | Delivered MEDIUM+ (winning / losing) |');
@@ -181,7 +181,7 @@ export function renderMarkdown(
     for (const s of v.summaries) {
       const m = s.result.alerts.filter((a) => atLeast(a, DELIVERY_MIN_TIER));
       lines.push(
-        `| ${s.testCase.id} | ${s.testCase.kind === 'insider' ? (s.hit ? '**HIT**' : 'miss') : m.length ? 'FP' : 'clean'} | ${s.bestWinningTier} | ${fmtH(s.leadHours)} | ` +
+        `| ${s.testCase.id} | ${s.testCase.kind === 'flagged' ? (s.hit ? '**HIT**' : 'miss') : m.length ? 'FP' : 'clean'} | ${s.bestWinningTier} | ${fmtH(s.leadHours)} | ` +
           `${m.filter((a) => a.winningSide).length} / ${m.filter((a) => !a.winningSide).length} |`,
       );
     }
@@ -227,12 +227,12 @@ export function renderMarkdown(
 
 export interface SignalScorecard {
   signalId: string;
-  insiderCases: number;
+  flaggedCases: number;
   hits: number;
   medianLeadHours: number | null;
-  /** Delivered MEDIUM+ alerts carrying the signal in insider markets: winning / losing side. */
-  insiderWinningAlerts: number;
-  insiderLosingAlerts: number;
+  /** Delivered MEDIUM+ alerts carrying the signal in flagged (public-report) markets: winning / losing side. */
+  flaggedWinningAlerts: number;
+  flaggedLosingAlerts: number;
   controls: number;
   controlsWithAlert: number;
   controlAlerts: number;
@@ -243,17 +243,17 @@ export interface SignalScorecard {
 export function signalScorecard(signalId: string, summaries: CaseSummary[]): SignalScorecard {
   const leads: number[] = [];
   let hits = 0;
-  let insiderWinningAlerts = 0;
-  let insiderLosingAlerts = 0;
+  let flaggedWinningAlerts = 0;
+  let flaggedLosingAlerts = 0;
   let controlsWithAlert = 0;
   let controlAlerts = 0;
   let controlDays = 0;
   for (const s of summaries) {
     const fired = s.result.alerts.filter((a) => atLeast(a, DELIVERY_MIN_TIER, signalId));
     const win = fired.filter((a) => a.winningSide);
-    if (s.testCase.kind === 'insider') {
-      insiderWinningAlerts += win.length;
-      insiderLosingAlerts += fired.length - win.length;
+    if (s.testCase.kind === 'flagged') {
+      flaggedWinningAlerts += win.length;
+      flaggedLosingAlerts += fired.length - win.length;
       if (win.length) {
         hits += 1;
         leads.push((Date.parse(s.testCase.newsAt) / 1000 - Math.min(...win.map((a) => a.timestamp))) / 3600);
@@ -266,11 +266,11 @@ export function signalScorecard(signalId: string, summaries: CaseSummary[]): Sig
   }
   return {
     signalId,
-    insiderCases: summaries.filter((s) => s.testCase.kind === 'insider').length,
+    flaggedCases: summaries.filter((s) => s.testCase.kind === 'flagged').length,
     hits,
     medianLeadHours: median(leads),
-    insiderWinningAlerts,
-    insiderLosingAlerts,
+    flaggedWinningAlerts,
+    flaggedLosingAlerts,
     controls: summaries.filter((s) => s.testCase.kind === 'control').length,
     controlsWithAlert,
     controlAlerts,
@@ -288,17 +288,17 @@ function renderScorecard(signalIds: string[], summaries: CaseSummary[]): string[
       'Hit = such an alert on the winning side before the news; FP = a control market with one.',
   );
   lines.push('');
-  lines.push('| Signal | Insider hits | Median lead (first hit) | Insider alerts (winning / losing) | Controls with alert (FP) | Control alerts / market-day |');
+  lines.push('| Signal | Flagged hits | Median lead (first hit) | Flagged alerts (winning / losing) | Controls with alert (FP) | Control alerts / market-day |');
   lines.push('|---|---|---|---|---|---|');
   for (const id of signalIds) {
     const c = signalScorecard(id, summaries);
     lines.push(
-      `| ${id} | ${c.hits}/${c.insiderCases} | ${fmtH(c.medianLeadHours)} | ${c.insiderWinningAlerts} / ${c.insiderLosingAlerts} | ` +
+      `| ${id} | ${c.hits}/${c.flaggedCases} | ${fmtH(c.medianLeadHours)} | ${c.flaggedWinningAlerts} / ${c.flaggedLosingAlerts} | ` +
         `${c.controlsWithAlert}/${c.controls} | ${c.controlAlertsPerDay === null ? '—' : c.controlAlertsPerDay.toFixed(2)} |`,
     );
   }
   lines.push(
-    `| **any delivered** | **${t.hits}/${t.insiderCases}** | ${fmtH(t.medianLeadHours)} | — | **${t.controlsWithAlert}/${t.controls}** | ${t.controlAlertsPerDay === null ? '—' : t.controlAlertsPerDay.toFixed(2)} |`,
+    `| **any delivered** | **${t.hits}/${t.flaggedCases}** | ${fmtH(t.medianLeadHours)} | — | **${t.controlsWithAlert}/${t.controls}** | ${t.controlAlertsPerDay === null ? '—' : t.controlAlertsPerDay.toFixed(2)} |`,
   );
   lines.push('');
   return lines;
@@ -312,7 +312,7 @@ export interface MovesCell {
 
 export interface MovesReport {
   /** Rows: signal × scope ('fired' = every firing, as live grades; 'delivered' = delivered MEDIUM+ alerts) × subset. */
-  rows: { signalId: string; scope: 'fired' | 'delivered'; subset: 'all' | 'insider' | 'control'; cells: Record<Horizon, MovesCell> }[];
+  rows: { signalId: string; scope: 'fired' | 'delivered'; subset: 'all' | 'flagged' | 'control'; cells: Record<Horizon, MovesCell> }[];
   baselineFills: number;
 }
 

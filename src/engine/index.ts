@@ -20,7 +20,7 @@ import { createIngestQuarantineStore } from '../persistence/queries/ingest-quara
 import { createRedisClient, pingRedis } from '../persistence/redis.js';
 import { readAlchemyCuUsage } from '../resilience/cu-meter.js';
 import { OutcomeTracker } from '../outcomes/tracker.js';
-import { FeedClient, XBridge, loadXOptions } from '@charr91/smart-money-feed';
+import { loadFeedRuntime, loadXOptions, type FeedClientInstance, type XBridgeInstance } from '../feed/sdk.js';
 import { annotatePendingAlerts, recordXRequest, xRequestForAlert } from '../feed/x-enrich.js';
 import { Pool as PgPool } from 'pg';
 import { liveAlertEnvelope, syncOutcomesToFeed } from '../feed/publisher.js';
@@ -105,6 +105,7 @@ export async function runStartCommand(options: StartCommandOptions = {}): Promis
   const pool = createDbPool(config);
   // M3 shared feed: separate database (FEED_DATABASE_URL); omen never reads it back. Disabled => null.
   const feedPool = config.feed.enabled && config.feed.databaseUrl ? new PgPool({ connectionString: config.feed.databaseUrl, max: 2 }) : null;
+  const { FeedClient, XBridge } = await loadFeedRuntime();
   const feed = feedPool ? new FeedClient(feedPool) : null;
   // M4: X context through the shared bridge. Requests are only queued while x.source = grokbot.
   const xBridge = feedPool && config.feed.xEnrich ? new XBridge(feedPool, loadXOptions()) : null;
@@ -591,8 +592,8 @@ async function handleSignalPreview(options: {
   alertDispatcher: AlertDispatcher;
   dashboard: TerminalDashboard | null;
   logger: Logger;
-  feed?: FeedClient | null;
-  x?: { bridge: XBridge; db: Pick<Pool, 'query'>; minTier: string } | null;
+  feed?: FeedClientInstance | null;
+  x?: { bridge: XBridgeInstance; db: Pick<Pool, 'query'>; minTier: string } | null;
 }): Promise<void> {
   const { preview, alertStore, fillStore, alertDispatcher, dashboard, logger } = options;
   if (dashboard === null) {

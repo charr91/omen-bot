@@ -1,5 +1,8 @@
 # OMEN — Prediction Market Insider Detection System
 
+> Note: this document is a historical design reference. Omen is a market-integrity research tool; it does not claim that any wallet or person is an insider, and it does not claim a proven trading edge. See the README for current shipped behavior and wording.
+
+
 ## Technical Specification · v1.8
 
 > Full revision history at [end of document](#changelog).

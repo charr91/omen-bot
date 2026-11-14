@@ -1,19 +1,20 @@
 /**
- * M2 backtest set (19 + 19): publicly reported insider-style Polymarket cases (no sports: that category is excluded live) plus comparable control markets with no reported
- * insider activity. Times are UTC. `newsAt` is the first public signal of the outcome (a conservative cut-off: alerts
- * must land before it to count). `windowStart` is when replay begins (insider entries reported after it).
+ * M2 backtest set (19 + 19): Polymarket markets that were the subject of public market-integrity reporting
+ * (no sports: that category is excluded live) plus comparable control markets with no such reporting.
+ * Times are UTC. `newsAt` is the first public signal of the outcome (a conservative cut-off: alerts
+ * must land before it to count). `windowStart` is when replay begins (reported unusual activity after it).
  */
 export interface BacktestCase {
   id: string;
-  kind: 'insider' | 'control';
+  kind: 'flagged' | 'control';
   title: string;
   conditionId: string;
-  /** Outcome that won (the side an insider would hold). */
+  /** Outcome that won (the side a hypothetically informed trader would hold). */
   winningOutcome: 'YES' | 'NO';
   windowStart: string;
   newsAt: string;
   newsNote: string;
-  /** Display names / pseudonyms named in reporting (matched against data-api trade names). */
+  /** Accounts named in public reporting (matched against data-api trade names). */
   reportedWallets?: string[];
   sources: { label: string; url: string }[];
 }
@@ -21,7 +22,7 @@ export interface BacktestCase {
 export const BACKTEST_CASES: BacktestCase[] = [
   {
     id: 'nobel-machado-2025',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Will María Corina Machado win the Nobel Peace Prize in 2025?',
     conditionId: '0x14a3dfeba8b22a32feb0f10763db68bc4d2abeb5bff90e9ae20de53793b35a1d',
     winningOutcome: 'YES',
@@ -35,7 +36,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'openai-browser-oct31',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'OpenAI browser by October 31?',
     conditionId: '0xc25e15f39f776813870ee363ed483451add1c55dad163b18bdb2df653be2c90c',
     winningOutcome: 'YES',
@@ -46,7 +47,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'd4vd-year-in-search',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Will d4vd be the #1 searched person on Google this year?',
     conditionId: '0xea17b1284d10617a57f910b2ea63bdef481b1724a4b899d454ff104bea67b657',
     winningOutcome: 'YES',
@@ -61,7 +62,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'maduro-out-jan31',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Maduro out by January 31, 2026?',
     conditionId: '0x580adc1327de9bf7c179ef5aaffa3377bb5cb252b7d6390b027172d43fd6f993',
     winningOutcome: 'YES',
@@ -77,7 +78,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'us-strikes-iran-feb28',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'US strikes Iran by February 28, 2026?',
     conditionId: '0x3488f31e6449f9803f99a8b5dd232c7ad883637f1c86e6953305a2ef19c77f20',
     winningOutcome: 'YES',
@@ -92,7 +93,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'us-iran-ceasefire-apr7',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'US x Iran ceasefire by April 7?',
     conditionId: '0x4c5701bcde0b8fb7d7f48c8e9d20245a6caa58c61a77f981fad98f2bfa0b1bc7',
     winningOutcome: 'YES',
@@ -106,7 +107,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'us-action-iran-jun21',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'US military action against Iran by Saturday? (2025-06-21)',
     conditionId: '0x6c6cff89b135f5684f5a25a98fd0335814d1bc411d08bfcf0be400db76ce511a',
     winningOutcome: 'YES',
@@ -117,7 +118,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'us-forces-venezuela-jan31',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'US forces in Venezuela by January 31, 2026?',
     conditionId: '0xbb8bfdef9052b2709557a6f8f28b23551e3134bfb86eca800211e2191703ee65',
     winningOutcome: 'YES',
@@ -132,7 +133,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'khamenei-out-mar31',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Khamenei out as Supreme Leader of Iran by March 31?',
     conditionId: '0x70909f0ba8256a89c301da58812ae47203df54957a07c7f8b10235e877ad63c2',
     winningOutcome: 'YES',
@@ -147,7 +148,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'israel-strikes-iran-jun13',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Israel military action against Iran before July? (2025-06-13)',
     conditionId: '0xd25ff3223a2233f6cd96a349455ca3237931c64358792f90c5f02d8cc39be38d',
     winningOutcome: 'YES',
@@ -162,7 +163,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'israel-iran-ceasefire-jun23',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Israel x Iran ceasefire before July? (2025-06-23)',
     conditionId: '0x3b2f19935f2a969634a7aca52b69cf653d957ec6243bdfcb97dd830003e90624',
     winningOutcome: 'YES',
@@ -173,7 +174,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'biden-pardon-hunter',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Will Joe pardon Hunter Biden?',
     conditionId: '0x0e85e94301db0e38e25f0650ab649c3a4485b5fc9734a8b6abf3d0da0ee6dd55',
     winningOutcome: 'YES',
@@ -187,7 +188,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'biden-pardon-jim',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Will Biden pardon Jim Biden?',
     conditionId: '0xcde81adc8f07ce43f0287684a259ac4a6b3612a73c71c0247c6bc8b2bc97a691',
     winningOutcome: 'YES',
@@ -201,7 +202,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'biden-pardon-cheney',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Will Biden pardon Liz Cheney?',
     conditionId: '0x0ba6d0a2f35fbb9a38aaee50b4a44b21093f4da96a2c3a3b49704b488a6b6b20',
     winningOutcome: 'YES',
@@ -215,7 +216,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'biden-pardon-schiff',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Will Biden pardon Adam Schiff?',
     conditionId: '0x072acaa7dd352c795948d495e019eec539539d36698225ab98b2f55c692d1b0c',
     winningOutcome: 'YES',
@@ -229,7 +230,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'gemini-3-nov18',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Will Gemini 3.0 be released on November 18 2025?',
     conditionId: '0xcb42ce799c32e8f0bbe7df6a20396a7ecb1ca494316c5df0027ab89d941e1ca7',
     winningOutcome: 'YES',
@@ -245,7 +246,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'pope-leo-not-top-search',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Will Pope Leo XIV be the #1 searched person on Google this year? (No)',
     conditionId: '0xb9b05c3a14c6a7c1c6c00a8c214ed154d4232a885f98ebfd01889204ed252931',
     winningOutcome: 'NO',
@@ -260,7 +261,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'warsh-fed-chair',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Will Trump nominate Kevin Warsh as the next Fed chair?',
     conditionId: '0x61b66d02793b4a68ab0cc25be60d65f517fe18c7d654041281bb130341244fcc',
     winningOutcome: 'YES',
@@ -275,7 +276,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
   },
   {
     id: 'swift-kelce-engaged-2025',
-    kind: 'insider',
+    kind: 'flagged',
     title: 'Taylor Swift and Travis Kelce engaged in 2025?',
     conditionId: '0x89ac32e18929185f5bd0dc00e70337571f546e64ae5cd16dceb6026ac2679c1e',
     winningOutcome: 'YES',
@@ -288,7 +289,7 @@ export const BACKTEST_CASES: BacktestCase[] = [
       { label: 'Mitts & Ofir, Harvard Law corp-gov forum', url: 'https://corpgov.law.harvard.edu/2026/03/25/from-iran-to-taylor-swift-informed-trading-in-prediction-markets/' },
     ],
   },
-  // Controls: same families, no reported insider activity. Window = the same-length span before close.
+  // Controls: same families, no public market-integrity reporting. Window = the same-length span before close.
   {
     id: 'ctl-maduro-out-2025',
     kind: 'control',

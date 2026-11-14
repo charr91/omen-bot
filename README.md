@@ -38,7 +38,7 @@ Tuning lives in `omen.config.toml`. Secrets stay in `.env` (see `.env.example`).
 
 Needs Node 22+, [pnpm](https://pnpm.io), and Docker.
 
-`package.json` depends on `@charr91/smart-money-feed`, a private sibling package used to publish alerts. `pnpm install` will fail without access to that repo. The TypeScript sources in this repository are still readable without it.
+`@charr91/smart-money-feed` is an optional private sibling package used to publish alerts. `pnpm install` and `pnpm test` work without it; a local shim covers types, envelope parsing, and no-op FeedClient/XBridge classes. When the real package is installed, omen uses it unchanged.
 
 ```bash
 pnpm install
@@ -61,10 +61,12 @@ pnpm typecheck
 
 ## Status
 
-Built and in use as a research stack: live ingest, detectors and composite scoring, outcome grading (`omen stats`), and an offline replay of publicly reported unusual-activity cases (`omen backtest`; committed write-up in [docs/backtests/m2-insider-cases.md](docs/backtests/m2-insider-cases.md)). No detector has a proven edge.
+Built and in use as a research stack: live ingest, detectors and composite scoring, outcome grading (`omen stats`), and an offline replay of publicly reported unusual-activity cases (`omen backtest`; committed write-up in [docs/backtests/m2-public-report-cases.md](docs/backtests/m2-public-report-cases.md)). No detector has a proven edge.
 
 Specs under `specs/` are design references; this README and the committed config describe what actually ships.
 
 ## Disclaimer
 
 Omen is a market-integrity research project. It surfaces unusual or informed-looking trading patterns for study. It does not accuse any wallet, handle, or person of insider trading or any other wrongdoing, does not offer investment advice, and does not claim that its signals are profitable or predictive.
+
+Licensed under the [MIT License](LICENSE).

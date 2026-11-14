@@ -26,7 +26,7 @@ export function parseBacktestOptions(argv: string[]): BacktestOptions {
   const { values } = parseArgs({
     args: argv,
     options: {
-      out: { type: 'string', default: 'docs/backtests/m2-insider-cases.md' },
+      out: { type: 'string', default: 'docs/backtests/m2-public-report-cases.md' },
       json: { type: 'string' },
       'cache-dir': { type: 'string', default: '.backtest-cache' },
       offline: { type: 'boolean', default: false },
@@ -159,7 +159,7 @@ export function buildMovesReport(signalRows: Map<string, { fired: MoveRow[]; del
     const scopes: ('fired' | 'delivered')[] = isDelivered ? ['fired', 'delivered'] : ['fired'];
     for (const scope of scopes) {
       const all = b[scope];
-      const subsets: ('all' | 'insider' | 'control')[] = isDelivered ? ['all', 'insider', 'control'] : ['all'];
+      const subsets: ('all' | 'flagged' | 'control')[] = isDelivered ? ['all', 'flagged', 'control'] : ['all'];
       for (const subset of subsets) {
         const sig = subset === 'all' ? all : all.filter((r) => r.kind === subset);
         rows.push({ signalId: id, scope, subset, cells: cellsFor(sig) });

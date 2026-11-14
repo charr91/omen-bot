@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import type { XAnnotation, XBridge, XRequestInput } from '@charr91/smart-money-feed';
+import type { XAnnotation, XBridgeInstance, XRequestInput } from './sdk.js';
 import type { StoredAlert } from '../types/alert.js';
 
 /**
@@ -101,7 +101,7 @@ export interface AnnotatedAlert {
 /** One annotator pass: pull bridge results for alerts still waiting (last 12h) and store the chatter summary. */
 export async function annotatePendingAlerts(
   db: Pick<Pool, 'query'>,
-  bridge: Pick<XBridge, 'annotations'>,
+  bridge: Pick<XBridgeInstance, 'annotations'>,
   maxAgeHours = 12,
 ): Promise<AnnotatedAlert[]> {
   const waiting = await db.query<{ fill_id: string }>(

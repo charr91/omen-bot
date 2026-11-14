@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-export PATH="/opt/homebrew/bin:/Users/bot/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+export PATH="/opt/homebrew/bin:${HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
 SESSION_NAME="${OMEN_SCREEN_SESSION:-omen}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

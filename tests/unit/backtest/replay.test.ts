@@ -28,14 +28,14 @@ const NEWS = '2026-01-03T06:00:00Z';
 const newsS = Date.parse(NEWS) / 1000;
 const testCase: BacktestCase = {
   id: 't',
-  kind: 'insider',
+  kind: 'flagged',
   title: 'Will X happen?',
   conditionId: CID,
   winningOutcome: 'YES',
   windowStart: '2026-01-02T00:00:00Z',
   newsAt: NEWS,
   newsNote: '',
-  reportedWallets: ['Insider-Guy'],
+  reportedWallets: ['Reported-Guy'],
   sources: [],
 };
 const market = { conditionId: CID, question: 'Will X happen?', slug: 'x', eventSlug: 'x', volume: 50_000 };
@@ -66,7 +66,7 @@ describe('backtest replay', () => {
   it('flags a fresh wallet longshot on a niche market and measures lead time', () => {
     const trades = [
       trade({ timestamp: newsS - 20 * 3600, size: 2_000, price: 0.5 }), // $1k background volume
-      trade({ proxyWallet: FRESH, timestamp: newsS - 5 * 3600, size: 20_000, price: 0.1, name: 'Insider-Guy' }), // $2k at 10c
+      trade({ proxyWallet: FRESH, timestamp: newsS - 5 * 3600, size: 20_000, price: 0.1, name: 'Reported-Guy' }), // $2k at 10c
     ];
     const histories = new Map<string, WalletHistoryPair>([
       [FRESH, pair({ wallet: FRESH, truncated: false, events: [{ timestamp: newsS - 6 * 3600, conditionId: '0xother', type: 'TRADE', usdcSize: 50, side: 'BUY' }] })],
@@ -130,7 +130,7 @@ describe('backtest replay', () => {
       trade({ proxyWallet: '0xa', size: 1_000, price: 0.5 }),
       trade({ proxyWallet: '0xb', size: 10, price: 0.5 }),
       trade({ proxyWallet: '0xc', size: 10_000, price: 0.5 }),
-      trade({ proxyWallet: '0xd', size: 1, price: 0.5, pseudonym: 'Insider-Guy' }),
+      trade({ proxyWallet: '0xd', size: 1, price: 0.5, pseudonym: 'Reported-Guy' }),
     ];
     expect(candidateWallets(testCase, trades, config).map((c) => c.wallet)).toEqual(['0xd', '0xc', '0xa']);
   });
@@ -149,12 +149,12 @@ describe('backtest replay', () => {
     expect(t.controlsWithAlert).toBe(0); // outsized + niche = 19, CLEAN: not a delivered MEDIUM+
   });
 
-  it('ships 15-25 insider cases and a matching number of controls with sources', () => {
-    const insider = BACKTEST_CASES.filter((c) => c.kind === 'insider');
+  it('ships 15-25 flagged (public-report) cases and a matching number of controls with sources', () => {
+    const flagged = BACKTEST_CASES.filter((c) => c.kind === 'flagged');
     const controls = BACKTEST_CASES.filter((c) => c.kind === 'control');
-    expect(insider.length).toBeGreaterThanOrEqual(15);
-    expect(insider.length).toBeLessThanOrEqual(25);
-    expect(controls.length).toBeGreaterThanOrEqual(insider.length - 2);
+    expect(flagged.length).toBeGreaterThanOrEqual(15);
+    expect(flagged.length).toBeLessThanOrEqual(25);
+    expect(controls.length).toBeGreaterThanOrEqual(flagged.length - 2);
     expect(new Set(BACKTEST_CASES.map((c) => c.id)).size).toBe(BACKTEST_CASES.length);
     for (const c of BACKTEST_CASES) {
       expect(c.conditionId).toMatch(/^0x[0-9a-f]{64}$/);
@@ -211,7 +211,7 @@ describe('backtest delivery and moves', () => {
   });
 
   it('matches the baseline on market and band, weighted by signal fills per cell', () => {
-    const r = (caseId: string, band: string, m: number): MoveRow => ({ caseId, kind: 'insider', band, moves: { h1: m, h24: m, resolution: m } });
+    const r = (caseId: string, band: string, m: number): MoveRow => ({ caseId, kind: 'flagged', band, moves: { h1: m, h24: m, resolution: m } });
     const signal = [r('a', '0-20', 0.1), r('a', '0-20', 0.1), r('b', '20-40', 0.04), r('c', '0-20', 0.5)];
     const baseline = [r('a', '0-20', 0.02), r('b', '20-40', -0.02), r('b', '0-20', 0.9)];
     const { signal: s, base, edge } = bandMatched(signal, baseline, 'h1');

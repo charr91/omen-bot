@@ -106,7 +106,7 @@ interval_ms = 300_000
 baseline_per_signal = 3
 baseline_window_hours = 6
 
-# M2 backtest recommendation (docs/backtests/m2-insider-cases.md): wallet < 24h old, <= max_txns, effective price
+# M2 backtest recommendation (docs/backtests/m2-public-report-cases.md): wallet < 24h old, <= max_txns, effective price
 # < max_price, stake >= min_stake_usd, any market size. score 40 = MEDIUM on its own. deliver = false is SHADOW mode:
 # signal events + alerts are stored and graded in trade_outcomes, but never sent to Telegram/Discord or the feed's
 # live delivery. Grade it in M1 outcomes for ~2 weeks before setting deliver = true.

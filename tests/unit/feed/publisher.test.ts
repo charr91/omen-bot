@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { parseEnvelope } from '@charr91/smart-money-feed';
+import { parseEnvelope } from '../../../src/feed/sdk.js';
 import { liveAlertEnvelope, severityForTier, syncOutcomesToFeed } from '../../../src/feed/publisher.js';
 
 describe('omen -> feed', () => {

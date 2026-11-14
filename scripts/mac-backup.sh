@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Mac server backups (launchd com.smartmoney.backup, every 6h): reuse scripts/backup.sh against Homebrew PG17 on 5433,
-# same gpg key, off-machine upload to charr91/omen-box-backups release "db" (assets box-db-*). See docs/server-mac.md.
+# Thin wrapper around scripts/backup.sh for a launchd/cron host.
+# Host paths, ports, and the destination repo must come from the environment (no hardcoded machine, user, or repo).
 set -euo pipefail
-export PATH="/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-SM="$HOME/smart-money"
-export BACKUP_PREFIX=mac-db BACKUP_DIR="$SM/backups/auto" BACKUP_KEY="$SM/data/backup.key" PGHOST=localhost PGPORT=5433 PGUSER="${PGUSER:-$USER}"
-mkdir -p "$BACKUP_DIR"
+
+if [ -n "${BACKUP_PATH_PREFIX:-}" ]; then
+  export PATH="$BACKUP_PATH_PREFIX:$PATH"
+fi
+
 exec "$(dirname "$0")/backup.sh"

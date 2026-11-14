@@ -1,19 +1,19 @@
-# M2 backtest: omen signals on reported Polymarket insider cases
+# M2 backtest: omen signals on public-report Polymarket cases
 
 Generated 2026-10-22T18:13:40.396Z by `omen backtest` (config `omen.config.toml`). Offline replay: no DB, Redis, Telegram, feed or Alchemy.
 
 ## Headline
 
-- Insider cases: **9/19 hit** (a delivered MEDIUM+ alert from a deliverable signal on the winning side before the news).
+- Flagged (public-report) cases: **9/19 hit** (a delivered MEDIUM+ alert from a deliverable signal on the winning side before the news).
 - Median lead time of the first such alert: **38.7 h**.
 - False-positive rate on controls: **5/19 (26%)** of control markets had ≥1 delivered MEDIUM+ alert; 0.07 such alerts per control market-day.
-- In the insider markets, 12% of delivered MEDIUM+ alerts were on the losing side.
+- In the flagged markets, 12% of delivered MEDIUM+ alerts were on the losing side.
 
 ## Per delivered signal
 
 A signal's own alert is delivered when it passes the dedup, the fill's deliverable score is MEDIUM+ and the signal is neither score-only nor shadow. Hit = such an alert on the winning side before the news; FP = a control market with one.
 
-| Signal | Insider hits | Median lead (first hit) | Insider alerts (winning / losing) | Controls with alert (FP) | Control alerts / market-day |
+| Signal | Flagged hits | Median lead (first hit) | Flagged alerts (winning / losing) | Controls with alert (FP) | Control alerts / market-day |
 |---|---|---|---|---|---|
 | FRESH_WALLET_LARGE_POSITION | 4/19 | 50.0 h | 8 / 2 | 4/19 | 0.05 |
 | CONVICTION_SIZE_MISMATCH | 3/19 | 10.2 h | 3 / 0 | 0/19 | 0.00 |
@@ -33,25 +33,25 @@ A signal's own alert is delivered when it passes the dedup, the fill's deliverab
 
 | Case | Kind | Window trades / volume | Hit | Best winning-side tier | Lead (first hit) | Lead (first any alert) | Delivered alerts by tier (C/H/M/L) | Signals fired | Reported wallet flagged |
 |---|---|---|---|---|---|---|---|---|---|
-| nobel-machado-2025 | insider | 3,093 / $983,839 | **HIT** | HIGH | 10.2 h | 10.2 h | 0/1/0/5 | OUTSIZED_POSITION×6, NICHE_MARKET_ENTRY×3, CONVICTION_SIZE_MISMATCH×1, FRESH_WALLET_LARGE_POSITION×1, LUMP_ENTRY×5 | n/a |
-| openai-browser-oct31 | insider | 6,457 / $1,527,679 | **HIT** | MEDIUM | 38.7 h | 82.2 h | 0/1/3/13 | OUTSIZED_POSITION×10, NICHE_MARKET_ENTRY×4, LUMP_ENTRY×15, FRESH_WALLET_LARGE_POSITION×3, CONVICTION_SIZE_MISMATCH×7, FRESH_WALLET_LONGSHOT×1 | n/a |
-| d4vd-year-in-search | insider | 4,044 / $1,815,360 | miss | LOW | — | 14.9 h | 0/0/0/4 | LUMP_ENTRY×4, CONVICTION_SIZE_MISMATCH×3, OUTSIZED_POSITION×1 | not found in tape |
-| maduro-out-jan31 | insider | 1,818 / $612,323 | **HIT** | MEDIUM | 8.3 h | 87.1 h | 0/0/2/5 | LUMP_ENTRY×5, CONVICTION_SIZE_MISMATCH×4, OUTSIZED_POSITION×4, FRESH_WALLET_LONGSHOT×2 | no |
-| us-strikes-iran-feb28 | insider | 23,778 / $10,490,941 | **HIT** | HIGH | 56.8 h | 57.8 h | 0/1/8/33 | LUMP_ENTRY×35, CONVICTION_SIZE_MISMATCH×33, FRESH_WALLET_LONGSHOT×9, OUTSIZED_POSITION×1 | no |
-| us-iran-ceasefire-apr7 | insider | 18,651 / $5,625,905 | **HIT** | MEDIUM | 16.6 h | 42.3 h | 0/0/2/4 | LUMP_ENTRY×4, CONVICTION_SIZE_MISMATCH×4, FRESH_WALLET_LONGSHOT×2 | n/a |
-| us-action-iran-jun21 | insider | 2,245 / $904,453 | **HIT** | MEDIUM | 21.9 h | 37.4 h | 0/0/2/5 | OUTSIZED_POSITION×3, NICHE_MARKET_ENTRY×2, FRESH_WALLET_LARGE_POSITION×1, LUMP_ENTRY×5, FRESH_WALLET_LONGSHOT×1, CONVICTION_SIZE_MISMATCH×4 | n/a |
-| us-forces-venezuela-jan31 | insider | 91 / $11,652 | miss | CLEAN | — | — | 0/0/0/0 | — | no |
-| khamenei-out-mar31 | insider | 2,814 / $721,857 | miss | LOW | — | 39.2 h | 0/0/0/2 | OUTSIZED_POSITION×2, LUMP_ENTRY×2, CONVICTION_SIZE_MISMATCH×1 | not found in tape |
-| israel-strikes-iran-jun13 | insider | 3,164 / $871,563 | **HIT** | HIGH | 59.2 h | 59.2 h | 0/1/0/4 | OUTSIZED_POSITION×3, LUMP_ENTRY×5, CONVICTION_SIZE_MISMATCH×3, FRESH_WALLET_LONGSHOT×1 | n/a |
-| israel-iran-ceasefire-jun23 | insider | 503 / $68,463 | miss | CLEAN | — | — | 0/0/0/0 | — | n/a |
-| biden-pardon-hunter | insider | 1,420 / $55,151 | miss | CLEAN | — | — | 0/0/0/0 | — | n/a |
-| biden-pardon-jim | insider | 2,144 / $532,978 | miss | CLEAN | — | — | 0/0/0/0 | — | n/a |
-| biden-pardon-cheney | insider | 1,136 / $161,621 | miss | CLEAN | — | — | 0/0/0/0 | — | n/a |
-| biden-pardon-schiff | insider | 443 / $43,500 | miss | CLEAN | — | — | 0/0/0/0 | — | n/a |
-| gemini-3-nov18 | insider | 2,553 / $355,979 | **HIT** | MEDIUM | 61.3 h | 61.3 h | 0/0/4/4 | OUTSIZED_POSITION×4, NICHE_MARKET_ENTRY×5, FRESH_WALLET_LARGE_POSITION×4, LUMP_ENTRY×3, CONVICTION_SIZE_MISMATCH×4 | not found in tape |
-| pope-leo-not-top-search | insider | 5,615 / $2,439,556 | **HIT** | MEDIUM | 171.8 h | 171.8 h | 0/0/1/3 | OUTSIZED_POSITION×4, NICHE_MARKET_ENTRY×2, FRESH_WALLET_LARGE_POSITION×1, LUMP_ENTRY×3 | not found in tape |
-| warsh-fed-chair | insider | 14,582 / $1,339,952 | miss | LOW | — | 213.2 h | 0/0/0/4 | OUTSIZED_POSITION×4, LUMP_ENTRY×4 | no |
-| swift-kelce-engaged-2025 | insider | 39 / $1,683 | miss | CLEAN | — | — | 0/0/0/0 | — | no |
+| nobel-machado-2025 | flagged | 3,093 / $983,839 | **HIT** | HIGH | 10.2 h | 10.2 h | 0/1/0/5 | OUTSIZED_POSITION×6, NICHE_MARKET_ENTRY×3, CONVICTION_SIZE_MISMATCH×1, FRESH_WALLET_LARGE_POSITION×1, LUMP_ENTRY×5 | n/a |
+| openai-browser-oct31 | flagged | 6,457 / $1,527,679 | **HIT** | MEDIUM | 38.7 h | 82.2 h | 0/1/3/13 | OUTSIZED_POSITION×10, NICHE_MARKET_ENTRY×4, LUMP_ENTRY×15, FRESH_WALLET_LARGE_POSITION×3, CONVICTION_SIZE_MISMATCH×7, FRESH_WALLET_LONGSHOT×1 | n/a |
+| d4vd-year-in-search | flagged | 4,044 / $1,815,360 | miss | LOW | — | 14.9 h | 0/0/0/4 | LUMP_ENTRY×4, CONVICTION_SIZE_MISMATCH×3, OUTSIZED_POSITION×1 | not found in tape |
+| maduro-out-jan31 | flagged | 1,818 / $612,323 | **HIT** | MEDIUM | 8.3 h | 87.1 h | 0/0/2/5 | LUMP_ENTRY×5, CONVICTION_SIZE_MISMATCH×4, OUTSIZED_POSITION×4, FRESH_WALLET_LONGSHOT×2 | no |
+| us-strikes-iran-feb28 | flagged | 23,778 / $10,490,941 | **HIT** | HIGH | 56.8 h | 57.8 h | 0/1/8/33 | LUMP_ENTRY×35, CONVICTION_SIZE_MISMATCH×33, FRESH_WALLET_LONGSHOT×9, OUTSIZED_POSITION×1 | no |
+| us-iran-ceasefire-apr7 | flagged | 18,651 / $5,625,905 | **HIT** | MEDIUM | 16.6 h | 42.3 h | 0/0/2/4 | LUMP_ENTRY×4, CONVICTION_SIZE_MISMATCH×4, FRESH_WALLET_LONGSHOT×2 | n/a |
+| us-action-iran-jun21 | flagged | 2,245 / $904,453 | **HIT** | MEDIUM | 21.9 h | 37.4 h | 0/0/2/5 | OUTSIZED_POSITION×3, NICHE_MARKET_ENTRY×2, FRESH_WALLET_LARGE_POSITION×1, LUMP_ENTRY×5, FRESH_WALLET_LONGSHOT×1, CONVICTION_SIZE_MISMATCH×4 | n/a |
+| us-forces-venezuela-jan31 | flagged | 91 / $11,652 | miss | CLEAN | — | — | 0/0/0/0 | — | no |
+| khamenei-out-mar31 | flagged | 2,814 / $721,857 | miss | LOW | — | 39.2 h | 0/0/0/2 | OUTSIZED_POSITION×2, LUMP_ENTRY×2, CONVICTION_SIZE_MISMATCH×1 | not found in tape |
+| israel-strikes-iran-jun13 | flagged | 3,164 / $871,563 | **HIT** | HIGH | 59.2 h | 59.2 h | 0/1/0/4 | OUTSIZED_POSITION×3, LUMP_ENTRY×5, CONVICTION_SIZE_MISMATCH×3, FRESH_WALLET_LONGSHOT×1 | n/a |
+| israel-iran-ceasefire-jun23 | flagged | 503 / $68,463 | miss | CLEAN | — | — | 0/0/0/0 | — | n/a |
+| biden-pardon-hunter | flagged | 1,420 / $55,151 | miss | CLEAN | — | — | 0/0/0/0 | — | n/a |
+| biden-pardon-jim | flagged | 2,144 / $532,978 | miss | CLEAN | — | — | 0/0/0/0 | — | n/a |
+| biden-pardon-cheney | flagged | 1,136 / $161,621 | miss | CLEAN | — | — | 0/0/0/0 | — | n/a |
+| biden-pardon-schiff | flagged | 443 / $43,500 | miss | CLEAN | — | — | 0/0/0/0 | — | n/a |
+| gemini-3-nov18 | flagged | 2,553 / $355,979 | **HIT** | MEDIUM | 61.3 h | 61.3 h | 0/0/4/4 | OUTSIZED_POSITION×4, NICHE_MARKET_ENTRY×5, FRESH_WALLET_LARGE_POSITION×4, LUMP_ENTRY×3, CONVICTION_SIZE_MISMATCH×4 | not found in tape |
+| pope-leo-not-top-search | flagged | 5,615 / $2,439,556 | **HIT** | MEDIUM | 171.8 h | 171.8 h | 0/0/1/3 | OUTSIZED_POSITION×4, NICHE_MARKET_ENTRY×2, FRESH_WALLET_LARGE_POSITION×1, LUMP_ENTRY×3 | not found in tape |
+| warsh-fed-chair | flagged | 14,582 / $1,339,952 | miss | LOW | — | 213.2 h | 0/0/0/4 | OUTSIZED_POSITION×4, LUMP_ENTRY×4 | no |
+| swift-kelce-engaged-2025 | flagged | 39 / $1,683 | miss | CLEAN | — | — | 0/0/0/0 | — | no |
 | ctl-maduro-out-2025 | control | 3,860 / $2,047,555 | clean | CLEAN | — | 20.5 h | 0/0/0/1 | LUMP_ENTRY×1, CONVICTION_SIZE_MISMATCH×1 | n/a |
 | ctl-maduro-out-nov30 | control | 2,185 / $1,141,877 | clean | LOW | — | 90.7 h | 0/0/0/1 | OUTSIZED_POSITION×1, NICHE_MARKET_ENTRY×1, LUMP_ENTRY×1 | n/a |
 | ctl-openai-browser-sep30 | control | 320 / $48,610 | clean | CLEAN | — | — | 0/0/0/0 | — | n/a |
@@ -74,7 +74,7 @@ A signal's own alert is delivered when it passes the dedup, the fill's deliverab
 
 ### What-if (not shipped): FRESH_WALLET without the niche gate (detection.market.niche_max_volume = ∞)
 
-Hits **9/19**, median lead 38.7 h, controls with a MEDIUM+ alert **7/19** (0.14/market-day), losing-side share in insider markets 24%.
+Hits **9/19**, median lead 38.7 h, controls with a MEDIUM+ alert **7/19** (0.14/market-day), losing-side share in flagged markets 24%.
 
 | Case | Hit | Best winning-side tier | Lead (first hit) | Delivered MEDIUM+ (winning / losing) |
 |---|---|---|---|---|
@@ -124,22 +124,22 @@ Same frame as `omen stats` (M1 outcomes): directional move of the traded token (
 | Signal | Scope | Cases | n (+1h / +24h / res) | +1h signal / base / edge | +24h signal / base / edge | Resolution signal / base / edge | Hit rate +24h (signal / base) |
 |---|---|---|---|---|---|---|---|
 | FRESH_WALLET_LARGE_POSITION | fired | all | 14 / 15 / 15 | +1.6¢ / +0.6¢ / **+1.0¢** | +8.5¢ / -2.5¢ / **+11.0¢** | +17.5¢ / +5.7¢ / **+11.8¢** | 73% / 49% |
-| FRESH_WALLET_LARGE_POSITION | fired | insider | 10 / 11 / 11 | +2.3¢ / +0.8¢ / **+1.6¢** | +10.3¢ / -4.2¢ / **+14.5¢** | +22.4¢ / +6.8¢ / **+15.6¢** | 64% / 36% |
+| FRESH_WALLET_LARGE_POSITION | fired | flagged | 10 / 11 / 11 | +2.3¢ / +0.8¢ / **+1.6¢** | +10.3¢ / -4.2¢ / **+14.5¢** | +22.4¢ / +6.8¢ / **+15.6¢** | 64% / 36% |
 | FRESH_WALLET_LARGE_POSITION | fired | control | 4 / 4 / 4 | -0.3¢ / +0.1¢ / **-0.4¢** | +3.4¢ / +1.9¢ / **+1.5¢** | +4.0¢ / +2.8¢ / **+1.2¢** | 100% / 85% |
 | FRESH_WALLET_LARGE_POSITION | delivered | all | 13 / 14 / 14 | +2.0¢ / +0.7¢ / **+1.3¢** | +9.0¢ / -2.8¢ / **+11.8¢** | +17.0¢ / +4.4¢ / **+12.6¢** | 71% / 49% |
-| FRESH_WALLET_LARGE_POSITION | delivered | insider | 9 / 10 / 10 | +3.0¢ / +0.9¢ / **+2.1¢** | +11.2¢ / -4.7¢ / **+15.9¢** | +22.2¢ / +5.1¢ / **+17.2¢** | 60% / 35% |
+| FRESH_WALLET_LARGE_POSITION | delivered | flagged | 9 / 10 / 10 | +3.0¢ / +0.9¢ / **+2.1¢** | +11.2¢ / -4.7¢ / **+15.9¢** | +22.2¢ / +5.1¢ / **+17.2¢** | 60% / 35% |
 | FRESH_WALLET_LARGE_POSITION | delivered | control | 4 / 4 / 4 | -0.3¢ / +0.1¢ / **-0.4¢** | +3.4¢ / +1.9¢ / **+1.5¢** | +4.0¢ / +2.8¢ / **+1.2¢** | 100% / 85% |
 | CONVICTION_SIZE_MISMATCH | fired | all | 197 / 205 / 206 | +3.2¢ / +1.4¢ / **+1.8¢** | +31.8¢ / +24.9¢ / **+6.9¢** | +39.5¢ / +37.8¢ / **+1.7¢** | 55% / 50% |
-| CONVICTION_SIZE_MISMATCH | fired | insider | 132 / 135 / 135 | +5.2¢ / +2.4¢ / **+2.8¢** | +50.2¢ / +39.6¢ / **+10.5¢** | +64.5¢ / +61.5¢ / **+3.0¢** | 75% / 68% |
+| CONVICTION_SIZE_MISMATCH | fired | flagged | 132 / 135 / 135 | +5.2¢ / +2.4¢ / **+2.8¢** | +50.2¢ / +39.6¢ / **+10.5¢** | +64.5¢ / +61.5¢ / **+3.0¢** | 75% / 68% |
 | CONVICTION_SIZE_MISMATCH | fired | control | 65 / 70 / 71 | -0.9¢ / -0.5¢ / **-0.4¢** | -3.7¢ / -3.7¢ / **+0.0¢** | -8.2¢ / -7.3¢ / **-0.9¢** | 16% / 16% |
 | CONVICTION_SIZE_MISMATCH | delivered | all | 3 / 3 / 3 | +14.7¢ / +7.9¢ / **+6.8¢** | +57.5¢ / +45.0¢ / **+12.6¢** | +81.8¢ / +83.6¢ / **-1.7¢** | 67% / 92% |
-| CONVICTION_SIZE_MISMATCH | delivered | insider | 3 / 3 / 3 | +14.7¢ / +7.9¢ / **+6.8¢** | +57.5¢ / +45.0¢ / **+12.6¢** | +81.8¢ / +83.6¢ / **-1.7¢** | 67% / 92% |
+| CONVICTION_SIZE_MISMATCH | delivered | flagged | 3 / 3 / 3 | +14.7¢ / +7.9¢ / **+6.8¢** | +57.5¢ / +45.0¢ / **+12.6¢** | +81.8¢ / +83.6¢ / **-1.7¢** | 67% / 92% |
 | CONVICTION_SIZE_MISMATCH | delivered | control | 0 / 0 / 0 | — / — / **—** | — / — / **—** | — / — / **—** | — / — |
 | FRESH_WALLET_LONGSHOT | fired | all | 20 / 21 / 21 | +6.2¢ / +0.3¢ / **+5.9¢** | +48.7¢ / +40.7¢ / **+7.9¢** | +76.6¢ / +67.5¢ / **+9.2¢** | 76% / 71% |
-| FRESH_WALLET_LONGSHOT | fired | insider | 19 / 20 / 20 | +6.8¢ / +0.3¢ / **+6.4¢** | +51.3¢ / +42.9¢ / **+8.4¢** | +80.7¢ / +71.1¢ / **+9.6¢** | 80% / 74% |
+| FRESH_WALLET_LONGSHOT | fired | flagged | 19 / 20 / 20 | +6.8¢ / +0.3¢ / **+6.4¢** | +51.3¢ / +42.9¢ / **+8.4¢** | +80.7¢ / +71.1¢ / **+9.6¢** | 80% / 74% |
 | FRESH_WALLET_LONGSHOT | fired | control | 1 / 1 / 1 | -4.1¢ / -0.5¢ / **-3.6¢** | -4.2¢ / -3.1¢ / **-1.1¢** | -4.2¢ / -4.4¢ / **+0.1¢** | 0% / 11% |
 | FRESH_WALLET_LONGSHOT | delivered | all | 16 / 17 / 17 | +7.9¢ / +0.1¢ / **+7.8¢** | +59.0¢ / +37.8¢ / **+21.2¢** | +73.5¢ / +63.2¢ / **+10.3¢** | 76% / 68% |
-| FRESH_WALLET_LONGSHOT | delivered | insider | 15 / 16 / 16 | +8.7¢ / +0.1¢ / **+8.5¢** | +63.0¢ / +40.4¢ / **+22.6¢** | +78.3¢ / +67.4¢ / **+11.0¢** | 81% / 71% |
+| FRESH_WALLET_LONGSHOT | delivered | flagged | 15 / 16 / 16 | +8.7¢ / +0.1¢ / **+8.5¢** | +63.0¢ / +40.4¢ / **+22.6¢** | +78.3¢ / +67.4¢ / **+11.0¢** | 81% / 71% |
 | FRESH_WALLET_LONGSHOT | delivered | control | 1 / 1 / 1 | -4.1¢ / -0.5¢ / **-3.6¢** | -4.2¢ / -3.1¢ / **-1.1¢** | -4.2¢ / -4.4¢ / **+0.1¢** | 0% / 11% |
 | NICHE_MARKET_ENTRY | fired | all | 389 / 436 / 448 | -1.0¢ / -0.5¢ / **-0.5¢** | -3.7¢ / -5.2¢ / **+1.5¢** | -10.8¢ / -9.1¢ / **-1.8¢** | 47% / 48% |
 | OUTSIZED_POSITION | fired | all | 747 / 831 / 847 | -0.5¢ / -1.6¢ / **+1.1¢** | -4.6¢ / -6.5¢ / **+1.9¢** | -9.7¢ / -10.2¢ / **+0.5¢** | 49% / 51% |
@@ -573,20 +573,20 @@ Same frame as `omen stats` (M1 outcomes): directional move of the traded token (
 <!-- findings:start (hand-written; `omen backtest` keeps this block) -->
 ## Findings (hand-written, 2026-10-22; config after 1eb6110: sports excluded, SYBIL muted, NICHE/OUTSIZED/LUMP score-only, Telegram = FWLP + CSM + FWL)
 
-Case set grown to **19 insider + 19 controls** (no sports). The new insider markets come from public reporting (CFTC complaint, NPR, CNN, Forbes, Gizmodo, Times of Israel, Investing.com/Reuters, IBTimes, CNBC, Business Insider; links in each case). The controls are non-sports markets with no reported leak, mostly siblings or earlier deadlines in the same events. On the 7 + 6 cases from 2026-10-16 the current config scores **6/7 hits, 1/6 control FPs**, which matches the "combined" figure from finding 6 below now that FWL delivers. On the full set: **9/19 hits, median lead 38.7 h, 5/19 controls with a delivered MEDIUM+ alert (0.07 / market-day)**.
+Case set grown to **19 flagged (public-report) + 19 controls** (no sports). The new flagged markets come from public reporting (CFTC complaint, NPR, CNN, Forbes, Gizmodo, Times of Israel, Investing.com/Reuters, IBTimes, CNBC, Business Insider; links in each case). The controls are non-sports markets with no reported leak, mostly siblings or earlier deadlines in the same events. On the 7 + 6 cases from 2026-10-16 the current config scores **6/7 hits, 1/6 control FPs**, which matches the "combined" figure from finding 6 below now that FWL delivers. On the full set: **9/19 hits, median lead 38.7 h, 5/19 controls with a delivered MEDIUM+ alert (0.07 / market-day)**.
 
-1. **FRESH_WALLET_LONGSHOT has the cleanest record.** 5/19 hits, median lead 21.9 h, 15 winning vs 1 losing delivered alerts in insider markets, 1/19 control FP (Trump-Nobel, losing side). Against the same-market, same-band baseline its delivered alerts lead by **+8.5¢ at +1 h** and +22.6¢ at +24 h in insider markets. n = 16 fills in 6 markets, so treat it as directional; case-clustered t < 2.
-2. **FRESH_WALLET_LARGE_POSITION finds insiders but carries all 4 of the other control FPs.** 4/19 hits (Nobel, OpenAI browser, Gemini 3, Pope-not-top-search), median lead 50 h, 8 winning / 2 losing alerts. Insider edge is +14.5¢ at +24 h (n = 11). **Every control FP it raised (Khamenei 2025, Israel-strikes Sep 30, Gemini-by-Nov-15, Navalnaya) is a fresh wallet buying the near-certain side at an effective 0.92–1.00.** Those fills cannot move more than a few cents, and their controls edge is +1.5¢ at +24 h (n = 4). That matches the live **+2¢ at 24 h (n = 71)**, which most likely comes from no-leak markets like these. Every winning FWLP alert in an insider market was at an effective 0.10–0.81.
-3. **CONVICTION_SIZE_MISMATCH reproduces the live number and little else.** Across all firings (any tier, the frame live grades): n = 205 at +24 h, edge **+1.8¢ at +1 h** and +6.9¢ at +24 h. The +24 h figure comes almost entirely from the two cluster-style Iran markets (Feb 28, Apr 7). Without them it is **+1.2¢ / +1.7¢ (n ≈ 120)**, the same as live **+2¢ / +2¢ (n = 203)**. On controls it is −0.4¢ / 0.0¢. CSM alone (score 14) almost never reaches MEDIUM: only 3 delivered alerts (all winning, insider) and 3/19 hits. Most of its firings are CLEAN or LOW dry-run.
+1. **FRESH_WALLET_LONGSHOT has the cleanest record.** 5/19 hits, median lead 21.9 h, 15 winning vs 1 losing delivered alerts in flagged markets, 1/19 control FP (Trump-Nobel, losing side). Against the same-market, same-band baseline its delivered alerts lead by **+8.5¢ at +1 h** and +22.6¢ at +24 h in flagged markets. n = 16 fills in 6 markets, so treat it as directional; case-clustered t < 2.
+2. **FRESH_WALLET_LARGE_POSITION fires on public-report cases but carries all 4 of the other control FPs.** 4/19 hits (Nobel, OpenAI browser, Gemini 3, Pope-not-top-search), median lead 50 h, 8 winning / 2 losing alerts. Public-report-case edge is +14.5¢ at +24 h (n = 11). **Every control FP it raised (Khamenei 2025, Israel-strikes Sep 30, Gemini-by-Nov-15, Navalnaya) is a fresh wallet buying the near-certain side at an effective 0.92–1.00.** Those fills cannot move more than a few cents, and their controls edge is +1.5¢ at +24 h (n = 4). That matches the live **+2¢ at 24 h (n = 71)**, which most likely comes from no-leak markets like these. Every winning FWLP alert in a flagged market was at an effective 0.10–0.81.
+3. **CONVICTION_SIZE_MISMATCH reproduces the live number and little else.** Across all firings (any tier, the frame live grades): n = 205 at +24 h, edge **+1.8¢ at +1 h** and +6.9¢ at +24 h. The +24 h figure comes almost entirely from the two cluster-style Iran markets (Feb 28, Apr 7). Without them it is **+1.2¢ / +1.7¢ (n ≈ 120)**, the same as live **+2¢ / +2¢ (n = 203)**. On controls it is −0.4¢ / 0.0¢. CSM alone (score 14) almost never reaches MEDIUM: only 3 delivered alerts (all winning, flagged cases) and 3/19 hits. Most of its firings are CLEAN or LOW dry-run.
    - **By size:** the edge sits in $250–1k fills. $1k+ fills show none (+1.2¢ at +24 h, n = 49).
    - **By price:** the 10–20¢ bucket is strongest (+12.5¢ at +24 h). Fills under 10¢ show ≈ 0.
    - **By ratio and age:** fill/wallet-volume ratio shows no gradient (0.5–0.8 ≈ 0.95+), and neither does wallet age.
-4. **Significance.** No delivered signal clears t = 2 once fills are clustered by market (CSM 24 h: fill-level t = 4.4, case-clustered t = 1.55). The insider markets resolve toward the leak by construction, so the absolute moves there are selection-biased. The same-market, same-band baseline removes most of that bias, and the control rows are the unbiased check.
+4. **Significance.** No delivered signal clears t = 2 once fills are clustered by market (CSM 24 h: fill-level t = 4.4, case-clustered t = 1.55). The flagged markets resolve toward the reported outcome by construction, so the absolute moves there are selection-biased. The same-market, same-band baseline removes most of that bias, and the control rows are the unbiased check.
 5. **Still missed.** The four Biden pardon markets, Warsh, Khamenei-Mar-31, Venezuela-Jan-31, the Jun 23 ceasefire and Swift/Kelce stay CLEAN or LOW. They are either thin (under 100 window fills) or the leak was made of sub-$1k bets from older wallets. The niche-gate what-if again adds no hits (9/19) and raises control FPs to 7/19, so keep the gate.
 
 **Recommended threshold tweaks (not shipped):**
 
-- **FWLP: add an effective-price cap of 0.90** (new knob, e.g. `detection.market.large_position_max_price = 0.90`). On this data the cap would remove all 4 FWLP control FPs (any-delivered FP 5/19 → 1/19). It keeps all 4 FWLP hits and every winning alert, and drops one losing insider alert (Iran Jun 21 at 0.94). The rule is fit on 4 control fills, so before shipping, check live FWLP outcomes in the 80–100¢ entry band (`omen stats`). Keep the niche gate. The 24–72 h tier (score 18) fired once (a losing alert), so there is nothing to tune there.
+- **FWLP: add an effective-price cap of 0.90** (new knob, e.g. `detection.market.large_position_max_price = 0.90`). On this data the cap would remove all 4 FWLP control FPs (any-delivered FP 5/19 → 1/19). It keeps all 4 FWLP hits and every winning alert, and drops one losing flagged-case alert (Iran Jun 21 at 0.94). The rule is fit on 4 control fills, so before shipping, check live FWLP outcomes in the 80–100¢ entry band (`omen stats`). Keep the niche gate. The 24–72 h tier (score 18) fired once (a losing alert), so there is nothing to tune there.
 - **CSM: no change.** Raising `min_fill_usd` or tightening `longshot_max_price` below 0.20 would cut the part that shows edge. Raising `min_fill_to_wallet_volume_ratio` does nothing. Do not raise its score to deliver alone: that would add about 1 alert per control market-day (71 control firings over 73 market-days) at ≈ 0¢ edge. Revisit when live n reaches about 500.
 - **FWL: keep delivered as is.**
 
@@ -597,7 +597,7 @@ Caveats: the attribution for some new cases is reporting-level, not market-level
 1. **Shipped config: 2/7 hits, median lead 24.4 h, 0/6 control FPs.** Hits are the two low-liquidity markets (Nobel/Machado: HIGH, 10.2 h before the announcement, from a 0.1 h-old wallet buying YES at 0.10 on $5.8k of 24 h volume; OpenAI browser: MEDIUM, 38.7 h). Misses are the liquid geopolitical markets (Maduro, Iran ×2, ceasefire) and d4vd.
 2. **Why the liquid cases miss.** `FRESH_WALLET_LARGE_POSITION` only runs below `niche_max_volume` ($100k/24 h), and its size bar is max($1k, 2% of 24 h volume) — $25-60k in the Iran/ceasefire markets. The reported fresh wallets bet $0.5-3k per fill (Iran: Lettucehead718 / suffix-295 stayed CLEAN). `LUMP_ENTRY` and `CONVICTION_SIZE_MISMATCH` need prior volume, so a brand-new wallet's first bet cannot trigger them. What fires there is LUMP+CONVICTION = 22 (LOW), which shows up just as often on controls (33 LOW alerts across 5/6 controls, all on the losing side). It flags longshot buyers in general, not informed ones.
 3. **Reported wallets.** The Maduro wallet (Burdensome-Mix) reached LOW 87 h before the news ($5k YES at 0.068: outsized + lump + conviction = 34). It stayed below MEDIUM because the market was not niche, so fresh-wallet could not add points, and because the wallet was 4-6 days old. AlphaRaccoon (d4vd) was renamed and cannot be matched by name in the tape.
-4. **What-ifs on the same data.** (a) Dropping the niche gate gives 4/7 hits but 2/6 control FPs, which is not worth it. (b) A fresh-wallet longshot probe: wallet < 24 h old, ≤ 10 txns, effective price < 0.30, stake ≥ $5k, any market size. It fired on the winning side in 4/7 cases (Maduro 8.3 h, Iran Feb 28 56.8 h, ceasefire 16.6 h, Iran Jun 21 21.9 h lead) and only once on a control (Trump-Nobel, losing side). It fired on the losing side once in an insider market (OpenAI browser, a $5k+ NO).
+4. **What-ifs on the same data.** (a) Dropping the niche gate gives 4/7 hits but 2/6 control FPs, which is not worth it. (b) A fresh-wallet longshot probe: wallet < 24 h old, ≤ 10 txns, effective price < 0.30, stake ≥ $5k, any market size. It fired on the winning side in 4/7 cases (Maduro 8.3 h, Iran Feb 28 56.8 h, ceasefire 16.6 h, Iran Jun 21 21.9 h lead) and only once on a control (Trump-Nobel, losing side). It fired on the losing side once in a flagged market (OpenAI browser, a $5k+ NO).
 5. **Gaps.** Sybil/funding clusters are not replayed (they need Alchemy), and they are the documented pattern in the Iran Feb 28 and ceasefire cases. Wallet age here comes from Polymarket activity, not on-chain data. n is small (7 + 6), so treat the rates as directional.
 
 6. **Shipped in shadow mode (2026-10-16).** `FRESH_WALLET_LONGSHOT` is live with `[signals.fresh_wallet_longshot] deliver = false` (score 40 = MEDIUM alone). Replayed as if delivered (section "Shadow signal" above): on its own 4/7 winning-side hits (median lead 19.2 h) and 1/6 controls (Trump-Nobel, losing side); combined with the shipped signals 6/7 hits and 1/6 control FPs. The shipped headline is unchanged (2/7, 0/6) because shadow signals do not count toward delivery.
